@@ -1,0 +1,160 @@
+{
+  "status": "PASS",
+  "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+  "categories": [
+    1,
+    39
+  ],
+  "database": "127.0.0.1:55432/focus_analytics",
+  "started_at": "2026-10-06T11:01:10.183935+00:00",
+  "bitrix_counts": {
+    "1": {
+      "category_id": 1,
+      "bitrix_total_field": 1472,
+      "bitrix_ids_fetched": 1472,
+      "bitrix_unique_ids": 1472,
+      "duplicate_ids_in_pages": 0
+    },
+    "39": {
+      "category_id": 39,
+      "bitrix_total_field": 374,
+      "bitrix_ids_fetched": 374,
+      "bitrix_unique_ids": 374,
+      "duplicate_ids_in_pages": 0
+    }
+  },
+  "finished_at": "2026-10-06T11:42:27.217929+00:00",
+  "duration_seconds": 2477.38,
+  "postgres": {
+    "managers": 72,
+    "pipelines": 2,
+    "stages": 18,
+    "deals": 1846,
+    "deals_by_category": {
+      "1": 1472,
+      "39": 374
+    },
+    "activities": 16749,
+    "snapshots": 1846,
+    "change_events": 0,
+    "active": 431,
+    "won": 805,
+    "lost": 610,
+    "missing_from_bitrix": 0,
+    "overdue_activities": 157,
+    "deals_without_future_activity": 79,
+    "duplicate_deal_bitrix_ids": 0,
+    "duplicate_activity_bitrix_ids": 0
+  },
+  "sync_runs": [
+    {
+      "sync_type": "dictionaries",
+      "status": "success",
+      "items_processed": 92,
+      "errors_count": 0,
+      "error_message": null,
+      "cursor_info": null,
+      "duration_seconds": 124.05,
+      "started_at": "2026-10-06T11:10:23.416711+00:00",
+      "finished_at": "2026-10-06T11:12:27.465255+00:00"
+    },
+    {
+      "sync_type": "full_reconcile",
+      "status": "success",
+      "items_processed": 1846,
+      "errors_count": 0,
+      "error_message": null,
+      "cursor_info": {
+        "full": true,
+        "seen": 1846,
+        "missing_marked": 0,
+        "cursor_advanced": true
+      },
+      "duration_seconds": 730.19,
+      "started_at": "2026-10-06T11:12:27.520195+00:00",
+      "finished_at": "2026-10-06T11:24:37.709343+00:00"
+    },
+    {
+      "sync_type": "activities",
+      "status": "success",
+      "items_processed": 24072,
+      "errors_count": 0,
+      "error_message": null,
+      "cursor_info": {
+        "full": true,
+        "allowed_owners": 1846,
+        "cursor_advanced": true,
+        "skipped_other_category": 7502
+      },
+      "duration_seconds": 1068.25,
+      "started_at": "2026-10-06T11:24:37.750138+00:00",
+      "finished_at": "2026-10-06T11:42:25.999217+00:00"
+    }
+  ],
+  "comparison": {
+    "by_category": {
+      "1": {
+        "bitrix": 1472,
+        "postgres": 1472,
+        "delta": 0,
+        "match": true
+      },
+      "39": {
+        "bitrix": 374,
+        "postgres": 374,
+        "delta": 0,
+        "match": true
+      }
+    },
+    "all_match": true
+  },
+  "discrepancies": [],
+  "checks": {
+    "duplicate_deals": 0,
+    "duplicate_activities": 0,
+    "webhook_in_logs": "PASS (not in report artifact)",
+    "write_methods": "none",
+    "methods_used": [
+      "crm.activity.list",
+      "crm.deal.list",
+      "crm.dealcategory.list",
+      "crm.status.list",
+      "user.search"
+    ],
+    "last_deals_sync": {
+      "at": "2026-10-06T11:24:37.698834+00:00"
+    },
+    "last_activities_sync": {
+      "at": "2026-10-06T11:42:25.938552+00:00"
+    },
+    "last_full_reconcile": {
+      "at": "2026-10-06T11:42:27.196456+00:00"
+    },
+    "full_reconcile_status": "success"
+  },
+  "client_metrics": {
+    "call_counts": {
+      "crm.deal.list": 78,
+      "user.search": 2,
+      "crm.dealcategory.list": 1,
+      "crm.status.list": 2,
+      "crm.activity.list": 632
+    },
+    "retry_count": 9,
+    "rate_limit_events": 0,
+    "network_retry_count": 9
+  },
+  "gates": {
+    "FULL_INITIAL_SYNC": "PASS",
+    "BITRIX_COUNTS_MATCH": "YES",
+    "DATABASE_CONSISTENCY": "PASS",
+    "READY_FOR_SCHEDULED_WORKER_TEST": "YES"
+  },
+  "pytest": "49 passed",
+  "notes": [
+    "Activities sync ops=24072 vs unique rows=16749: Bitrix crm.activity.list pagination returned overlapping IDs; upserts are idempotent; DB unique bitrix_id duplicates=0.",
+    "Skipped 7502 activities owned by deals outside categories 1/39 (controlled scope).",
+    "won+lost+active = 805+610+431 = 1846 (all deals classified).",
+    "Worker not started. Rebuild worker image before scheduled worker test (code has status.list + LAST_UPDATED fixes)."
+  ]
+}

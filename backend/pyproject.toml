@@ -1,0 +1,9 @@
+[project]
+name = "focus-analytics-backend"
+version = "0.1.0"
+description = "Focus Analytics — Bitrix24 sales analytics API"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

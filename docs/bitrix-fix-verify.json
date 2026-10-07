@@ -1,0 +1,232 @@
+{
+  "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+  "control_deals_bitrix": [
+    {
+      "id": 8475,
+      "title": "Рудом (Менеджер Даниил), 36 свай, будет микс С30.15 и С40.15, Ступино ",
+      "pipeline": "1",
+      "stage": "C1:EXECUTING",
+      "stage_semantic_id": "P",
+      "resolved_semantics": "process",
+      "assigned_by_id": "13215",
+      "amount": "218520.00",
+      "currency": "RUB",
+      "closed": "N"
+    },
+    {
+      "id": 7873,
+      "title": "Дмитрий - Авито Забей сваю (Алексей) (25.06)",
+      "pipeline": "39",
+      "stage": "C39:PREPAYMENT_INVOIC",
+      "stage_semantic_id": "P",
+      "resolved_semantics": "process",
+      "assigned_by_id": "21149",
+      "amount": "120000.00",
+      "currency": "RUB",
+      "closed": "N"
+    },
+    {
+      "id": 8527,
+      "title": "Дома на века  Роман С30.15 с огол 15 шт Верхнее Шахлово (Серпухов)",
+      "pipeline": "1",
+      "stage": "C1:WON",
+      "stage_semantic_id": "S",
+      "resolved_semantics": "success",
+      "assigned_by_id": "13040",
+      "amount": "122850.00",
+      "currency": "RUB",
+      "closed": "Y"
+    },
+    {
+      "id": 8581,
+      "title": "Дмитрий (от Максима) С60.20 без ог и расп - 4 шт_Люберцы (04.10.26)",
+      "pipeline": "1",
+      "stage": "C1:NEW",
+      "stage_semantic_id": "P",
+      "resolved_semantics": "process",
+      "assigned_by_id": "21809",
+      "amount": "100400.00",
+      "currency": "RUB",
+      "closed": "N"
+    }
+  ],
+  "stages_semantics": {
+    "1": {
+      "C1:UC_P9J52E": {
+        "name": "Новая заявка",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:UC_MNQOBQ": {
+        "name": "Взят в работу (до первого контакт)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:UC_1VVNF3": {
+        "name": "Недозвон",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:UC_5BR7TI": {
+        "name": "Контакт установлен / Квалификация",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:NEW": {
+        "name": "В работе/КП с расчетом (до месяца)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:UC_M45N32": {
+        "name": "Пробное бурение. Подготовка к монтажу",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:EXECUTING": {
+        "name": "Поставлен в график/монтаж",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:UC_DLA8EQ": {
+        "name": "Ждем итоговую оплату после монтажа (безнал)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C1:WON": {
+        "name": "Сделка успешна",
+        "raw_semantics": "S",
+        "resolved": "success"
+      },
+      "C1:LOSE": {
+        "name": "Сделка провалена",
+        "raw_semantics": "F",
+        "resolved": "failure"
+      },
+      "C1:APOLOGY": {
+        "name": "Предзакрытие (контроль РОП)",
+        "raw_semantics": "F",
+        "resolved": "failure"
+      }
+    },
+    "39": {
+      "C39:UC_ZM66EK": {
+        "name": "Распределение",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C39:NEW": {
+        "name": "Сроки (от 3 месяцев и более)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C39:PREPARATION": {
+        "name": "Бюджет",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C39:PREPAYMENT_INVOIC": {
+        "name": "Ближайшее время (до 3 месяцев)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C39:UC_R7UHCK": {
+        "name": "Предзакрытие (контроль РОП)",
+        "raw_semantics": null,
+        "resolved": null
+      },
+      "C39:WON": {
+        "name": "Переведен в работу",
+        "raw_semantics": "S",
+        "resolved": "success"
+      },
+      "C39:LOSE": {
+        "name": "Сделка провалена",
+        "raw_semantics": "F",
+        "resolved": "failure"
+      }
+    }
+  },
+  "db_control": [
+    {
+      "id": 8475,
+      "pipeline_id": 1,
+      "pipeline_name": "Сваи",
+      "stage": "C1:EXECUTING",
+      "stage_name": "Поставлен в график/монтаж",
+      "semantics": "process",
+      "manager": "Людмила Шифрина",
+      "manager_bitrix_id": 13215,
+      "amount": "218520.00",
+      "closed": false,
+      "has_future_activity": false,
+      "open_activities_count": 1,
+      "next_deadline_at": "2026-10-05T08:00:00+00:00"
+    },
+    {
+      "id": 7873,
+      "pipeline_id": 39,
+      "pipeline_name": "Отложенный спрос",
+      "stage": "C39:PREPAYMENT_INVOIC",
+      "stage_name": "Ближайшее время (до 3 месяцев)",
+      "semantics": "process",
+      "manager": "Наташа Кучерова",
+      "manager_bitrix_id": 21149,
+      "amount": "120000.00",
+      "closed": false,
+      "has_future_activity": true,
+      "open_activities_count": 3,
+      "next_deadline_at": "2026-10-10T06:25:29+00:00"
+    },
+    {
+      "id": 8527,
+      "pipeline_id": 1,
+      "pipeline_name": "Сваи",
+      "stage": "C1:WON",
+      "stage_name": "Сделка успешна",
+      "semantics": "success",
+      "manager": "Данута Силивончик",
+      "manager_bitrix_id": 13040,
+      "amount": "122850.00",
+      "closed": true,
+      "has_future_activity": false,
+      "open_activities_count": 1,
+      "next_deadline_at": "2026-10-06T08:00:00+00:00"
+    },
+    {
+      "id": 8581,
+      "pipeline_id": 1,
+      "pipeline_name": "Сваи",
+      "stage": "C1:NEW",
+      "stage_name": "В работе/КП с расчетом (до месяца)",
+      "semantics": "process",
+      "manager": "Анастасия Гузова",
+      "manager_bitrix_id": 21809,
+      "amount": "100400.00",
+      "closed": false,
+      "has_future_activity": true,
+      "open_activities_count": 1,
+      "next_deadline_at": "2026-10-06T13:00:00+00:00"
+    }
+  ],
+  "kpi_smoke": {
+    "won_count": 1,
+    "lost_count": 2,
+    "insufficient_stage_semantics": null,
+    "note": "SMOKE SAMPLE ONLY — period-filtered KPI; stage mapping is authoritative"
+  },
+  "checks": {
+    "C1:WON": "success",
+    "C1:LOSE": "failure",
+    "C39:WON": "success",
+    "C39:LOSE": "failure"
+  },
+  "gates": {
+    "c1_won_success": true,
+    "c1_lose_failure": true,
+    "c39_won_success": true,
+    "c39_lose_failure": true,
+    "deal_8527_won": true
+  },
+  "STAGE_SEMANTICS": "PASS",
+  "ACTIVITY_INCREMENTAL": "PASS"
+}

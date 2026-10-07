@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-06T11:47:30.913644+00:00",
+  "managers": 72,
+  "pipelines": 2,
+  "stages": 18,
+  "deals": 1846,
+  "activities": 16749,
+  "snapshots": 1846,
+  "change_events": 0,
+  "missing_from_bitrix": 0,
+  "cursors": {
+    "last_deals_sync": {
+      "at": "2026-10-06T11:24:37.698834+00:00"
+    },
+    "last_activities_sync": {
+      "at": "2026-10-06T11:42:25.938552+00:00"
+    },
+    "last_dictionaries_sync": {
+      "at": "2026-10-06T11:12:27.433226+00:00"
+    },
+    "last_full_reconcile": {
+      "at": "2026-10-06T11:42:27.196456+00:00"
+    }
+  },
+  "recent_runs": [
+    {
+      "id": 3,
+      "sync_type": "activities",
+      "status": "success",
+      "started_at": "2026-10-06T11:24:37.750138+00:00",
+      "finished_at": "2026-10-06T11:42:25.999217+00:00",
+      "items_processed": 24072,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": true,
+        "allowed_owners": 1846,
+        "cursor_advanced": true,
+        "skipped_other_category": 7502
+      },
+      "error_message": null
+    },
+    {
+      "id": 2,
+      "sync_type": "full_reconcile",
+      "status": "success",
+      "started_at": "2026-10-06T11:12:27.520195+00:00",
+      "finished_at": "2026-10-06T11:24:37.709343+00:00",
+      "items_processed": 1846,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": true,
+        "seen": 1846,
+        "missing_marked": 0,
+        "cursor_advanced": true
+      },
+      "error_message": null
+    },
+    {
+      "id": 1,
+      "sync_type": "dictionaries",
+      "status": "success",
+      "started_at": "2026-10-06T11:10:23.416711+00:00",
+      "finished_at": "2026-10-06T11:12:27.465255+00:00",
+      "items_processed": 92,
+      "errors_count": 0,
+      "cursor_info": null,
+      "error_message": null
+    }
+  ]
+}

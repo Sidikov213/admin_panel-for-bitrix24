@@ -1,0 +1,42 @@
+# Stage 1 Audit Checklist
+
+- [x] Backend запускается
+- [x] PostgreSQL работает
+- [x] Migrations с чистой БД работают
+- [x] Auth работает
+- [x] Viewer RBAC работает
+- [x] Admin RBAC работает
+- [x] CSRF работает
+- [x] Dashboard API работает
+- [x] Deals pagination работает
+- [x] KPI проверены вручную (DB seed ↔ API ↔ UI)
+- [x] Overdue уникальны
+- [x] Stalled no_future работает
+- [x] Stalled rules disabled (не выдуманный SLA)
+- [x] Sync idempotent / cursor не прыгает при fail (тесты + код)
+- [x] Incremental sync / overlap (код + тесты)
+- [x] Failed sync не теряет cursor
+- [x] Snapshots дедуплицируются (тесты + код)
+- [x] Bitrix adapter read-only
+- [x] Parallel sync advisory lock стабилен (исправлено)
+- [x] Frontend build проходит
+- [x] Frontend lint проходит
+- [x] Docker Compose запускается (db, backend, worker, frontend)
+- [x] Clean install: migrate → create admin → login → dashboard → system
+- [x] System page: Bitrix not configured
+- [x] DEMO не путается с production (DEMO_MODE=false в audit env)
+- [x] Worker scheduler не падает (исправлено create_task)
+- [x] Performance 5000 deals (seed + bench API)
+- [x] Activities incremental (`DATE_MODIFY`) + full только на reconcile
+- [x] Missing deals soft-mark (`missing_from_bitrix`) на full reconcile
+- [x] npm ci на Alpine (lockfile перегенерирован)
+- [x] npm audit 5 high оценены (dev-only `eslint-config-next` → `braces`; force-downgrade не делали)
+- [x] Responsive 390 / 768 (dashboard, deals, managers) — без горизонтального overflow
+- [ ] Responsive полный matrix 1920/1440/1366 — не полный pixel-pass
+- [ ] Real Bitrix — не проверялся на этапе 1
+- [ ] Avito — этап 2
+- [ ] AI — этап 2
+- [ ] Production SLA adapter — этап 2
+- [ ] VPS / HTTPS / nginx security headers — production, не блокирует локальный Bitrix
+
+**Итог:** PASS WITH ISSUES — см. [stage1-audit-report.md](./stage1-audit-report.md)

@@ -1,0 +1,13 @@
+# Isolated audit stack — avoids conflict with other local projects (orex on 5432/8000)
+services:
+  db:
+    ports:
+      - "55432:5432"
+
+  backend:
+    ports:
+      - "18000:8000"
+
+  frontend:
+    ports:
+      - "13000:3000"

@@ -1,0 +1,867 @@
+{
+  "webhook": "configured=true",
+  "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+  "semantics_probes": [
+    {
+      "probe": "crm.dealcategory.stage.list id=1",
+      "ok": true,
+      "error": null,
+      "count": 11,
+      "sample": [
+        {
+          "STATUS_ID": "C1:UC_P9J52E",
+          "NAME": "Новая заявка",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 10,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:UC_MNQOBQ",
+          "NAME": "Взят в работу (до первого контакт)",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 40,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:UC_1VVNF3",
+          "NAME": "Недозвон",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 50,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        }
+      ],
+      "won_lose": [
+        {
+          "STATUS_ID": "C1:WON",
+          "NAME": "Сделка успешна",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 110,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:LOSE",
+          "NAME": "Сделка провалена",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 120,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        }
+      ]
+    },
+    {
+      "probe": "crm.dealcategory.stage.list id=39",
+      "ok": true,
+      "error": null,
+      "count": 7,
+      "sample": [
+        {
+          "STATUS_ID": "C39:UC_ZM66EK",
+          "NAME": "Распределение",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 10,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:NEW",
+          "NAME": "Сроки (от 3 месяцев и более)",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 20,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:PREPARATION",
+          "NAME": "Бюджет",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 30,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        }
+      ],
+      "won_lose": [
+        {
+          "STATUS_ID": "C39:WON",
+          "NAME": "Переведен в работу",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 60,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:LOSE",
+          "NAME": "Сделка провалена",
+          "SEMANTICS": null,
+          "ENTITY_ID": null,
+          "SORT": 70,
+          "keys": [
+            "NAME",
+            "SORT",
+            "STATUS_ID"
+          ]
+        }
+      ]
+    },
+    {
+      "probe": "crm.status.list ENTITY_ID=DEAL_STAGE",
+      "ok": true,
+      "error": null,
+      "count": 9,
+      "sample": [
+        {
+          "STATUS_ID": "UC_Z0OCTX",
+          "NAME": "Новая заявка",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "10",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "NEW",
+          "NAME": "Отправлено КП/В работе",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "20",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "UC_01C75U",
+          "NAME": "Выезд инженера",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "30",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "UC_EOJ9WD",
+          "NAME": "Поставлен в график",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "40",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "UC_XMQ2TJ",
+          "NAME": "Ждем итоговую оплату после монтажа (откат нам)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "50",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ],
+      "with_semantics": 2,
+      "won_lose": [
+        {
+          "STATUS_ID": "WON",
+          "NAME": "Сделка успешна",
+          "SEMANTICS": "S",
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "80",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "LOSE",
+          "NAME": "Сделка провалена",
+          "SEMANTICS": "F",
+          "ENTITY_ID": "DEAL_STAGE",
+          "SORT": "90",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ]
+    },
+    {
+      "probe": "crm.status.list ENTITY_ID=DEAL_STAGE_1",
+      "ok": true,
+      "error": null,
+      "count": 11,
+      "sample": [
+        {
+          "STATUS_ID": "C1:UC_P9J52E",
+          "NAME": "Новая заявка",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "10",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:UC_MNQOBQ",
+          "NAME": "Взят в работу (до первого контакт)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "40",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:UC_1VVNF3",
+          "NAME": "Недозвон",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "50",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:UC_5BR7TI",
+          "NAME": "Контакт установлен / Квалификация",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "60",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:NEW",
+          "NAME": "В работе/КП с расчетом (до месяца)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "70",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ],
+      "with_semantics": 3,
+      "won_lose": [
+        {
+          "STATUS_ID": "C1:WON",
+          "NAME": "Сделка успешна",
+          "SEMANTICS": "S",
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "110",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C1:LOSE",
+          "NAME": "Сделка провалена",
+          "SEMANTICS": "F",
+          "ENTITY_ID": "DEAL_STAGE_1",
+          "SORT": "120",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ]
+    },
+    {
+      "probe": "crm.status.list ENTITY_ID=DEAL_STAGE_39",
+      "ok": true,
+      "error": null,
+      "count": 7,
+      "sample": [
+        {
+          "STATUS_ID": "C39:UC_ZM66EK",
+          "NAME": "Распределение",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "10",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:NEW",
+          "NAME": "Сроки (от 3 месяцев и более)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "20",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:PREPARATION",
+          "NAME": "Бюджет",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "30",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:PREPAYMENT_INVOIC",
+          "NAME": "Ближайшее время (до 3 месяцев)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "40",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:UC_R7UHCK",
+          "NAME": "Предзакрытие (контроль РОП)",
+          "SEMANTICS": null,
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "50",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ],
+      "with_semantics": 2,
+      "won_lose": [
+        {
+          "STATUS_ID": "C39:WON",
+          "NAME": "Переведен в работу",
+          "SEMANTICS": "S",
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "60",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "C39:LOSE",
+          "NAME": "Сделка провалена",
+          "SEMANTICS": "F",
+          "ENTITY_ID": "DEAL_STAGE_39",
+          "SORT": "70",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ]
+    },
+    {
+      "probe": "crm.status.list ENTITY_ID=STATUS",
+      "ok": true,
+      "error": null,
+      "count": 7,
+      "sample": [
+        {
+          "STATUS_ID": "NEW",
+          "NAME": "Не обработан",
+          "SEMANTICS": null,
+          "ENTITY_ID": "STATUS",
+          "SORT": "10",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "UC_1ARSEE",
+          "NAME": "Взял в работу / До первого контакта",
+          "SEMANTICS": null,
+          "ENTITY_ID": "STATUS",
+          "SORT": "20",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "UC_KBRMW9",
+          "NAME": "Недозвон",
+          "SEMANTICS": null,
+          "ENTITY_ID": "STATUS",
+          "SORT": "30",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "PROCESSED",
+          "NAME": "Контакт установлен/Квалификация",
+          "SEMANTICS": null,
+          "ENTITY_ID": "STATUS",
+          "SORT": "40",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        },
+        {
+          "STATUS_ID": "CONVERTED",
+          "NAME": "Качественный лид",
+          "SEMANTICS": "S",
+          "ENTITY_ID": "STATUS",
+          "SORT": "50",
+          "keys": [
+            "CATEGORY_ID",
+            "COLOR",
+            "ENTITY_ID",
+            "EXTRA",
+            "ID",
+            "NAME",
+            "NAME_INIT",
+            "SEMANTICS",
+            "SORT",
+            "STATUS_ID",
+            "SYSTEM"
+          ]
+        }
+      ],
+      "with_semantics": 3,
+      "won_lose": []
+    }
+  ],
+  "deal_stage_semantic_id": [
+    {
+      "id": 8475,
+      "STAGE_ID": "C1:EXECUTING",
+      "STAGE_SEMANTIC_ID": "P",
+      "CLOSED": "N",
+      "CATEGORY_ID": "1",
+      "TITLE": "Рудом (Менеджер Даниил), 36 свай, будет микс С30.15 и С40.15"
+    },
+    {
+      "id": 7873,
+      "STAGE_ID": "C39:PREPAYMENT_INVOIC",
+      "STAGE_SEMANTIC_ID": "P",
+      "CLOSED": "N",
+      "CATEGORY_ID": "39",
+      "TITLE": "Дмитрий - Авито Забей сваю (Алексей) (25.06)"
+    },
+    {
+      "id": 8527,
+      "STAGE_ID": "C1:WON",
+      "STAGE_SEMANTIC_ID": "S",
+      "CLOSED": "Y",
+      "CATEGORY_ID": "1",
+      "TITLE": "Дома на века  Роман С30.15 с огол 15 шт Верхнее Шахлово (Сер"
+    },
+    {
+      "id": 8581,
+      "STAGE_ID": "C1:NEW",
+      "STAGE_SEMANTIC_ID": "P",
+      "CLOSED": "N",
+      "CATEGORY_ID": "1",
+      "TITLE": "Дмитрий (от Максима) С60.20 без ог и расп - 4 шт_Люберцы (04"
+    },
+    {
+      "probe_filter": "CATEGORY_ID=1 STAGE_ID=C1:LOSE",
+      "count_page": 50,
+      "first": {
+        "id": "8577",
+        "STAGE_ID": "C1:LOSE",
+        "STAGE_SEMANTIC_ID": "F",
+        "CLOSED": "Y"
+      }
+    },
+    {
+      "probe_filter": "CATEGORY_ID=39 STAGE_ID=C39:WON",
+      "count_page": 2,
+      "first": {
+        "id": "7871",
+        "STAGE_ID": "C39:WON",
+        "STAGE_SEMANTIC_ID": "S",
+        "CLOSED": "Y"
+      }
+    },
+    {
+      "probe_filter": "CATEGORY_ID=39 STAGE_ID=C39:LOSE",
+      "count_page": 50,
+      "first": {
+        "id": "7725",
+        "STAGE_ID": "C39:LOSE",
+        "STAGE_SEMANTIC_ID": "F",
+        "CLOSED": "Y"
+      }
+    }
+  ],
+  "activity_probes": [
+    {
+      "probe": "baseline fields for owner 8581",
+      "count": 5,
+      "has_LAST_UPDATED": 5,
+      "has_DATE_MODIFY": 0,
+      "sample": [
+        {
+          "ID": "508767",
+          "LAST_UPDATED": "2026-10-04T12:06:56+03:00",
+          "CREATED": "2026-10-04T12:06:12+03:00",
+          "DEADLINE": "2026-10-04T12:36:11+03:00",
+          "COMPLETED": "Y",
+          "OWNER_ID": "8581"
+        },
+        {
+          "ID": "508773",
+          "LAST_UPDATED": "2026-10-05T15:41:49+03:00",
+          "CREATED": "2026-10-04T12:09:39+03:00",
+          "DEADLINE": "2026-10-05T13:00:00+03:00",
+          "COMPLETED": "Y",
+          "OWNER_ID": "8581"
+        },
+        {
+          "ID": "509475",
+          "LAST_UPDATED": "2026-10-05T15:45:09+03:00",
+          "CREATED": "2026-10-05T15:45:09+03:00",
+          "DEADLINE": "2026-10-06T16:00:00+03:00",
+          "COMPLETED": "N",
+          "OWNER_ID": "8581"
+        }
+      ]
+    },
+    {
+      "probe": "filter >=LAST_UPDATED since=2026-09-05T15:45:09+03:00 owner=8581",
+      "ok": true,
+      "error": null,
+      "count": 5,
+      "ids": [
+        "508767",
+        "508769",
+        "508771",
+        "508773",
+        "509475"
+      ],
+      "last_updated": [
+        "2026-10-04T12:06:56+03:00",
+        "2026-10-04T12:07:00+03:00",
+        "2026-10-04T12:09:18+03:00",
+        "2026-10-05T15:41:49+03:00",
+        "2026-10-05T15:45:09+03:00"
+      ]
+    },
+    {
+      "probe": "filter >=DATE_MODIFY since=2026-09-05T15:45:09+03:00 owner=8581",
+      "ok": true,
+      "error": null,
+      "count": 5,
+      "ids": [
+        "508767",
+        "508769",
+        "508771",
+        "508773",
+        "509475"
+      ],
+      "last_updated": [
+        "2026-10-04T12:06:56+03:00",
+        "2026-10-04T12:07:00+03:00",
+        "2026-10-04T12:09:18+03:00",
+        "2026-10-05T15:41:49+03:00",
+        "2026-10-05T15:45:09+03:00"
+      ]
+    },
+    {
+      "probe": "order LAST_UPDATED DESC owner=8581",
+      "ok": true,
+      "error": null,
+      "count": 5,
+      "sorted_desc_ok": true,
+      "first3": [
+        "2026-10-05T15:45:09+03:00",
+        "2026-10-05T15:41:49+03:00",
+        "2026-10-04T12:09:18+03:00"
+      ]
+    }
+  ],
+  "conclusion": {
+    "crm_status_list_has_semantics": true,
+    "deal_STAGE_SEMANTIC_ID_present": true,
+    "activity_LAST_UPDATED_filter_ok": true,
+    "activity_DATE_MODIFY_filter_ok": true,
+    "recommended_semantics_source": "crm.status.list",
+    "recommended_activity_cursor": "LAST_UPDATED"
+  }
+}

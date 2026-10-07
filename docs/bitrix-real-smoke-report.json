@@ -1,0 +1,1489 @@
+{
+  "status": "PASS",
+  "environment": {
+    "portal": "https://focushouse.bitrix24.ru",
+    "webhook": "configured=true",
+    "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+    "categories": [
+      1,
+      39
+    ],
+    "demo_mode": false,
+    "database": "127.0.0.1:55432/focus_analytics_bitrix_test",
+    "worker": "stopped (required for limited smoke)"
+  },
+  "rest_methods": [
+    {
+      "method": "crm.activity.list",
+      "count": 20,
+      "read_only": true,
+      "result": "called"
+    },
+    {
+      "method": "crm.deal.list",
+      "count": 2,
+      "read_only": true,
+      "result": "called"
+    },
+    {
+      "method": "crm.dealcategory.list",
+      "count": 3,
+      "read_only": true,
+      "result": "called"
+    },
+    {
+      "method": "crm.dealcategory.stage.list",
+      "count": 13,
+      "read_only": true,
+      "result": "called"
+    },
+    {
+      "method": "user.search",
+      "count": 5,
+      "read_only": true,
+      "result": "called"
+    }
+  ],
+  "manual_verification": "REQUIRED",
+  "ready_for_full_initial_sync": "NO — awaiting manual verification confirmation",
+  "errors": [],
+  "permissions": {
+    "webhook": "configured=true",
+    "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+    "portal": "https://focushouse.bitrix24.ru",
+    "connection": "PASS",
+    "crm_scope": "PASS",
+    "user_scope": "PASS",
+    "errors": []
+  },
+  "pipelines": [
+    {
+      "id": 1,
+      "name": "Сваи",
+      "sort": "100"
+    },
+    {
+      "id": 3,
+      "name": "Продажа домов РФ",
+      "sort": "700"
+    },
+    {
+      "id": 13,
+      "name": "Продажа домов РБ",
+      "sort": "800"
+    },
+    {
+      "id": 15,
+      "name": "Найм и адаптация",
+      "sort": "900"
+    },
+    {
+      "id": 17,
+      "name": "Менеджер проекта",
+      "sort": "1000"
+    },
+    {
+      "id": 19,
+      "name": "Технадзор",
+      "sort": "1100"
+    },
+    {
+      "id": 21,
+      "name": "Настя",
+      "sort": "1200"
+    },
+    {
+      "id": 25,
+      "name": "База контактов (ХБ)",
+      "sort": "600"
+    },
+    {
+      "id": 27,
+      "name": "Септики",
+      "sort": "400"
+    },
+    {
+      "id": 29,
+      "name": "Холодная база (новая)",
+      "sort": "500"
+    },
+    {
+      "id": 39,
+      "name": "Отложенный спрос",
+      "sort": "300"
+    }
+  ],
+  "stages": [
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_P9J52E",
+      "name": "Новая заявка",
+      "sort": 10,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_MNQOBQ",
+      "name": "Взят в работу (до первого контакт)",
+      "sort": 40,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_1VVNF3",
+      "name": "Недозвон",
+      "sort": 50,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_5BR7TI",
+      "name": "Контакт установлен / Квалификация",
+      "sort": 60,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:NEW",
+      "name": "В работе/КП с расчетом (до месяца)",
+      "sort": 70,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_M45N32",
+      "name": "Пробное бурение. Подготовка к монтажу",
+      "sort": 80,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:EXECUTING",
+      "name": "Поставлен в график/монтаж",
+      "sort": 90,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:UC_DLA8EQ",
+      "name": "Ждем итоговую оплату после монтажа (безнал)",
+      "sort": 100,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:WON",
+      "name": "Сделка успешна",
+      "sort": 110,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:LOSE",
+      "name": "Сделка провалена",
+      "sort": 120,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 1,
+      "stage_id": "C1:APOLOGY",
+      "name": "Предзакрытие (контроль РОП)",
+      "sort": 130,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:UC_ZM66EK",
+      "name": "Распределение",
+      "sort": 10,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:NEW",
+      "name": "Сроки (от 3 месяцев и более)",
+      "sort": 20,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:PREPARATION",
+      "name": "Бюджет",
+      "sort": 30,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "name": "Ближайшее время (до 3 месяцев)",
+      "sort": 40,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:UC_R7UHCK",
+      "name": "Предзакрытие (контроль РОП)",
+      "sort": 50,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:WON",
+      "name": "Переведен в работу",
+      "sort": 60,
+      "semantics": null
+    },
+    {
+      "pipeline_id": 39,
+      "stage_id": "C39:LOSE",
+      "name": "Сделка провалена",
+      "sort": 70,
+      "semantics": null
+    }
+  ],
+  "managers": {
+    "count": 72,
+    "active": 56,
+    "sample": [
+      {
+        "id": 1,
+        "name": "Андрей",
+        "last_name": "Тихон",
+        "active": false
+      },
+      {
+        "id": 11,
+        "name": "Алина",
+        "last_name": "Кашпур",
+        "active": true
+      },
+      {
+        "id": 13,
+        "name": "Анна",
+        "last_name": "Прокопова",
+        "active": true
+      },
+      {
+        "id": 15,
+        "name": "Влад",
+        "last_name": "",
+        "active": true
+      },
+      {
+        "id": 19,
+        "name": "Виктория",
+        "last_name": "",
+        "active": true
+      }
+    ]
+  },
+  "required_categories": {
+    "1": true,
+    "39": true
+  },
+  "deal_sample": [
+    {
+      "id": 8475,
+      "title": "Рудом (Менеджер Даниил), 36 свай, будет микс С30.15 и С40.15, Ступино ",
+      "category_id": "1",
+      "stage_id": "C1:EXECUTING",
+      "assigned_by_id": "13215",
+      "opportunity": "218520.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-01T16:10:09+03:00",
+      "date_modify": "2026-10-06T13:00:39+03:00",
+      "closedate": "2026-10-08T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8581,
+      "title": "Дмитрий (от Максима) С60.20 без ог и расп - 4 шт_Люберцы (04.10.26)",
+      "category_id": "1",
+      "stage_id": "C1:NEW",
+      "assigned_by_id": "21809",
+      "opportunity": "100400.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-04T12:06:11+03:00",
+      "date_modify": "2026-10-06T12:48:56+03:00",
+      "closedate": "2026-10-11T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8679,
+      "title": "Наталия Садовникова - Иевлево - С30.15 - 36 шт - Авитологи",
+      "category_id": "1",
+      "stage_id": "C1:UC_5BR7TI",
+      "assigned_by_id": "21149",
+      "opportunity": "0.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-06T12:27:36+03:00",
+      "date_modify": "2026-10-06T12:40:13+03:00",
+      "closedate": "2026-10-13T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8681,
+      "title": "авитологи-Борис-с30.20 с ог-28 шт-Коптево,Тула",
+      "category_id": "1",
+      "stage_id": "C1:UC_5BR7TI",
+      "assigned_by_id": "15673",
+      "opportunity": "0.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-06T12:39:00+03:00",
+      "date_modify": "2026-10-06T12:39:07+03:00",
+      "closedate": "2026-10-13T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8527,
+      "title": "Дома на века  Роман С30.15 с огол 15 шт Верхнее Шахлово (Серпухов)",
+      "category_id": "1",
+      "stage_id": "C1:WON",
+      "assigned_by_id": "13040",
+      "opportunity": "122850.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-02T13:57:21+03:00",
+      "date_modify": "2026-10-06T12:18:31+03:00",
+      "closedate": "2026-10-06T03:00:00+03:00",
+      "closed": "Y"
+    },
+    {
+      "id": 8267,
+      "title": "Request from [misvai.ru]-Олег-с50.15-57шт-Щербинка, поселок знамя октября, СНТ берёзки.",
+      "category_id": "1",
+      "stage_id": "C1:APOLOGY",
+      "assigned_by_id": "15673",
+      "opportunity": "416100.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-24T15:57:52+03:00",
+      "date_modify": "2026-10-06T12:17:41+03:00",
+      "closedate": "2026-10-06T03:00:00+03:00",
+      "closed": "Y"
+    },
+    {
+      "id": 8059,
+      "title": "РУДОМ (Менеджер Ольга), 37 С30.15+огол 230*230, ",
+      "category_id": "1",
+      "stage_id": "C1:UC_DLA8EQ",
+      "assigned_by_id": "13215",
+      "opportunity": "216820.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-22T10:49:15+03:00",
+      "date_modify": "2026-10-06T12:10:59+03:00",
+      "closedate": "2026-09-29T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7931,
+      "title": "Serega - Авитологи, 34 шт С30.15 Агашкино (05.09.26)",
+      "category_id": "1",
+      "stage_id": "C1:APOLOGY",
+      "assigned_by_id": "19849",
+      "opportunity": "154700.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-10T10:04:26+03:00",
+      "date_modify": "2026-10-06T12:08:06+03:00",
+      "closedate": "2026-10-06T03:00:00+03:00",
+      "closed": "Y"
+    },
+    {
+      "id": 8621,
+      "title": "Рек, Алексей, 10 свай С30.15+огол 230*230, Шатура",
+      "category_id": "1",
+      "stage_id": "C1:EXECUTING",
+      "assigned_by_id": "13215",
+      "opportunity": "127200.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-05T12:25:46+03:00",
+      "date_modify": "2026-10-06T12:04:46+03:00",
+      "closedate": "2026-10-12T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7317,
+      "title": "Алексей от Жени, Дядьково, 37 шт С30.20 (21.08.26)",
+      "category_id": "1",
+      "stage_id": "C1:EXECUTING",
+      "assigned_by_id": "19849",
+      "opportunity": "184630.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-04T16:12:18+03:00",
+      "date_modify": "2026-10-06T12:04:25+03:00",
+      "closedate": "2026-09-11T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7873,
+      "title": "Дмитрий - Авито Забей сваю (Алексей) (25.06)",
+      "category_id": "39",
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "assigned_by_id": "21149",
+      "opportunity": "120000.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-10T09:25:29+03:00",
+      "date_modify": "2026-10-06T12:30:24+03:00",
+      "closedate": "2026-09-17T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8163,
+      "title": "Авито Забей сваю - Александр, 32 С30.15+огол, Воскресенск (8.08.2026)",
+      "category_id": "39",
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "assigned_by_id": "21149",
+      "opportunity": "147360.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-24T15:40:45+03:00",
+      "date_modify": "2026-10-06T11:56:36+03:00",
+      "closedate": "2026-10-01T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8605,
+      "title": "Андрей Нечаев - Авитологи",
+      "category_id": "39",
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "assigned_by_id": "21149",
+      "opportunity": "150000.00000000",
+      "currency": "RUB",
+      "date_create": "2026-10-05T08:20:57+03:00",
+      "date_modify": "2026-10-06T11:48:12+03:00",
+      "closedate": "2026-10-12T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 8027,
+      "title": "Игорь - Тульская обл. Заокский - С30.15 - 20 шт, С40.15 - 10 шт - Авито  (24.08.26)",
+      "category_id": "39",
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "assigned_by_id": "21149",
+      "opportunity": "165629.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-17T12:52:31+03:00",
+      "date_modify": "2026-10-06T11:39:06+03:00",
+      "closedate": "2026-09-24T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7403,
+      "title": "КЦ-Юлия.С50.20 или С40.20 - 40 шт._г.Дубна",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "21809",
+      "opportunity": "274000.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-07T11:57:27+03:00",
+      "date_modify": "2026-10-06T11:29:18+03:00",
+      "closedate": "2026-09-14T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7669,
+      "title": "Павел - Авитологи-Ступ.р-н,Малино 10 шт С.30.15 с огол",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "15673",
+      "opportunity": "91800.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-08T20:00:56+03:00",
+      "date_modify": "2026-10-06T11:12:19+03:00",
+      "closedate": "2026-09-15T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7653,
+      "title": "Авито от максима п.Им.Воровского 6шт С.40.15 без огол",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "15673",
+      "opportunity": "83520.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-08T19:44:13+03:00",
+      "date_modify": "2026-10-06T10:35:07+03:00",
+      "closedate": "2026-09-15T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7643,
+      "title": "Максим - Авитологи- Чехов 42 сваи С.30.15 с оголовками",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "15673",
+      "opportunity": "184800.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-08T19:28:09+03:00",
+      "date_modify": "2026-10-06T10:34:55+03:00",
+      "closedate": "2026-09-15T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7639,
+      "title": "Магамед от Насти Малоярославец 51 шт с30.20 с распуш",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "15673",
+      "opportunity": "298860.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-08T19:22:48+03:00",
+      "date_modify": "2026-10-06T10:34:43+03:00",
+      "closedate": "2026-09-15T03:00:00+03:00",
+      "closed": "N"
+    },
+    {
+      "id": 7635,
+      "title": "Александр - Авитологи-Тула 6 шт 30.15 с огол",
+      "category_id": "39",
+      "stage_id": "C39:NEW",
+      "assigned_by_id": "15673",
+      "opportunity": "93480.00000000",
+      "currency": "RUB",
+      "date_create": "2026-09-08T19:18:22+03:00",
+      "date_modify": "2026-10-06T10:34:31+03:00",
+      "closedate": "2026-09-15T03:00:00+03:00",
+      "closed": "N"
+    }
+  ],
+  "deal_page_sizes": {
+    "1": 50,
+    "39": 50
+  },
+  "data_quality_deals": [
+    {
+      "field": "ID",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "TITLE",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "CATEGORY_ID",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "STAGE_ID",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "ASSIGNED_BY_ID",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "OPPORTUNITY",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "CURRENCY_ID",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "DATE_CREATE",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "DATE_MODIFY",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "CLOSEDATE",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "CLOSED",
+      "present": 20,
+      "null": 0,
+      "unexpected": 0
+    }
+  ],
+  "data_quality_notes": {
+    "timezone_samples": [
+      "2026-10-06T13:00:39+03:00",
+      "2026-10-06T12:48:56+03:00",
+      "2026-10-06T12:40:13+03:00",
+      "2026-10-06T12:39:07+03:00",
+      "2026-10-06T12:18:31+03:00"
+    ],
+    "money_samples": [
+      "218520.00000000",
+      "100400.00000000",
+      "0.00000000",
+      "0.00000000",
+      "122850.00000000"
+    ],
+    "id_types": {
+      "str": 20
+    },
+    "closed_values": {
+      "N": 17,
+      "Y": 3
+    }
+  },
+  "activities_sample": {
+    "count": 123,
+    "owner_type_id_deal_ok": true,
+    "fields_seen": [
+      "COMPLETED",
+      "CREATED",
+      "DEADLINE",
+      "END_TIME",
+      "ID",
+      "LAST_UPDATED",
+      "OWNER_ID",
+      "OWNER_TYPE_ID",
+      "RESPONSIBLE_ID",
+      "SUBJECT",
+      "TYPE_ID"
+    ],
+    "items": [
+      {
+        "id": "507475",
+        "owner_type_id": "2",
+        "owner_id": "8475",
+        "subject": "Подготовка документов для монтажа и проверить информацию",
+        "responsible_id": "13215",
+        "deadline": "2026-10-05T11:00:00+03:00",
+        "completed": "N",
+        "created": "2026-10-01T16:10:10+03:00",
+        "last_updated": "2026-10-01T16:10:10+03:00"
+      },
+      {
+        "id": "508767",
+        "owner_type_id": "2",
+        "owner_id": "8581",
+        "subject": "Связаться с клиентом. Уточнить данные для расчета, сроки. Произвести расчет",
+        "responsible_id": "19849",
+        "deadline": "2026-10-04T12:36:11+03:00",
+        "completed": "Y",
+        "created": "2026-10-04T12:06:12+03:00",
+        "last_updated": "2026-10-04T12:06:56+03:00"
+      },
+      {
+        "id": "508773",
+        "owner_type_id": "2",
+        "owner_id": "8581",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "19849",
+        "deadline": "2026-10-05T13:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-04T12:09:39+03:00",
+        "last_updated": "2026-10-05T15:41:49+03:00"
+      },
+      {
+        "id": "509475",
+        "owner_type_id": "2",
+        "owner_id": "8581",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "19849",
+        "deadline": "2026-10-06T16:00:00+03:00",
+        "completed": "N",
+        "created": "2026-10-05T15:45:09+03:00",
+        "last_updated": "2026-10-05T15:45:09+03:00"
+      },
+      {
+        "id": "508769",
+        "owner_type_id": "2",
+        "owner_id": "8581",
+        "subject": "Квалификаци. Контроль 7 дней",
+        "responsible_id": "1",
+        "deadline": "2026-10-11T12:06:11+03:00",
+        "completed": "Y",
+        "created": "2026-10-04T12:06:12+03:00",
+        "last_updated": "2026-10-04T12:07:00+03:00"
+      },
+      {
+        "id": "508771",
+        "owner_type_id": "2",
+        "owner_id": "8581",
+        "subject": "Контроль стадии \"КП в работе\"",
+        "responsible_id": "1",
+        "deadline": "2026-10-11T12:06:11+03:00",
+        "completed": "Y",
+        "created": "2026-10-04T12:09:09+03:00",
+        "last_updated": "2026-10-04T12:09:18+03:00"
+      },
+      {
+        "id": "509883",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Чат открытой линии - \"Наталия Садовникова - Авитологи\" (Avito)",
+        "responsible_id": "1",
+        "deadline": "9999-12-31T00:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:27:37+03:00",
+        "last_updated": "2026-10-06T12:34:54+03:00"
+      },
+      {
+        "id": "509903",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Чат открытой линии - \"Наталия Садовникова - Авитологи\" (Avito)",
+        "responsible_id": "21149",
+        "deadline": "2026-10-07T13:59:00+03:00",
+        "completed": "N",
+        "created": "2026-10-06T12:35:04+03:00",
+        "last_updated": "2026-10-06T12:59:01+03:00"
+      },
+      {
+        "id": "509879",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Новая заявка",
+        "responsible_id": "1",
+        "deadline": "2026-10-06T12:57:36+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:27:36+03:00",
+        "last_updated": "2026-10-06T12:28:17+03:00"
+      },
+      {
+        "id": "509885",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "21149",
+        "deadline": "2026-10-06T12:57:36+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:28:18+03:00",
+        "last_updated": "2026-10-06T12:32:02+03:00"
+      },
+      {
+        "id": "509899",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Связаться с клиентом. Уточнить данные для расчета, сроки. Произвести расчет",
+        "responsible_id": "21149",
+        "deadline": "2026-10-06T12:57:36+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:32:02+03:00",
+        "last_updated": "2026-10-06T12:58:32+03:00"
+      },
+      {
+        "id": "509881",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Новая заявка. Контроль",
+        "responsible_id": "1",
+        "deadline": "2026-10-06T13:27:36+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:27:36+03:00",
+        "last_updated": "2026-10-06T12:28:18+03:00"
+      },
+      {
+        "id": "509915",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "21149",
+        "deadline": "2026-10-07T10:00:00+03:00",
+        "completed": "N",
+        "created": "2026-10-06T12:41:07+03:00",
+        "last_updated": "2026-10-06T12:41:07+03:00"
+      },
+      {
+        "id": "509887",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Взял в работу. Контроль",
+        "responsible_id": "1",
+        "deadline": "2026-10-07T12:27:36+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:28:18+03:00",
+        "last_updated": "2026-10-06T12:32:02+03:00"
+      },
+      {
+        "id": "509901",
+        "owner_type_id": "2",
+        "owner_id": "8679",
+        "subject": "Квалификаци. Контроль 7 дней",
+        "responsible_id": "1",
+        "deadline": "2026-10-13T12:27:36+03:00",
+        "completed": "N",
+        "created": "2026-10-06T12:32:02+03:00",
+        "last_updated": "2026-10-06T12:32:02+03:00"
+      },
+      {
+        "id": "509905",
+        "owner_type_id": "2",
+        "owner_id": "8681",
+        "subject": "Новая заявка",
+        "responsible_id": "15673",
+        "deadline": "2026-10-06T13:09:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:39:01+03:00",
+        "last_updated": "2026-10-06T12:39:07+03:00"
+      },
+      {
+        "id": "509909",
+        "owner_type_id": "2",
+        "owner_id": "8681",
+        "subject": "Связаться с клиентом. Уточнить данные для расчета, сроки. Произвести расчет",
+        "responsible_id": "15673",
+        "deadline": "2026-10-06T13:09:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:39:07+03:00",
+        "last_updated": "2026-10-06T12:39:51+03:00"
+      },
+      {
+        "id": "509907",
+        "owner_type_id": "2",
+        "owner_id": "8681",
+        "subject": "Новая заявка. Контроль",
+        "responsible_id": "1",
+        "deadline": "2026-10-06T13:39:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:39:01+03:00",
+        "last_updated": "2026-10-06T12:39:07+03:00"
+      },
+      {
+        "id": "509913",
+        "owner_type_id": "2",
+        "owner_id": "8681",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "15673",
+        "deadline": "2026-10-07T13:00:00+03:00",
+        "completed": "N",
+        "created": "2026-10-06T12:40:06+03:00",
+        "last_updated": "2026-10-06T12:40:06+03:00"
+      },
+      {
+        "id": "509911",
+        "owner_type_id": "2",
+        "owner_id": "8681",
+        "subject": "Квалификаци. Контроль 7 дней",
+        "responsible_id": "1",
+        "deadline": "2026-10-13T12:39:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-06T12:39:08+03:00",
+        "last_updated": "2026-10-06T12:39:58+03:00"
+      },
+      {
+        "id": "508287",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Новая заявка",
+        "responsible_id": "13040",
+        "deadline": "2026-10-02T14:27:21+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T13:57:22+03:00",
+        "last_updated": "2026-10-02T14:07:41+03:00"
+      },
+      {
+        "id": "508289",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Новая заявка. Контроль",
+        "responsible_id": "1",
+        "deadline": "2026-10-02T14:57:21+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T13:57:22+03:00",
+        "last_updated": "2026-10-02T14:07:43+03:00"
+      },
+      {
+        "id": "508365",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "счет на оплату фундамента Серпухов 03.10",
+        "responsible_id": "13040",
+        "deadline": "2026-10-02T17:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T15:14:38+03:00",
+        "last_updated": "2026-10-02T19:47:28+03:00"
+      },
+      {
+        "id": "508455",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Re: счет на оплату фундамента Серпухов 03.10",
+        "responsible_id": "13040",
+        "deadline": "9999-12-31T00:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T19:47:14+03:00",
+        "last_updated": "2026-10-06T12:18:32+03:00"
+      },
+      {
+        "id": "509875",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Предложить септик/строительство дома/оставить отзыв/рекомендации",
+        "responsible_id": "13040",
+        "deadline": "2026-10-06T11:00:00+03:00",
+        "completed": "N",
+        "created": "2026-10-06T12:18:33+03:00",
+        "last_updated": "2026-10-06T12:18:33+03:00"
+      },
+      {
+        "id": "508293",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Подготовка документов для монтажа и проверить информацию",
+        "responsible_id": "13040",
+        "deadline": "2026-10-06T11:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T14:08:56+03:00",
+        "last_updated": "2026-10-02T19:03:53+03:00"
+      },
+      {
+        "id": "508449",
+        "owner_type_id": "2",
+        "owner_id": "8527",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "13040",
+        "deadline": "2026-10-07T11:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-10-02T19:04:42+03:00",
+        "last_updated": "2026-10-06T12:18:32+03:00"
+      },
+      {
+        "id": "504759",
+        "owner_type_id": "2",
+        "owner_id": "8267",
+        "subject": "Связаться с клиентом",
+        "responsible_id": "15673",
+        "deadline": "2026-09-30T11:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-09-24T17:58:37+03:00",
+        "last_updated": "2026-10-01T16:18:29+03:00"
+      },
+      {
+        "id": "506785",
+        "owner_type_id": "2",
+        "owner_id": "8267",
+        "subject": "Request from [misvai.ru]",
+        "responsible_id": "15673",
+        "deadline": "9999-12-31T00:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-09-30T17:58:36+03:00",
+        "last_updated": "2026-10-01T16:18:34+03:00"
+      },
+      {
+        "id": "506249",
+        "owner_type_id": "2",
+        "owner_id": "8267",
+        "subject": "Подготовка документов для монтажа и проверить информацию",
+        "responsible_id": "15673",
+        "deadline": "2026-10-01T11:00:00+03:00",
+        "completed": "Y",
+        "created": "2026-09-29T16:07:13+03:00",
+        "last_updated": "2026-10-01T16:18:31+03:00"
+      }
+    ]
+  },
+  "data_quality_activities": [
+    {
+      "field": "ID",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "OWNER_TYPE_ID",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "OWNER_ID",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "SUBJECT",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "RESPONSIBLE_ID",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "DEADLINE",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "COMPLETED",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "CREATED",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "LAST_UPDATED",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "DATE_MODIFY",
+      "present": 0,
+      "null": 123,
+      "unexpected": 0
+    },
+    {
+      "field": "END_TIME",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    },
+    {
+      "field": "TYPE_ID",
+      "present": 123,
+      "null": 0,
+      "unexpected": 0
+    }
+  ],
+  "manual_deals": [
+    {
+      "role": "active_cat_1",
+      "bitrix_id": 8475,
+      "title": "Рудом (Менеджер Даниил), 36 свай, будет микс С30.15 и С40.15, Ступино ",
+      "pipeline_id": 1,
+      "pipeline": "Сваи",
+      "stage_id": "C1:EXECUTING",
+      "stage": "Поставлен в график/монтаж",
+      "manager_id": 13215,
+      "manager": "Людмила Шифрина",
+      "amount": "218520.00000000",
+      "currency": "RUB",
+      "created": "2026-10-01T16:10:09+03:00",
+      "modified": "2026-10-06T13:00:39+03:00",
+      "closed": "N",
+      "bitrix_url": "https://focushouse.bitrix24.ru/crm/deal/details/8475/"
+    },
+    {
+      "role": "active_cat_39",
+      "bitrix_id": 7873,
+      "title": "Дмитрий - Авито Забей сваю (Алексей) (25.06)",
+      "pipeline_id": 39,
+      "pipeline": "Отложенный спрос",
+      "stage_id": "C39:PREPAYMENT_INVOIC",
+      "stage": "Ближайшее время (до 3 месяцев)",
+      "manager_id": 21149,
+      "manager": "Наташа Кучерова",
+      "amount": "120000.00000000",
+      "currency": "RUB",
+      "created": "2026-09-10T09:25:29+03:00",
+      "modified": "2026-10-06T12:30:24+03:00",
+      "closed": "N",
+      "bitrix_url": "https://focushouse.bitrix24.ru/crm/deal/details/7873/"
+    },
+    {
+      "role": "closed_any",
+      "bitrix_id": 8527,
+      "title": "Дома на века  Роман С30.15 с огол 15 шт Верхнее Шахлово (Серпухов)",
+      "pipeline_id": 1,
+      "pipeline": "Сваи",
+      "stage_id": "C1:WON",
+      "stage": "Сделка успешна",
+      "manager_id": 13040,
+      "manager": "Данута Силивончик",
+      "amount": "122850.00000000",
+      "currency": "RUB",
+      "created": "2026-10-02T13:57:21+03:00",
+      "modified": "2026-10-06T12:18:31+03:00",
+      "closed": "Y",
+      "bitrix_url": "https://focushouse.bitrix24.ru/crm/deal/details/8527/"
+    },
+    {
+      "role": "with_future",
+      "bitrix_id": 8581,
+      "title": "Дмитрий (от Максима) С60.20 без ог и расп - 4 шт_Люберцы (04.10.26)",
+      "pipeline_id": 1,
+      "pipeline": "Сваи",
+      "stage_id": "C1:NEW",
+      "stage": "В работе/КП с расчетом (до месяца)",
+      "manager_id": 21809,
+      "manager": "Анастасия Гузова",
+      "amount": "100400.00000000",
+      "currency": "RUB",
+      "created": "2026-10-04T12:06:11+03:00",
+      "modified": "2026-10-06T12:48:56+03:00",
+      "closed": "N",
+      "bitrix_url": "https://focushouse.bitrix24.ru/crm/deal/details/8581/"
+    }
+  ],
+  "business_assumptions": {
+    "deal_manager_field": "ASSIGNED_BY_ID",
+    "pipeline_field": "CATEGORY_ID",
+    "stage_field": "STAGE_ID",
+    "overdue_entity": "crm activity (OWNER_TYPE_ID=2), not Telegram",
+    "future_activity": "open activity with DEADLINE > now"
+  },
+  "database_smoke": {
+    "first_import": {
+      "deals": 20,
+      "activities": 123
+    },
+    "second_import": {
+      "deals": 20,
+      "activities": 123
+    },
+    "counts_after_first": {
+      "managers": 72,
+      "pipelines": 11,
+      "stages": 141,
+      "deals": 20,
+      "activities": 123,
+      "snapshots": 20,
+      "change_events": 0
+    },
+    "counts_after_second": {
+      "managers": 72,
+      "pipelines": 11,
+      "stages": 141,
+      "deals": 20,
+      "activities": 123,
+      "snapshots": 20,
+      "change_events": 0
+    },
+    "idempotency": "PASS"
+  },
+  "api_ui_smoke": {
+    "note": "SMOKE DATASET ONLY — not company-wide statistics",
+    "deals_in_db": 20,
+    "managers_in_db": 72,
+    "pipelines_in_db": 11,
+    "overdue_open_activities": 4,
+    "stalled_no_future": 4,
+    "kpis": {
+      "period_start": "2026-09-07",
+      "period_end": "2026-10-06",
+      "timezone": "Europe/Moscow",
+      "new_deals_count": 19,
+      "active_deals_count": 17,
+      "won_count": 0,
+      "lost_count": 0,
+      "sum_active_opportunity": 2457019.0,
+      "sum_won_opportunity": 0.0,
+      "overdue_activities_unique": 4,
+      "open_overdue": 4,
+      "deals_by_stage": {
+        "7": 3,
+        "5": 1,
+        "4": 2,
+        "8": 1,
+        "138": 4,
+        "136": 6
+      },
+      "deals_by_stage_named": [
+        {
+          "stage_id": 7,
+          "name": "Поставлен в график/монтаж",
+          "count": 3
+        },
+        {
+          "stage_id": 5,
+          "name": "В работе/КП с расчетом (до месяца)",
+          "count": 1
+        },
+        {
+          "stage_id": 4,
+          "name": "Контакт установлен / Квалификация",
+          "count": 2
+        },
+        {
+          "stage_id": 8,
+          "name": "Ждем итоговую оплату после монтажа (безнал)",
+          "count": 1
+        },
+        {
+          "stage_id": 138,
+          "name": "Ближайшее время (до 3 месяцев)",
+          "count": 4
+        },
+        {
+          "stage_id": 136,
+          "name": "Сроки (от 3 месяцев и более)",
+          "count": 6
+        }
+      ],
+      "deals_by_manager": {
+        "38": 3,
+        "72": 2,
+        "70": 5,
+        "43": 6,
+        "58": 1
+      },
+      "deals_by_manager_named": [
+        {
+          "manager_id": 38,
+          "name": "Людмила Шифрина",
+          "count": 3
+        },
+        {
+          "manager_id": 72,
+          "name": "Анастасия Гузова",
+          "count": 2
+        },
+        {
+          "manager_id": 70,
+          "name": "Наташа Кучерова",
+          "count": 5
+        },
+        {
+          "manager_id": 43,
+          "name": "Мария Говор",
+          "count": 6
+        },
+        {
+          "manager_id": 58,
+          "name": "Надя Шаплова",
+          "count": 1
+        }
+      ],
+      "deals_by_pipeline": [
+        {
+          "category_id": 1,
+          "name": "Сваи",
+          "count": 7
+        },
+        {
+          "category_id": 39,
+          "name": "Отложенный спрос",
+          "count": 10
+        }
+      ],
+      "observed_stage_changes": 0,
+      "last_observed_deal_change": null,
+      "deals_without_future_activity_count": 4,
+      "deals_without_future_activity_label": "нет следующего запланированного дела",
+      "series_daily": [
+        {
+          "date": "2026-09-07",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-09-08",
+          "new": 5,
+          "won": 0
+        },
+        {
+          "date": "2026-09-09",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-10",
+          "new": 2,
+          "won": 0
+        },
+        {
+          "date": "2026-09-11",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-12",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-13",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-14",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-15",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-16",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-17",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-09-18",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-19",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-20",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-21",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-22",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-09-23",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-24",
+          "new": 2,
+          "won": 0
+        },
+        {
+          "date": "2026-09-25",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-26",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-27",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-28",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-29",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-09-30",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-10-01",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-10-02",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-10-03",
+          "new": 0,
+          "won": 0
+        },
+        {
+          "date": "2026-10-04",
+          "new": 1,
+          "won": 0
+        },
+        {
+          "date": "2026-10-05",
+          "new": 2,
+          "won": 0
+        },
+        {
+          "date": "2026-10-06",
+          "new": 2,
+          "won": 0
+        }
+      ],
+      "definitions": {
+        "new_deals_count": {
+          "label": "Новые сделки",
+          "formula": "Сделки с DATE_CREATE в выбранном периоде (часовой пояс Europe/Moscow)",
+          "source": "crm_deals.date_create (Bitrix)"
+        },
+        "active_deals_count": {
+          "label": "Активные сделки",
+          "formula": "Сделки с closed=false на момент расчёта",
+          "source": "crm_deals.closed"
+        },
+        "won_count": {
+          "label": "Успешно закрыто",
+          "formula": "closed=true, семантика этапа success, CLOSEDATE в периоде",
+          "source": "crm_deals + crm_stages.semantics"
+        },
+        "lost_count": {
+          "label": "Проигранные",
+          "formula": "closed=true, семантика этапа failure, CLOSEDATE в периоде",
+          "source": "crm_deals + crm_stages.semantics"
+        },
+        "sum_active_opportunity": {
+          "label": "Сумма в работе",
+          "formula": "SUM(opportunity) по активным сделкам",
+          "source": "crm_deals.opportunity"
+        },
+        "sum_won_opportunity": {
+          "label": "Сумма успешно закрытых",
+          "formula": "SUM(opportunity) по won-сделкам за период",
+          "source": "crm_deals.opportunity"
+        },
+        "overdue_activities_unique": {
+          "label": "Просроченные дела",
+          "formula": "Уникальные crm_activities: deadline < now AND completed=false",
+          "source": "crm_activities"
+        },
+        "deals_without_future_activity_count": {
+          "label": "Без следующего дела",
+          "formula": "Активные сделки с has_future_activity=false (факт, не SLA)",
+          "source": "crm_deals.has_future_activity"
+        }
+      },
+      "data_quality": {
+        "insufficient_stage_semantics": true,
+        "won_used_date_modify_fallback": 0,
+        "note": "Недостаточно данных по семантике этапов"
+      },
+      "computed_at": "2026-10-06T10:05:37.488507+00:00"
+    },
+    "dashboard_keys": [
+      "charts",
+      "kpis",
+      "meta",
+      "problem_deals",
+      "recent_changes",
+      "sync"
+    ]
+  }
+}

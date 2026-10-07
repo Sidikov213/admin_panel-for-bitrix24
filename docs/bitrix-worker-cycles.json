@@ -1,0 +1,577 @@
+{
+  "since": "2026-10-06T11:50:00+00:00",
+  "cycles": [
+    {
+      "sync_type": "deals",
+      "started_at": "2026-10-06T11:50:16.283694+00:00",
+      "finished_at": "2026-10-06T11:55:20.673139+00:00",
+      "duration_seconds": 304.39,
+      "dictionaries": {
+        "id": 4,
+        "sync_type": "dictionaries",
+        "status": "success",
+        "started_at": "2026-10-06T11:50:16.283694+00:00",
+        "finished_at": "2026-10-06T11:50:19.902728+00:00",
+        "duration_seconds": 3.62,
+        "items_processed": 92,
+        "errors_count": 0,
+        "cursor_info": null,
+        "error_message": null
+      },
+      "deals": {
+        "id": 5,
+        "sync_type": "deals",
+        "status": "success",
+        "started_at": "2026-10-06T11:50:19.922126+00:00",
+        "finished_at": "2026-10-06T11:50:22.446373+00:00",
+        "duration_seconds": 2.52,
+        "items_processed": 83,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "seen": 83,
+          "missing_marked": 0,
+          "cursor_advanced": true
+        },
+        "error_message": null
+      },
+      "activities": {
+        "id": 6,
+        "sync_type": "activities",
+        "status": "success",
+        "started_at": "2026-10-06T11:50:22.459144+00:00",
+        "finished_at": "2026-10-06T11:50:25.158268+00:00",
+        "duration_seconds": 2.7,
+        "items_processed": 156,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "allowed_owners": null,
+          "cursor_advanced": true,
+          "skipped_other_category": 0
+        },
+        "error_message": null
+      },
+      "errors": 0,
+      "all_success": true,
+      "runs": [
+        {
+          "id": 4,
+          "sync_type": "dictionaries",
+          "status": "success",
+          "started_at": "2026-10-06T11:50:16.283694+00:00",
+          "finished_at": "2026-10-06T11:50:19.902728+00:00",
+          "duration_seconds": 3.62,
+          "items_processed": 92,
+          "errors_count": 0,
+          "cursor_info": null,
+          "error_message": null
+        },
+        {
+          "id": 5,
+          "sync_type": "deals",
+          "status": "success",
+          "started_at": "2026-10-06T11:50:19.922126+00:00",
+          "finished_at": "2026-10-06T11:50:22.446373+00:00",
+          "duration_seconds": 2.52,
+          "items_processed": 83,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "seen": 83,
+            "missing_marked": 0,
+            "cursor_advanced": true
+          },
+          "error_message": null
+        },
+        {
+          "id": 6,
+          "sync_type": "activities",
+          "status": "success",
+          "started_at": "2026-10-06T11:50:22.459144+00:00",
+          "finished_at": "2026-10-06T11:50:25.158268+00:00",
+          "duration_seconds": 2.7,
+          "items_processed": 156,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "allowed_owners": null,
+            "cursor_advanced": true,
+            "skipped_other_category": 0
+          },
+          "error_message": null
+        },
+        {
+          "id": 7,
+          "sync_type": "dictionaries",
+          "status": "success",
+          "started_at": "2026-10-06T11:55:16.633980+00:00",
+          "finished_at": "2026-10-06T11:55:20.673139+00:00",
+          "duration_seconds": 4.04,
+          "items_processed": 92,
+          "errors_count": 0,
+          "cursor_info": null,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "sync_type": "deals",
+      "started_at": "2026-10-06T11:55:16.633980+00:00",
+      "finished_at": "2026-10-06T12:00:34.083035+00:00",
+      "duration_seconds": 317.45,
+      "dictionaries": {
+        "id": 7,
+        "sync_type": "dictionaries",
+        "status": "success",
+        "started_at": "2026-10-06T11:55:16.633980+00:00",
+        "finished_at": "2026-10-06T11:55:20.673139+00:00",
+        "duration_seconds": 4.04,
+        "items_processed": 92,
+        "errors_count": 0,
+        "cursor_info": null,
+        "error_message": null
+      },
+      "deals": {
+        "id": 8,
+        "sync_type": "deals",
+        "status": "success",
+        "started_at": "2026-10-06T11:55:20.693510+00:00",
+        "finished_at": "2026-10-06T11:55:23.329323+00:00",
+        "duration_seconds": 2.64,
+        "items_processed": 77,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "seen": 77,
+          "missing_marked": 0,
+          "cursor_advanced": true
+        },
+        "error_message": null
+      },
+      "activities": {
+        "id": 9,
+        "sync_type": "activities",
+        "status": "success",
+        "started_at": "2026-10-06T11:55:23.343801+00:00",
+        "finished_at": "2026-10-06T11:55:25.934190+00:00",
+        "duration_seconds": 2.59,
+        "items_processed": 147,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "allowed_owners": null,
+          "cursor_advanced": true,
+          "skipped_other_category": 0
+        },
+        "error_message": null
+      },
+      "errors": 0,
+      "all_success": true,
+      "runs": [
+        {
+          "id": 7,
+          "sync_type": "dictionaries",
+          "status": "success",
+          "started_at": "2026-10-06T11:55:16.633980+00:00",
+          "finished_at": "2026-10-06T11:55:20.673139+00:00",
+          "duration_seconds": 4.04,
+          "items_processed": 92,
+          "errors_count": 0,
+          "cursor_info": null,
+          "error_message": null
+        },
+        {
+          "id": 8,
+          "sync_type": "deals",
+          "status": "success",
+          "started_at": "2026-10-06T11:55:20.693510+00:00",
+          "finished_at": "2026-10-06T11:55:23.329323+00:00",
+          "duration_seconds": 2.64,
+          "items_processed": 77,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "seen": 77,
+            "missing_marked": 0,
+            "cursor_advanced": true
+          },
+          "error_message": null
+        },
+        {
+          "id": 9,
+          "sync_type": "activities",
+          "status": "success",
+          "started_at": "2026-10-06T11:55:23.343801+00:00",
+          "finished_at": "2026-10-06T11:55:25.934190+00:00",
+          "duration_seconds": 2.59,
+          "items_processed": 147,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "allowed_owners": null,
+            "cursor_advanced": true,
+            "skipped_other_category": 0
+          },
+          "error_message": null
+        },
+        {
+          "id": 10,
+          "sync_type": "dictionaries",
+          "status": "success",
+          "started_at": "2026-10-06T12:00:16.394251+00:00",
+          "finished_at": "2026-10-06T12:00:34.083035+00:00",
+          "duration_seconds": 17.69,
+          "items_processed": 92,
+          "errors_count": 0,
+          "cursor_info": null,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "sync_type": "deals",
+      "started_at": "2026-10-06T12:00:16.394251+00:00",
+      "finished_at": "2026-10-06T12:00:39.183635+00:00",
+      "duration_seconds": 22.79,
+      "dictionaries": {
+        "id": 10,
+        "sync_type": "dictionaries",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:16.394251+00:00",
+        "finished_at": "2026-10-06T12:00:34.083035+00:00",
+        "duration_seconds": 17.69,
+        "items_processed": 92,
+        "errors_count": 0,
+        "cursor_info": null,
+        "error_message": null
+      },
+      "deals": {
+        "id": 11,
+        "sync_type": "deals",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:34.103372+00:00",
+        "finished_at": "2026-10-06T12:00:36.928064+00:00",
+        "duration_seconds": 2.82,
+        "items_processed": 78,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "seen": 78,
+          "missing_marked": 0,
+          "cursor_advanced": true
+        },
+        "error_message": null
+      },
+      "activities": {
+        "id": 12,
+        "sync_type": "activities",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:36.939934+00:00",
+        "finished_at": "2026-10-06T12:00:39.183635+00:00",
+        "duration_seconds": 2.24,
+        "items_processed": 145,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "allowed_owners": null,
+          "cursor_advanced": true,
+          "skipped_other_category": 0
+        },
+        "error_message": null
+      },
+      "errors": 0,
+      "all_success": true,
+      "runs": [
+        {
+          "id": 10,
+          "sync_type": "dictionaries",
+          "status": "success",
+          "started_at": "2026-10-06T12:00:16.394251+00:00",
+          "finished_at": "2026-10-06T12:00:34.083035+00:00",
+          "duration_seconds": 17.69,
+          "items_processed": 92,
+          "errors_count": 0,
+          "cursor_info": null,
+          "error_message": null
+        },
+        {
+          "id": 11,
+          "sync_type": "deals",
+          "status": "success",
+          "started_at": "2026-10-06T12:00:34.103372+00:00",
+          "finished_at": "2026-10-06T12:00:36.928064+00:00",
+          "duration_seconds": 2.82,
+          "items_processed": 78,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "seen": 78,
+            "missing_marked": 0,
+            "cursor_advanced": true
+          },
+          "error_message": null
+        },
+        {
+          "id": 12,
+          "sync_type": "activities",
+          "status": "success",
+          "started_at": "2026-10-06T12:00:36.939934+00:00",
+          "finished_at": "2026-10-06T12:00:39.183635+00:00",
+          "duration_seconds": 2.24,
+          "items_processed": 145,
+          "errors_count": 0,
+          "cursor_info": {
+            "full": false,
+            "allowed_owners": null,
+            "cursor_advanced": true,
+            "skipped_other_category": 0
+          },
+          "error_message": null
+        }
+      ]
+    }
+  ],
+  "all_runs": [
+    {
+      "id": 4,
+      "sync_type": "dictionaries",
+      "status": "success",
+      "started_at": "2026-10-06T11:50:16.283694+00:00",
+      "finished_at": "2026-10-06T11:50:19.902728+00:00",
+      "duration_seconds": 3.62,
+      "items_processed": 92,
+      "errors_count": 0,
+      "cursor_info": null,
+      "error_message": null
+    },
+    {
+      "id": 5,
+      "sync_type": "deals",
+      "status": "success",
+      "started_at": "2026-10-06T11:50:19.922126+00:00",
+      "finished_at": "2026-10-06T11:50:22.446373+00:00",
+      "duration_seconds": 2.52,
+      "items_processed": 83,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "seen": 83,
+        "missing_marked": 0,
+        "cursor_advanced": true
+      },
+      "error_message": null
+    },
+    {
+      "id": 6,
+      "sync_type": "activities",
+      "status": "success",
+      "started_at": "2026-10-06T11:50:22.459144+00:00",
+      "finished_at": "2026-10-06T11:50:25.158268+00:00",
+      "duration_seconds": 2.7,
+      "items_processed": 156,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "allowed_owners": null,
+        "cursor_advanced": true,
+        "skipped_other_category": 0
+      },
+      "error_message": null
+    },
+    {
+      "id": 7,
+      "sync_type": "dictionaries",
+      "status": "success",
+      "started_at": "2026-10-06T11:55:16.633980+00:00",
+      "finished_at": "2026-10-06T11:55:20.673139+00:00",
+      "duration_seconds": 4.04,
+      "items_processed": 92,
+      "errors_count": 0,
+      "cursor_info": null,
+      "error_message": null
+    },
+    {
+      "id": 8,
+      "sync_type": "deals",
+      "status": "success",
+      "started_at": "2026-10-06T11:55:20.693510+00:00",
+      "finished_at": "2026-10-06T11:55:23.329323+00:00",
+      "duration_seconds": 2.64,
+      "items_processed": 77,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "seen": 77,
+        "missing_marked": 0,
+        "cursor_advanced": true
+      },
+      "error_message": null
+    },
+    {
+      "id": 9,
+      "sync_type": "activities",
+      "status": "success",
+      "started_at": "2026-10-06T11:55:23.343801+00:00",
+      "finished_at": "2026-10-06T11:55:25.934190+00:00",
+      "duration_seconds": 2.59,
+      "items_processed": 147,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "allowed_owners": null,
+        "cursor_advanced": true,
+        "skipped_other_category": 0
+      },
+      "error_message": null
+    },
+    {
+      "id": 10,
+      "sync_type": "dictionaries",
+      "status": "success",
+      "started_at": "2026-10-06T12:00:16.394251+00:00",
+      "finished_at": "2026-10-06T12:00:34.083035+00:00",
+      "duration_seconds": 17.69,
+      "items_processed": 92,
+      "errors_count": 0,
+      "cursor_info": null,
+      "error_message": null
+    },
+    {
+      "id": 11,
+      "sync_type": "deals",
+      "status": "success",
+      "started_at": "2026-10-06T12:00:34.103372+00:00",
+      "finished_at": "2026-10-06T12:00:36.928064+00:00",
+      "duration_seconds": 2.82,
+      "items_processed": 78,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "seen": 78,
+        "missing_marked": 0,
+        "cursor_advanced": true
+      },
+      "error_message": null
+    },
+    {
+      "id": 12,
+      "sync_type": "activities",
+      "status": "success",
+      "started_at": "2026-10-06T12:00:36.939934+00:00",
+      "finished_at": "2026-10-06T12:00:39.183635+00:00",
+      "duration_seconds": 2.24,
+      "items_processed": 145,
+      "errors_count": 0,
+      "cursor_info": {
+        "full": false,
+        "allowed_owners": null,
+        "cursor_advanced": true,
+        "skipped_other_category": 0
+      },
+      "error_message": null
+    }
+  ],
+  "after": {
+    "at": "2026-10-06T12:00:57.768680+00:00",
+    "managers": 72,
+    "pipelines": 2,
+    "stages": 18,
+    "deals": 1848,
+    "activities": 16786,
+    "snapshots": 1853,
+    "change_events": 3,
+    "missing_from_bitrix": 0,
+    "cursors": {
+      "last_deals_sync": {
+        "at": "2026-10-06T12:00:36.925581+00:00"
+      },
+      "last_activities_sync": {
+        "at": "2026-10-06T12:00:39.181165+00:00"
+      },
+      "last_dictionaries_sync": {
+        "at": "2026-10-06T12:00:34.059863+00:00"
+      },
+      "last_full_reconcile": {
+        "at": "2026-10-06T11:42:27.196456+00:00"
+      }
+    },
+    "recent_runs": [
+      {
+        "id": 12,
+        "sync_type": "activities",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:36.939934+00:00",
+        "finished_at": "2026-10-06T12:00:39.183635+00:00",
+        "items_processed": 145,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "allowed_owners": null,
+          "cursor_advanced": true,
+          "skipped_other_category": 0
+        },
+        "error_message": null
+      },
+      {
+        "id": 11,
+        "sync_type": "deals",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:34.103372+00:00",
+        "finished_at": "2026-10-06T12:00:36.928064+00:00",
+        "items_processed": 78,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "seen": 78,
+          "missing_marked": 0,
+          "cursor_advanced": true
+        },
+        "error_message": null
+      },
+      {
+        "id": 10,
+        "sync_type": "dictionaries",
+        "status": "success",
+        "started_at": "2026-10-06T12:00:16.394251+00:00",
+        "finished_at": "2026-10-06T12:00:34.083035+00:00",
+        "items_processed": 92,
+        "errors_count": 0,
+        "cursor_info": null,
+        "error_message": null
+      },
+      {
+        "id": 9,
+        "sync_type": "activities",
+        "status": "success",
+        "started_at": "2026-10-06T11:55:23.343801+00:00",
+        "finished_at": "2026-10-06T11:55:25.934190+00:00",
+        "items_processed": 147,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "allowed_owners": null,
+          "cursor_advanced": true,
+          "skipped_other_category": 0
+        },
+        "error_message": null
+      },
+      {
+        "id": 8,
+        "sync_type": "deals",
+        "status": "success",
+        "started_at": "2026-10-06T11:55:20.693510+00:00",
+        "finished_at": "2026-10-06T11:55:23.329323+00:00",
+        "items_processed": 77,
+        "errors_count": 0,
+        "cursor_info": {
+          "full": false,
+          "seen": 77,
+          "missing_marked": 0,
+          "cursor_advanced": true
+        },
+        "error_message": null
+      }
+    ]
+  }
+}

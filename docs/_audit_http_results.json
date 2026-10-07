@@ -1,0 +1,212 @@
+[
+  {
+    "name": "health",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "name": "ready",
+    "ok": true,
+    "detail": "{\"status\":\"ready\",\"database\":\"ok\"}"
+  },
+  {
+    "name": "me_unauthorized",
+    "ok": true,
+    "detail": "401"
+  },
+  {
+    "name": "bad_password",
+    "ok": true,
+    "detail": "401"
+  },
+  {
+    "name": "short_password_validation",
+    "ok": true,
+    "detail": "422"
+  },
+  {
+    "name": "admin_login",
+    "ok": true,
+    "detail": "{\"id\":40,\"email\":\"audit-admin@example.com\",\"role\":\"admin\",\"is_active\":true}"
+  },
+  {
+    "name": "session_cookie",
+    "ok": true,
+    "detail": "present"
+  },
+  {
+    "name": "csrf_cookie",
+    "ok": true,
+    "detail": "present"
+  },
+  {
+    "name": "cookie_httponly",
+    "ok": true,
+    "detail": "focus_session=BgHbVdPvPRpYULM4M8cNJqhPmsKCl_P5eGxnAfj0gTw; HttpOnly; Max-Age=604800; Path=/; SameSite=lax focus_csrf=gt704hLuOt8D1ItP-5EOVh6vo4HAij4Y; Max-Age=604800; Path=/; SameSite=lax"
+  },
+  {
+    "name": "cookie_samesite",
+    "ok": true,
+    "detail": "focus_session=BgHbVdPvPRpYULM4M8cNJqhPmsKCl_P5eGxnAfj0gTw; HttpOnly; Max-Age=604800; Path=/; SameSite=lax focus_csrf=gt704hLuOt8D1ItP-5EOVh6vo4HAij4Y; Max-Age=604800; Path=/; SameSite=lax"
+  },
+  {
+    "name": "me_ok",
+    "ok": true,
+    "detail": "{\"id\":40,\"email\":\"audit-admin@example.com\",\"role\":\"admin\",\"is_active\":true}"
+  },
+  {
+    "name": "openapi",
+    "ok": true,
+    "detail": "paths=18"
+  },
+  {
+    "name": "openapi_no_secrets",
+    "ok": true,
+    "detail": "scanned"
+  },
+  {
+    "name": "GET /dashboard",
+    "ok": true,
+    "detail": "200 1590ms"
+  },
+  {
+    "name": "GET /deals",
+    "ok": true,
+    "detail": "200 74ms"
+  },
+  {
+    "name": "GET /managers",
+    "ok": true,
+    "detail": "200 898ms"
+  },
+  {
+    "name": "GET /pipelines",
+    "ok": true,
+    "detail": "200 61ms"
+  },
+  {
+    "name": "GET /overdue",
+    "ok": true,
+    "detail": "200 41ms"
+  },
+  {
+    "name": "GET /stalled",
+    "ok": true,
+    "detail": "200 45ms"
+  },
+  {
+    "name": "GET /stalled",
+    "ok": true,
+    "detail": "200 27ms"
+  },
+  {
+    "name": "GET /reports",
+    "ok": true,
+    "detail": "200 356ms"
+  },
+  {
+    "name": "GET /system",
+    "ok": true,
+    "detail": "200 39ms"
+  },
+  {
+    "name": "GET /targets",
+    "ok": true,
+    "detail": "200 119ms"
+  },
+  {
+    "name": "kpi_active",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_won",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_lost",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_sum_active",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_sum_won",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_overdue",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "kpi_no_future",
+    "ok": true,
+    "detail": "{\"active_deals_count\": 6, \"won_count\": 2, \"lost_count\": 2, \"sum_active_opportunity\": 1110.0, \"sum_won_opportunity\": 3000.0, \"overdue_activities_unique\": 2, \"deals_without_future_activity_count\": 3}"
+  },
+  {
+    "name": "stalled_rules_disabled",
+    "ok": true,
+    "detail": "{\"mode\":\"rules\",\"enabled\":false,\"items\":[],\"total\":0,\"rules_config\":{\"min_hours_since_last_activity\":null,\"min_hours_since_stage_change\":null,\"require_no_future_activity\":null,\"note\":\"Регламент отдела"
+  },
+  {
+    "name": "stalled_no_future_count",
+    "ok": true,
+    "detail": "{\"mode\":\"no_future\",\"enabled\":true,\"items\":[{\"deal_id\":64,\"bitrix_id\":1001,\"title\":\"A1\",\"reason\":null,\"last_observed_activity_at\":null,\"stage_changed_observed_at\":null,\"has_future_activity\":false,\"no_"
+  },
+  {
+    "name": "system_bitrix_not_configured",
+    "ok": true,
+    "detail": "{\"configured\": false, \"demo\": false}"
+  },
+  {
+    "name": "deals_pagination",
+    "ok": true,
+    "detail": "total=10 p1=[64, 65, 66] p2=[67, 68, 69]"
+  },
+  {
+    "name": "deal_404",
+    "ok": true,
+    "detail": "404"
+  },
+  {
+    "name": "targets_csrf_required",
+    "ok": true,
+    "detail": "403"
+  },
+  {
+    "name": "targets_admin_create",
+    "ok": true,
+    "detail": "{\"id\":1,\"manager_id\":null,\"period_type\":\"month\",\"period_start\":\"2026-10-01\",\"period_end\":\"2026-10-06\",\"amount\":\"100000\",\"currency\":\"RUB\"}"
+  },
+  {
+    "name": "logout_invalidates",
+    "ok": true,
+    "detail": "401"
+  },
+  {
+    "name": "viewer_login",
+    "ok": true,
+    "detail": "{\"id\":41,\"email\":\"audit-viewer@example.com\",\"role\":\"viewer\",\"is_active\":true}"
+  },
+  {
+    "name": "viewer_read_dashboard",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "name": "viewer_cannot_write_targets",
+    "ok": true,
+    "detail": "403"
+  },
+  {
+    "name": "bruteforce_lock",
+    "ok": true,
+    "detail": "last=429"
+  }
+]
