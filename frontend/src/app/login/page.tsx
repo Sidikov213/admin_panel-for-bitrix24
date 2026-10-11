@@ -40,9 +40,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md shadow-md">
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-serif text-2xl">Focus Analytics</CardTitle>
+          <CardTitle className="text-xl font-semibold tracking-tight">Focus Analytics</CardTitle>
           <CardDescription>Вход для сотрудников</CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,26 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f7f4;
-  --foreground: #1c1917;
+  /* Soft warm-gray page canvas */
+  --background: #f6f7f5;
+  --foreground: #1a1a18;
   --card: #ffffff;
-  --card-foreground: #1c1917;
+  --card-foreground: #1a1a18;
   --popover: #ffffff;
-  --popover-foreground: #1c1917;
-  --primary: #0f766e;
-  --primary-foreground: #ecfdf5;
-  --secondary: #e7e5e4;
-  --secondary-foreground: #292524;
-  --muted: #f0eeeb;
-  --muted-foreground: #57534e;
-  --accent: #0369a1;
-  --accent-foreground: #f0f9ff;
-  --destructive: #be123c;
-  --destructive-foreground: #fff1f2;
-  --border: #e7e5e4;
-  --input: #d6d3d1;
-  --ring: #0f766e;
-  --radius: 0.75rem;
+  --popover-foreground: #1a1a18;
+  /* Calm dark green accent */
+  --primary: #0f5c4c;
+  --primary-foreground: #f3faf8;
+  --secondary: #ecebe7;
+  --secondary-foreground: #1f1f1e;
+  --muted: #ecebe8;
+  --muted-foreground: #6f6e69;
+  --accent: #e6f2ee;
+  --accent-foreground: #0a453a;
+  --destructive: #b42318;
+  --destructive-foreground: #fff7f6;
+  --success: #0f7a4d;
+  --warning: #b54708;
+  --border: #e7e5e0;
+  --input: #dcdad4;
+  --ring: #0f5c4c;
+  /* Sidebar: warmer off-white, distinct from page */
+  --sidebar: #fbfbf8;
+  --sidebar-border: #ebe8e2;
+  --sidebar-hover: #f0efea;
+  --radius: 0.625rem; /* 10px */
+  /* Very light surface elevation */
+  --shadow-surface: 0 1px 2px rgba(26, 26, 24, 0.04), 0 1px 3px rgba(26, 26, 24, 0.03);
 }
 
 @theme inline {
@@ -40,20 +50,125 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-dm-sans);
-  --font-serif: var(--font-source-serif);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+  --font-sans: var(--font-inter);
   --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
-.font-serif {
-  font-family: var(--font-source-serif), Georgia, serif;
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+.section-title {
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+}
+
+.kpi-value {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-value-lg {
+  font-size: 2.125rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  letter-spacing: 0.01em;
+}
+
+/* White elevated content surface */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-surface);
+}
+
+.panel-pad {
+  padding: 1.125rem 1.25rem;
+}
+
+.panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.875rem 1.25rem;
+}
+
+.divider {
+  border-top: 1px solid var(--border);
+}
+
+/* Report / dashboard section stack */
+.section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .section-stack {
+    gap: 1.5rem;
+  }
+}
+
+.data-table thead th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  letter-spacing: 0.01em;
+}
+
+.data-table tbody td {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.interactive-row {
+  transition: background-color 160ms ease;
+}
+.interactive-row:hover {
+  background-color: color-mix(in srgb, var(--muted) 55%, transparent);
 }

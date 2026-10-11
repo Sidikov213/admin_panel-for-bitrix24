@@ -1,0 +1,352 @@
+﻿NON_NOT_STARTED_IN_DB []
+STATUS_DIST_TODAY [('not_started', 9)]
+BOARD_TOTAL 16 FRESHNESS 13:16 TZ Europe/Moscow
+BOARD_STATUS_LABELS {'╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛': 7, '╨Э╨╡ ╨╜╨░╤З╨░╨╗ ╤А╨░╨▒╨╛╤З╨╕╨╣ ╨┤╨╡╨╜╤М': 9}
+LIVE_OPENED_SAMPLE [(2, 11, '╨Р╨╗╨╕╨╜╨░', '╨Ъ╨░╤И╨┐╤Г╤А', 'EXPIRED', True, '00:00:00'), (3, 13, '╨Р╨╜╨╜╨░', '╨Я╤А╨╛╨║╨╛╨┐╨╛╨▓╨░', 'EXPIRED', True, '00:00:00'), (4, 15, '╨Т╨╗╨░╨┤', '', 'CLOSED', True, '00:00:06')]
+{
+  "meta": {
+    "today": "2026-10-07",
+    "app_timezone": "Europe/Moscow",
+    "bounds_utc": [
+      "2026-10-06T21:00:00+00:00",
+      "2026-10-07T20:59:59.999999+00:00"
+    ],
+    "bitrix_offset_expected": "+03:00",
+    "status_dist_db_today": {
+      "not_started": 9
+    },
+    "board_total": 16
+  },
+  "managers": [
+    {
+      "manager": {
+        "id": 45,
+        "bitrix_id": 15679,
+        "name": "╨о╨╗╨╕╤П ╨Ч╨░╨╝╨░╤А╨░╨╡╨▓╨░",
+        "is_active": true
+      },
+      "classification": "workday opened",
+      "TIMEMAN_RAW": {
+        "STATUS": "EXPIRED",
+        "ID": 55,
+        "TIME_START": "2026-05-29T10:26:52+03:00",
+        "TIME_FINISH": null,
+        "DURATION": "00:00:00",
+        "TIME_LEAKS": "00:00:00",
+        "ACTIVE": true,
+        "IP_OPEN": "178.123.46.22",
+        "IP_CLOSE": "",
+        "LAT_OPEN": 0,
+        "LON_OPEN": 0,
+        "LAT_CLOSE": 0,
+        "LON_CLOSE": 0,
+        "TZ_OFFSET": 10800,
+        "TIME_FINISH_DEFAULT": "2026-05-29T18:00:00+03:00"
+      },
+      "PARSED": {
+        "status_raw": "EXPIRED",
+        "status_normalized": "working",
+        "status_label": "╨а╨░╨▒╨╛╤В╨░╨╡╤В",
+        "TIME_START": "2026-05-29T07:26:52+00:00",
+        "TIME_FINISH": null,
+        "DURATION": "00:00:00",
+        "TIME_LEAKS": "00:00:00",
+        "work_date": "2026-05-29"
+      },
+      "DB_SNAPSHOT_LATEST": [
+        {
+          "observed_at": "2026-10-07T10:01:01.699607+00:00",
+          "work_date": "2026-05-29",
+          "status_raw": "EXPIRED",
+          "status_normalized": "working",
+          "time_start": "2026-05-29T07:26:52+00:00",
+          "time_finish": null,
+          "duration_raw": "00:00:00",
+          "duration_seconds": 0,
+          "time_leaks_raw": "00:00:00",
+          "time_leaks_seconds": 0,
+          "content_hash": "ee340408ecad"
+        }
+      ],
+      "DB_WORKDAY_TODAY": null,
+      "IN_BOARD": true,
+      "API_LIST_ITEM": {
+        "id": 45,
+        "bitrix_id": 15679,
+        "name": "╨о╨╗╨╕╤П",
+        "last_name": "╨Ч╨░╨╝╨░╤А╨░╨╡╨▓╨░",
+        "display_name": "╨о╨╗╨╕╤П ╨Ч╨░╨╝╨░╤А╨░╨╡╨▓╨░",
+        "status_normalized": "unknown",
+        "status_label": "╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛",
+        "time_start": null,
+        "time_finish": null,
+        "duration_seconds": null,
+        "duration_display": null,
+        "time_leaks_seconds": null,
+        "time_leaks_display": null,
+        "crm_actions_today": 0,
+        "overdue_activities": 0,
+        "no_future_activity": 0,
+        "workday_available": false
+      },
+      "CRM_SQL_FACT": {
+        "deals_created_today": 0,
+        "deals_modified_today": 0,
+        "completed_activities_today": 0,
+        "stage_changes_today": 0,
+        "opportunity_changes_today": 0,
+        "overdue_activities": 0,
+        "no_future_deals": 0,
+        "sample_deal_date_create": "2026-05-19T10:50:23+00:00",
+        "sample_activity_completed_at": "2026-06-08T08:00:00+00:00"
+      },
+      "UI_VALUE_INFERRED": {
+        "status": "╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛",
+        "time_start_ui": null,
+        "duration_ui": null,
+        "leaks_ui": null,
+        "crm_actions_today": 0,
+        "note": "Frontend shows тАФ for time/duration/leaks when workday_available but fields null, OR when not_started with null times; status should be status_label"
+      }
+    },
+    {
+      "manager": {
+        "id": 43,
+        "bitrix_id": 15673,
+        "name": "╨Ь╨░╤А╨╕╤П ╨У╨╛╨▓╨╛╤А",
+        "is_active": false
+      },
+      "classification": "workday not started",
+      "TIMEMAN_RAW": {
+        "STATUS": "CLOSED"
+      },
+      "PARSED": {
+        "status_raw": "CLOSED",
+        "status_normalized": "not_started",
+        "status_label": "╨Э╨╡ ╨╜╨░╤З╨░╨╗ ╤А╨░╨▒╨╛╤З╨╕╨╣ ╨┤╨╡╨╜╤М",
+        "TIME_START": null,
+        "TIME_FINISH": null,
+        "DURATION": null,
+        "TIME_LEAKS": null,
+        "work_date": "2026-10-07"
+      },
+      "DB_SNAPSHOT_LATEST": [],
+      "DB_WORKDAY_TODAY": null,
+      "IN_BOARD": false,
+      "API_LIST_ITEM": null,
+      "CRM_SQL_FACT": {
+        "deals_created_today": 1,
+        "deals_modified_today": 9,
+        "completed_activities_today": 7,
+        "stage_changes_today": 17,
+        "opportunity_changes_today": 1,
+        "overdue_activities": 32,
+        "no_future_deals": 11,
+        "sample_deal_date_create": "2026-10-06T23:13:22+00:00",
+        "sample_activity_completed_at": "2027-03-02T07:00:00+00:00"
+      },
+      "UI_VALUE_INFERRED": {
+        "status": "NOT ON BOARD",
+        "time_start_ui": null,
+        "duration_ui": null,
+        "leaks_ui": null,
+        "crm_actions_today": null,
+        "note": "Frontend shows тАФ for time/duration/leaks when workday_available but fields null, OR when not_started with null times; status should be status_label"
+      }
+    },
+    {
+      "manager": {
+        "id": 72,
+        "bitrix_id": 21809,
+        "name": "╨Р╨╜╨░╤Б╤В╨░╤Б╨╕╤П ╨У╤Г╨╖╨╛╨▓╨░",
+        "is_active": false
+      },
+      "classification": "workday not started",
+      "TIMEMAN_RAW": {
+        "STATUS": "CLOSED"
+      },
+      "PARSED": {
+        "status_raw": "CLOSED",
+        "status_normalized": "not_started",
+        "status_label": "╨Э╨╡ ╨╜╨░╤З╨░╨╗ ╤А╨░╨▒╨╛╤З╨╕╨╣ ╨┤╨╡╨╜╤М",
+        "TIME_START": null,
+        "TIME_FINISH": null,
+        "DURATION": null,
+        "TIME_LEAKS": null,
+        "work_date": "2026-10-07"
+      },
+      "DB_SNAPSHOT_LATEST": [],
+      "DB_WORKDAY_TODAY": null,
+      "IN_BOARD": false,
+      "API_LIST_ITEM": null,
+      "CRM_SQL_FACT": {
+        "deals_created_today": 1,
+        "deals_modified_today": 6,
+        "completed_activities_today": 7,
+        "stage_changes_today": 9,
+        "opportunity_changes_today": 1,
+        "overdue_activities": 0,
+        "no_future_deals": 2,
+        "sample_deal_date_create": "2026-10-07T07:55:10+00:00",
+        "sample_activity_completed_at": "2027-04-12T08:00:00+00:00"
+      },
+      "UI_VALUE_INFERRED": {
+        "status": "NOT ON BOARD",
+        "time_start_ui": null,
+        "duration_ui": null,
+        "leaks_ui": null,
+        "crm_actions_today": null,
+        "note": "Frontend shows тАФ for time/duration/leaks when workday_available but fields null, OR when not_started with null times; status should be status_label"
+      }
+    },
+    {
+      "manager": {
+        "id": 1,
+        "bitrix_id": 1,
+        "name": "╨Р╨╜╨┤╤А╨╡╨╣ ╨в╨╕╤Е╨╛╨╜",
+        "is_active": false
+      },
+      "classification": "workday closed",
+      "TIMEMAN_RAW": {
+        "STATUS": "CLOSED",
+        "ID": 49,
+        "TIME_START": "2026-03-30T19:33:02+03:00",
+        "TIME_FINISH": "2026-03-30T19:33:14+03:00",
+        "DURATION": "00:00:02",
+        "TIME_LEAKS": "00:00:10",
+        "ACTIVE": true,
+        "IP_OPEN": "178.121.131.247",
+        "IP_CLOSE": "178.121.131.247",
+        "LAT_OPEN": 0,
+        "LON_OPEN": 0,
+        "LAT_CLOSE": 0,
+        "LON_CLOSE": 0,
+        "TZ_OFFSET": 10800
+      },
+      "PARSED": {
+        "status_raw": "CLOSED",
+        "status_normalized": "closed",
+        "status_label": "╨а╨░╨▒╨╛╤З╨╕╨╣ ╨┤╨╡╨╜╤М ╨╖╨░╨▓╨╡╤А╤И╤С╨╜",
+        "TIME_START": "2026-03-30T16:33:02+00:00",
+        "TIME_FINISH": "2026-03-30T16:33:14+00:00",
+        "DURATION": "00:00:02",
+        "TIME_LEAKS": "00:00:10",
+        "work_date": "2026-03-30"
+      },
+      "DB_SNAPSHOT_LATEST": [],
+      "DB_WORKDAY_TODAY": null,
+      "IN_BOARD": false,
+      "API_LIST_ITEM": null,
+      "CRM_SQL_FACT": {
+        "deals_created_today": 0,
+        "deals_modified_today": 0,
+        "completed_activities_today": 34,
+        "stage_changes_today": 0,
+        "opportunity_changes_today": 0,
+        "overdue_activities": 12,
+        "no_future_deals": 7,
+        "sample_deal_date_create": "2026-09-24T13:08:39+00:00",
+        "sample_activity_completed_at": "2027-04-01T11:00:00+00:00"
+      },
+      "UI_VALUE_INFERRED": {
+        "status": "NOT ON BOARD",
+        "time_start_ui": null,
+        "duration_ui": null,
+        "leaks_ui": null,
+        "crm_actions_today": null,
+        "note": "Frontend shows тАФ for time/duration/leaks when workday_available but fields null, OR when not_started with null times; status should be status_label"
+      }
+    },
+    {
+      "manager": {
+        "id": 2,
+        "bitrix_id": 11,
+        "name": "╨Р╨╗╨╕╨╜╨░ ╨Ъ╨░╤И╨┐╤Г╤А",
+        "is_active": true
+      },
+      "classification": "workday opened",
+      "TIMEMAN_RAW": {
+        "STATUS": "EXPIRED",
+        "ID": 41,
+        "TIME_START": "2025-01-17T10:13:08+03:00",
+        "TIME_FINISH": null,
+        "DURATION": "00:00:00",
+        "TIME_LEAKS": "00:00:00",
+        "ACTIVE": true,
+        "IP_OPEN": "178.121.163.127",
+        "IP_CLOSE": "",
+        "LAT_OPEN": 0,
+        "LON_OPEN": 0,
+        "LAT_CLOSE": 0,
+        "LON_CLOSE": 0,
+        "TZ_OFFSET": 10800,
+        "TIME_FINISH_DEFAULT": "2025-01-17T18:00:00+03:00"
+      },
+      "PARSED": {
+        "status_raw": "EXPIRED",
+        "status_normalized": "working",
+        "status_label": "╨а╨░╨▒╨╛╤В╨░╨╡╤В",
+        "TIME_START": "2025-01-17T07:13:08+00:00",
+        "TIME_FINISH": null,
+        "DURATION": "00:00:00",
+        "TIME_LEAKS": "00:00:00",
+        "work_date": "2025-01-17"
+      },
+      "DB_SNAPSHOT_LATEST": [
+        {
+          "observed_at": "2026-10-07T10:01:01.699607+00:00",
+          "work_date": "2025-01-17",
+          "status_raw": "EXPIRED",
+          "status_normalized": "working",
+          "time_start": "2025-01-17T07:13:08+00:00",
+          "time_finish": null,
+          "duration_raw": "00:00:00",
+          "duration_seconds": 0,
+          "time_leaks_raw": "00:00:00",
+          "time_leaks_seconds": 0,
+          "content_hash": "25a66d6f199d"
+        }
+      ],
+      "DB_WORKDAY_TODAY": null,
+      "IN_BOARD": true,
+      "API_LIST_ITEM": {
+        "id": 2,
+        "bitrix_id": 11,
+        "name": "╨Р╨╗╨╕╨╜╨░",
+        "last_name": "╨Ъ╨░╤И╨┐╤Г╤А",
+        "display_name": "╨Р╨╗╨╕╨╜╨░ ╨Ъ╨░╤И╨┐╤Г╤А",
+        "status_normalized": "unknown",
+        "status_label": "╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛",
+        "time_start": null,
+        "time_finish": null,
+        "duration_seconds": null,
+        "duration_display": null,
+        "time_leaks_seconds": null,
+        "time_leaks_display": null,
+        "crm_actions_today": 0,
+        "overdue_activities": 2,
+        "no_future_activity": 0,
+        "workday_available": false
+      },
+      "CRM_SQL_FACT": {
+        "deals_created_today": 0,
+        "deals_modified_today": 0,
+        "completed_activities_today": 0,
+        "stage_changes_today": 0,
+        "opportunity_changes_today": 0,
+        "overdue_activities": 2,
+        "no_future_deals": 0,
+        "sample_deal_date_create": "2026-01-09T18:38:06+00:00",
+        "sample_activity_completed_at": "2026-04-06T14:00:00+00:00"
+      },
+      "UI_VALUE_INFERRED": {
+        "status": "╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨╛",
+        "time_start_ui": null,
+        "duration_ui": null,
+        "leaks_ui": null,
+        "crm_actions_today": 0,
+        "note": "Frontend shows тАФ for time/duration/leaks when workday_available but fields null, OR when not_started with null times; status should be status_label"
+      }
+    }
+  ]
+}

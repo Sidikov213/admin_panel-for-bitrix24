@@ -1,102 +1,192 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
+import { useState } from "react";
+import { DataFreshness } from "@/components/common/data-freshness";
+import { DeltaBadge } from "@/components/common/delta-badge";
+import { ErrorState, PageLoading } from "@/components/common/page-states";
 import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useReports, useTargets } from "@/hooks/queries";
-import { formatDate, formatMoney, formatNumber } from "@/lib/format";
+import { useReports } from "@/hooks/queries";
+import { formatMoney, formatNumber } from "@/lib/format";
+import type { MetricDelta, PlanFact } from "@/types/api";
 
 export function ReportsView() {
-  const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
-  const reports = useReports(period.from, period.to);
-  const targets = useTargets();
+  const [period, setPeriod] = useState<PeriodValue>({ ...defaultPeriod(), preset: "current_week" });
+  const q = useReports({
+    preset: period.preset === "custom" ? undefined : period.preset,
+    period_start: period.from,
+    period_end: period.to,
+  });
 
-  const report = reports.data?.report;
+  if (q.isLoading) return <PageLoading rows={6} />;
+  if (q.isError) return <ErrorState message="Не удалось загрузить отчёт." onRetry={() => void q.refetch()} />;
+  const data = q.data;
+  if (!data) return null;
 
-  const planRows = useMemo(() => {
-    const t = targets.data ?? [];
-    if (!t.length) return [];
-    return t.filter((row) => {
-      const start = row.period_start;
-      const end = row.period_end;
-      return start <= period.to && end >= period.from;
-    });
-  }, [targets.data, period.from, period.to]);
-
-  if (reports.isLoading) return <PageLoading rows={4} />;
-  if (reports.isError) {
-    return <ErrorState message="Не удалось загрузить отчёт." onRetry={() => void reports.refetch()} />;
-  }
+  const overview = data.overview as Record<string, unknown> | undefined;
+  const planFact = overview?.plan_fact as PlanFact | undefined;
+  const problems = data.problems as Record<string, number> | undefined;
+  const managers = (data.managers as Array<Record<string, unknown>>) || [];
+  const dynamics = data.dynamics as Record<string, MetricDelta> | undefined;
+  const reg = data.regulation_violations as
+    | {
+        configured?: boolean;
+        enabled?: boolean;
+        message?: string;
+        open?: number;
+        new_during_period?: number;
+        resolved?: number;
+        by_type?: Array<{ type: string; count: number }>;
+        by_manager?: Array<{ manager_name: string; count: number }>;
+      }
+    | undefined;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="section-stack">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-semibold">Отчёты</h1>
-          <p className="text-sm text-muted-foreground">Периодные KPI и план/факт по целям продаж</p>
+          <p className="meta">Недельный управленческий отчёт</p>
+          <h1 className="mt-1 text-[1.25rem] font-semibold tracking-tight">{data.title || "Отчёт"}</h1>
         </div>
-        <PeriodPicker value={period} onChange={setPeriod} />
+        <div className="flex flex-wrap items-center gap-3">
+          <PeriodPicker value={period} onChange={setPeriod} compact />
+          <DataFreshness freshness={data.freshness} compact />
+        </div>
       </div>
 
-      {!report ? (
-        <EmptyState title="Нет данных отчёта" />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Новые", formatNumber(report.new_deals_count)],
-            ["Выиграно", formatNumber(report.won_count)],
-            ["Сумма выигранных", formatMoney(report.sum_won_opportunity)],
-            ["Активные", formatNumber(report.active_deals_count)],
-          ].map(([label, value]) => (
-            <Card key={label}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-serif text-2xl font-semibold">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Общая картина</h2>
+          <span className="meta">сводка за период</span>
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-4">
+          <Metric
+            label="План"
+            value={planFact?.plan_set ? formatMoney(planFact.plan) : "не задан"}
+          />
+          <Metric label="Факт (won)" value={formatMoney((overview?.sum_won as number) ?? planFact?.fact)} />
+          <Metric
+            label="Новые / Won / Lost"
+            value={`${formatNumber(overview?.new_deals as number)} / ${formatNumber(overview?.won as number)} / ${formatNumber(overview?.lost as number)}`}
+          />
+          <div>
+            <p className="meta">Активный pipeline</p>
+            <p className="mt-1.5 text-[1.375rem] font-semibold tabular-nums tracking-tight">
+              {formatNumber(overview?.active_pipeline_count as number)}
+            </p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {formatMoney(overview?.active_pipeline_amount as number)}
+            </p>
+          </div>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>План / факт</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {targets.isLoading ? (
-            <PageLoading rows={1} />
-          ) : !planRows.length ? (
-            <p className="text-sm text-muted-foreground">план не задан</p>
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Проблемы</h2>
+          <span className="meta">сигналы контроля</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-4">
+          <Metric label="Overdue" value={formatNumber(problems?.overdue)} />
+          <Metric label="No future" value={formatNumber(problems?.no_future_activity)} />
+          <Metric label="Требуют внимания" value={formatNumber(problems?.deals_requiring_attention)} />
+          <Metric label="Сумма внимания" value={formatMoney(problems?.money_requiring_attention)} />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Нарушения регламента</h2>
+        </div>
+        <div className="px-5 py-5">
+          {!reg || reg.configured === false ? (
+            <p className="text-[13px] text-muted-foreground">{reg?.message || "Регламент не настроен"}</p>
+          ) : reg.enabled === false ? (
+            <p className="text-[13px] text-muted-foreground">{reg.message || "Правила выключены"}</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Период</TableHead>
-                  <TableHead>Менеджер</TableHead>
-                  <TableHead>План</TableHead>
-                  <TableHead>Факт (выиграно)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {planRows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>
-                      {formatDate(row.period_start)} — {formatDate(row.period_end)}
-                    </TableCell>
-                    <TableCell>{row.manager_id ?? "Компания"}</TableCell>
-                    <TableCell>{formatMoney(row.amount, row.currency)}</TableCell>
-                    <TableCell>{formatMoney(report?.sum_won_opportunity ?? 0, row.currency)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-6">
+                <Metric label="Open" value={formatNumber(reg.open)} />
+                <Metric label="New during period" value={formatNumber(reg.new_during_period)} />
+                <Metric label="Resolved" value={formatNumber(reg.resolved)} />
+              </div>
+              {(reg.by_type?.length || 0) > 0 ? (
+                <ul className="divide-y divide-border rounded-md border border-border">
+                  {reg.by_type!.map((t) => (
+                    <li key={t.type} className="flex justify-between gap-3 px-3.5 py-2.5 text-[13px]">
+                      <span>{t.type}</span>
+                      <span className="tabular-nums text-muted-foreground">{t.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
+      <section className="panel overflow-hidden">
+        <div className="panel-header">
+          <h2 className="section-title">Менеджеры</h2>
+          <span className="meta">{managers.length} чел.</span>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="data-table">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-5">Менеджер</TableHead>
+                <TableHead className="text-right">Активные</TableHead>
+                <TableHead className="text-right">Новые</TableHead>
+                <TableHead className="text-right">Won</TableHead>
+                <TableHead className="text-right">Сумма won</TableHead>
+                <TableHead className="text-right">Overdue</TableHead>
+                <TableHead className="pr-5 text-right">Без дела</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {managers.map((m) => (
+                <TableRow key={String(m.id)} className="interactive-row">
+                  <TableCell className="pl-5 font-medium">{String(m.name)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNumber(m.active_deals as number)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNumber(m.new_deals as number)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNumber(m.won as number)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatMoney(m.sum_won as number)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNumber(m.overdue as number)}</TableCell>
+                  <TableCell className="pr-5 text-right tabular-nums">{formatNumber(m.no_future as number)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+
+      {dynamics ? (
+        <section className="panel">
+          <div className="panel-header">
+            <h2 className="section-title">Динамика vs предыдущий период</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-3 lg:grid-cols-6">
+            {Object.entries(dynamics).map(([key, d]) => (
+              <div key={key}>
+                <p className="meta">{key}</p>
+                <p className="mt-1.5 text-[1.25rem] font-semibold tabular-nums tracking-tight">{d.current}</p>
+                <div className="mt-0.5">
+                  <DeltaBadge delta={d} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="meta">{label}</p>
+      <p className="mt-1.5 text-[1.375rem] font-semibold tabular-nums tracking-tight">{value}</p>
     </div>
   );
 }

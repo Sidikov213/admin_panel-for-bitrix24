@@ -1,13 +1,14 @@
-from datetime import date, timedelta
+from datetime import date
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
+from app.analytics.attention import build_attention_items
+from app.analytics.compare import compare_kpi_dicts
+from app.analytics.freshness import build_freshness
 from app.analytics.kpi import compute_period_kpis
-from app.models.crm import CrmDeal, DealChangeEvent
+from app.analytics.periods import DateRange, resolve_period
 from app.repositories.sync import SyncRepository
-from app.services.stalled_rules import RULES_ENABLED, StalledRulesConfig, is_stalled
+from app.services.targets_service import TargetsService
 
 
 class DashboardService:
@@ -20,124 +21,90 @@ class DashboardService:
         *,
         period_start: date | None = None,
         period_end: date | None = None,
+        preset: str | None = None,
         pipeline_id: int | None = None,
         manager_id: int | None = None,
     ) -> dict:
-        today = date.today()
-        if period_end is None:
-            period_end = today
-        if period_start is None:
-            period_start = period_end - timedelta(days=29)
+        rng = resolve_period(preset=preset, period_start=period_start, period_end=period_end)
+        prev = rng.previous()
 
         kpis = await compute_period_kpis(
             self._session,
-            period_start,
-            period_end,
+            rng.start,
+            rng.end,
             pipeline_id=pipeline_id,
             manager_id=manager_id,
         )
-
-        changes_stmt = (
-            select(DealChangeEvent)
-            .order_by(DealChangeEvent.observed_at.desc())
-            .limit(20)
+        prev_kpis = await compute_period_kpis(
+            self._session,
+            prev.start,
+            prev.end,
+            pipeline_id=pipeline_id,
+            manager_id=manager_id,
+            include_series=False,
         )
-        recent_changes = (await self._session.execute(changes_stmt)).scalars().all()
-
-        deals_stmt = (
-            select(CrmDeal)
-            .where(
-                CrmDeal.closed.is_(False),
-                CrmDeal.missing_from_bitrix.is_(False),
-                CrmDeal.has_future_activity.is_(False),
-            )
-            .options(selectinload(CrmDeal.stage), selectinload(CrmDeal.assigned_manager))
-            .limit(50)
+        comparison = compare_kpi_dicts(kpis, prev_kpis)
+        attention = await build_attention_items(
+            self._session, pipeline_id=pipeline_id, manager_id=manager_id
         )
-        if pipeline_id is not None:
-            deals_stmt = deals_stmt.where(CrmDeal.category_id == pipeline_id)
-        if manager_id is not None:
-            deals_stmt = deals_stmt.where(CrmDeal.assigned_by_id == manager_id)
-
-        deals = (await self._session.execute(deals_stmt)).scalars().all()
-        problem_deals = []
-        for d in deals:
-            stalled, reason = (False, None)
-            if RULES_ENABLED:
-                stalled, reason = is_stalled(
-                    last_observed_activity_at=d.last_observed_activity_at,
-                    stage_changed_observed_at=d.stage_changed_observed_at,
-                    has_future_activity=d.has_future_activity,
-                    closed=d.closed,
-                    config=StalledRulesConfig(),
-                )
-            problem_deals.append(
-                {
-                    "deal_id": d.id,
-                    "bitrix_id": d.bitrix_id,
-                    "title": d.title,
-                    "stalled": stalled,
-                    "reason": reason if stalled else None,
-                    "no_future_activity": True,
-                    "no_future_activity_label": "нет следующего запланированного дела",
-                    "manager": (
-                        f"{d.assigned_manager.name} {d.assigned_manager.last_name}".strip()
-                        if d.assigned_manager
-                        else None
-                    ),
-                    "stage": d.stage.name if d.stage else None,
-                    "last_observed_activity_at": (
-                        d.last_observed_activity_at.isoformat()
-                        if d.last_observed_activity_at
-                        else None
-                    ),
-                }
-            )
 
         last_deals = await self._sync_repo.get_state("last_deals_sync")
+        last_acts = await self._sync_repo.get_state("last_activities_sync")
         latest = await self._sync_repo.latest_run()
+        latest_ok = await self._sync_repo.latest_successful_run()
+
+        last_ok_at = None
+        if latest_ok and latest_ok.finished_at:
+            last_ok_at = latest_ok.finished_at
+        elif isinstance(last_deals, dict):
+            last_ok_at = last_deals.get("at")
+
+        freshness = build_freshness(
+            last_successful_sync_at=last_ok_at,
+            last_attempted_sync_at=latest.finished_at if latest and latest.finished_at else last_ok_at,
+            latest_run_status=latest.status.value if latest else None,
+        )
+
+        plan_fact = await TargetsService(self._session).plan_fact_for_range(rng.start, rng.end)
+
+        from app.services.sales_rules.aggregates import dashboard_violation_kpis
+
+        rule_kpis = await dashboard_violation_kpis(self._session)
 
         return {
             "kpis": kpis,
+            "comparison": {
+                "current_period": {"start": rng.start.isoformat(), "end": rng.end.isoformat(), "preset": rng.preset},
+                "previous_period": {"start": prev.start.isoformat(), "end": prev.end.isoformat(), "preset": prev.preset},
+                "metrics": comparison,
+            },
+            "attention": attention,
+            "rule_violations": rule_kpis,
+            "plan_fact": plan_fact,
             "charts": {
                 "series_daily": kpis.get("series_daily"),
                 "deals_by_stage": kpis.get("deals_by_stage_named"),
                 "deals_by_manager": kpis.get("deals_by_manager_named"),
                 "deals_by_pipeline": kpis.get("deals_by_pipeline"),
             },
-            "recent_changes": [
-                {
-                    "deal_id": c.deal_id,
-                    "field_name": c.field_name,
-                    "old_value": c.old_value,
-                    "new_value": c.new_value,
-                    "observed_at": c.observed_at.isoformat(),
-                    "bitrix_event_at": c.bitrix_event_at.isoformat() if c.bitrix_event_at else None,
-                    "note": (
-                        "Время обнаружения системой (polling), не гарантирует точное "
-                        "историческое время промежуточного изменения"
-                        if c.bitrix_event_at is None
-                        else None
-                    ),
-                }
-                for c in recent_changes
-            ],
-            "problem_deals": problem_deals,
+            # Backward-compatible aliases
+            "problem_deals": attention["categories"]["no_future_activity"]["items"][:50],
+            "recent_changes": [],
+            "freshness": freshness,
             "sync": {
                 "last_deals_sync": last_deals,
+                "last_activities_sync": last_acts,
                 "latest_run_status": latest.status.value if latest else None,
                 "latest_run_finished_at": (
                     latest.finished_at.isoformat() if latest and latest.finished_at else None
                 ),
-                "data_may_be_stale": True,
-                "stale_note": (
-                    "Данные обновляются периодической синхронизацией. "
-                    "При недоступности Bitrix панель показывает последнее сохранённое состояние."
-                ),
+                "data_may_be_stale": freshness["is_stale"],
+                "stale_note": freshness["warning"],
             },
             "meta": {
-                "period_start": period_start.isoformat(),
-                "period_end": period_end.isoformat(),
+                "period_start": rng.start.isoformat(),
+                "period_end": rng.end.isoformat(),
+                "preset": rng.preset,
                 "computed_at": kpis.get("computed_at"),
             },
         }

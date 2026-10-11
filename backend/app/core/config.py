@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     BITRIX_RETRY_MAX: int = 5
     BITRIX_REQUEST_TIMEOUT: float = 30.0
 
+    # Manager Control — Timeman collector (READ ONLY timeman.status)
+    TIMEMAN_COLLECTOR_ENABLED: bool = True
+    TIMEMAN_MAX_MANAGERS_PER_CYCLE: int = 50
+    TIMEMAN_REQUEST_TIMEOUT: float = 20.0
+    TIMEMAN_RETRY_MAX: int = 3
+
     @field_validator("BITRIX_CATEGORY_IDS", mode="before")
     @classmethod
     def normalize_category_ids(cls, v: object) -> str:

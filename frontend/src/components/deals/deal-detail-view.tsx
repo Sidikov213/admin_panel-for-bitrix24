@@ -4,8 +4,6 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDeal } from "@/hooks/queries";
 import { bitrixDealUrl } from "@/lib/bitrix-url";
@@ -21,162 +19,207 @@ export function DealDetailView({ id }: { id: number }) {
 
   const d = deal.data;
   const bitrixUrl = d.bitrix_url || bitrixDealUrl(d.bitrix_id);
-  const lastChange = d.change_events[0];
+  const timeline = d.timeline?.length ? d.timeline : null;
+  const activeViolations = d.violations?.active ?? [];
+  const warnings: string[] = [];
+  if (d.no_future_activity_label) warnings.push(d.no_future_activity_label);
+  if (d.hours_without_observed_movement != null) {
+    warnings.push(`Без движения ~${d.hours_without_observed_movement} ч`);
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <Link href="/deals" className="text-sm text-muted-foreground hover:text-foreground">
-            ← К списку
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <Link href="/deals" className="text-[12px] text-muted-foreground hover:text-foreground">
+            ← Сделки
           </Link>
-          <h1 className="mt-2 font-serif text-3xl font-semibold">{d.title}</h1>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {d.closed ? <Badge variant="secondary">Закрыта</Badge> : <Badge variant="success">Активна</Badge>}
-            {d.no_future_activity_label ? <Badge variant="warning">{d.no_future_activity_label}</Badge> : null}
-            {d.hours_without_observed_movement != null ? (
-              <Badge variant="outline">Без движения ~{d.hours_without_observed_movement} ч (наблюдаемо)</Badge>
-            ) : null}
+          <h1 className="page-title mt-1 text-[1.5rem] sm:text-[1.75rem]">{d.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+            <span className="text-[1.25rem] font-semibold tabular-nums">
+              {formatMoney(d.opportunity, d.currency_id ?? "RUB")}
+            </span>
+            <span className="text-muted-foreground">{d.stage?.name ?? "—"}</span>
+            <span>{managerName(d.assigned_manager)}</span>
+            {d.closed ? (
+              <Badge variant="secondary">Закрыта</Badge>
+            ) : (
+              <Badge variant="success">Активна</Badge>
+            )}
           </div>
         </div>
         {bitrixUrl ? (
-          <Button asChild variant="outline">
-            <a href={bitrixUrl} target="_blank" rel="noopener noreferrer">
-              Открыть в Bitrix
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        ) : (
-          <p className="text-xs text-muted-foreground">Укажите BITRIX_PORTAL_URL для ссылки в Bitrix</p>
-        )}
+          <a
+            href={bitrixUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-medium transition-colors hover:bg-muted"
+          >
+            Bitrix
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Основное</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>
-              <span className="text-muted-foreground">Bitrix ID:</span> {d.bitrix_id}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Стадия:</span> {d.stage?.name ?? "—"}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Менеджер:</span> {managerName(d.assigned_manager)}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Сумма:</span> {formatMoney(d.opportunity, d.currency_id ?? "RUB")}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Открытых дел:</span> {d.open_activities_count}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Ближайший дедлайн:</span> {formatDateTime(d.next_deadline_at)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Даты</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>
-              <span className="text-muted-foreground">Создана:</span> {formatDateTime(d.date_create)}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Изменена (Bitrix):</span> {formatDateTime(d.date_modify)}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Наблюдалась:</span> {formatDateTime(d.observed_at)}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Смена этапа (наблюдаемо):</span>{" "}
-              {formatDateTime(d.stage_changed_observed_at)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Последнее наблюдаемое изменение</CardTitle>
-            <CardDescription>Время обнаружения при синхронизации</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm">
-            {!lastChange ? (
-              <EmptyState title="Изменений нет" />
-            ) : (
-              <div className="space-y-1">
-                <p className="font-medium">{lastChange.field_name}</p>
-                <p className="text-muted-foreground">
-                  {lastChange.old_value ?? "—"} → {lastChange.new_value ?? "—"}
-                </p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(lastChange.observed_at)}</p>
-                {lastChange.note ? <p className="text-xs text-amber-800">{lastChange.note}</p> : null}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Связанные дела</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!d.activities.length ? (
-            <EmptyState title="Дела не найдены" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Тема</TableHead>
-                  <TableHead>Дедлайн</TableHead>
-                  <TableHead>Статус</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {d.activities.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.subject || `Дело #${a.bitrix_id}`}</TableCell>
-                    <TableCell>{formatDateTime(a.deadline)}</TableCell>
-                    <TableCell>{a.completed ? "Завершено" : "Открыто"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Наблюдаемая история</CardTitle>
-          <CardDescription>
-            Polling не гарантирует обнаружение каждого промежуточного изменения
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!d.change_events.length ? (
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,0.9fr)]">
+        {/* Timeline — primary */}
+        <section>
+          <h2 className="section-title mb-3">Timeline</h2>
+          <p className="meta mb-4">
+            observed_at — время обнаружения при синхронизации, не всегда точное время в Bitrix
+          </p>
+          {!(timeline || d.change_events.length) ? (
             <EmptyState title="История пуста" />
           ) : (
-            <ul className="divide-y divide-border">
-              {d.change_events.map((c) => (
-                <li key={c.id ?? `${c.field_name}-${c.observed_at}`} className="py-3 text-sm">
-                  <p className="font-medium">{c.field_name}</p>
-                  <p className="text-muted-foreground">
-                    {c.old_value ?? "—"} → {c.new_value ?? "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Обнаружено: {formatDateTime(c.observed_at)}
-                    {c.bitrix_event_at ? ` · Bitrix: ${formatDateTime(c.bitrix_event_at)}` : ""}
-                  </p>
-                </li>
-              ))}
+            <ul className="space-y-0">
+              {timeline
+                ? timeline.map((t, idx) => (
+                    <li key={`${t.at}-${idx}`} className="relative border-l border-border py-3 pl-4 first:pt-0">
+                      <span className="absolute -left-[3px] top-4 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <p className="meta tabular-nums">{formatDateTime(t.at)}</p>
+                      <p className="mt-0.5 text-[13px] font-medium">{t.title}</p>
+                      <p className="text-[13px] text-muted-foreground">{t.detail}</p>
+                      {t.is_observed && t.note ? (
+                        <p className="mt-1 text-[12px] text-[var(--warning)]">{t.note}</p>
+                      ) : null}
+                    </li>
+                  ))
+                : d.change_events.map((c) => (
+                    <li
+                      key={c.id ?? `${c.field_name}-${c.observed_at}`}
+                      className="relative border-l border-border py-3 pl-4 first:pt-0"
+                    >
+                      <span className="absolute -left-[3px] top-4 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <p className="meta tabular-nums">{formatDateTime(c.observed_at)}</p>
+                      <p className="mt-0.5 text-[13px] font-medium">{c.field_name}</p>
+                      <p className="text-[13px] text-muted-foreground">
+                        {c.old_value ?? "—"} → {c.new_value ?? "—"}
+                      </p>
+                      {c.note ? <p className="mt-1 text-[12px] text-[var(--warning)]">{c.note}</p> : null}
+                    </li>
+                  ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </section>
+
+        {/* Right sidebar */}
+        <aside className="space-y-5">
+          <section className="panel panel-pad space-y-2.5 text-[13px]">
+            <h2 className="section-title">Статус</h2>
+            <Row label="Bitrix ID" value={String(d.bitrix_id)} />
+            <Row label="Воронка" value={String(d.pipeline_name ?? d.category_id ?? "—")} />
+            <Row label="Этап" value={d.stage?.name ?? "—"} />
+            <Row label="Менеджер" value={managerName(d.assigned_manager)} />
+            <Row label="Создана" value={formatDateTime(d.date_create) || "—"} />
+            <Row label="Изменена" value={formatDateTime(d.date_modify) || "—"} />
+            <Row label="Открытых дел" value={String(d.open_activities_count ?? 0)} />
+            <Row label="Ближ. дедлайн" value={formatDateTime(d.next_deadline_at) || "—"} />
+          </section>
+
+          {warnings.length ? (
+            <section className="panel panel-pad">
+              <h2 className="section-title mb-2">Предупреждения</h2>
+              <ul className="space-y-1.5 text-[13px] text-[var(--warning)]">
+                {warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section className="panel panel-pad">
+            <h2 className="section-title mb-2">Дела</h2>
+            <ActivityBlock title="Открытые" items={d.current_activities ?? d.activities.filter((a) => !a.completed)} />
+            <ActivityBlock title="Просроченные" items={d.overdue_activities ?? []} />
+            <ActivityBlock title="Будущие" items={d.future_activities ?? []} />
+          </section>
+
+          <section className="panel panel-pad">
+            <h2 className="section-title mb-2">Нарушения</h2>
+            {!activeViolations.length && !(d.violations?.resolved?.length) ? (
+              <p className="text-[13px] text-muted-foreground">Нет открытых нарушений</p>
+            ) : (
+              <div className="space-y-2">
+                {activeViolations.map((v) => (
+                  <div key={v.id} className="border-b border-border pb-2 last:border-0 last:pb-0">
+                    <p className="text-[13px] font-medium">{v.rule_name}</p>
+                    <p className="text-[12px] text-muted-foreground">{v.details}</p>
+                    <p className="meta mt-0.5">
+                      {v.severity} · {formatDateTime(v.detected_at)}
+                    </p>
+                  </div>
+                ))}
+                {(d.violations?.resolved?.length ?? 0) > 0 ? (
+                  <p className="meta pt-1">Resolved: {d.violations!.resolved.length}</p>
+                ) : null}
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
+
+      {(d.snapshots?.length ?? 0) > 0 ? (
+        <section className="panel overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="section-title">Snapshots</h2>
+          </div>
+          <Table className="data-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Observed</TableHead>
+                <TableHead>Hash</TableHead>
+                <TableHead className="pr-4">Summary</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {d.snapshots!.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="pl-4 text-[12px]">{formatDateTime(s.observed_at)}</TableCell>
+                  <TableCell className="font-mono text-[11px]">{s.content_hash.slice(0, 10)}…</TableCell>
+                  <TableCell className="pr-4 text-[12px] text-muted-foreground">
+                    {s.payload_summary ? JSON.stringify(s.payload_summary) : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="truncate text-right tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function ActivityBlock({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ id: number; bitrix_id?: number; subject?: string | null; deadline?: string | null }>;
+}) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="meta mb-1">{title}</p>
+      {!items.length ? (
+        <p className="text-[12px] text-muted-foreground">Нет</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.slice(0, 6).map((a) => (
+            <li key={a.id}>
+              <p className="text-[13px] font-medium leading-snug">{a.subject || `Дело #${a.bitrix_id}`}</p>
+              <p className="meta tabular-nums">{formatDateTime(a.deadline) || "—"}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

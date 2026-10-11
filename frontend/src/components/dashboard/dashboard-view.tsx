@@ -6,28 +6,21 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { KpiCard } from "@/components/common/kpi-card";
+import { DataFreshness } from "@/components/common/data-freshness";
+import { DeltaBadge } from "@/components/common/delta-badge";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDashboard, useSystem } from "@/hooks/queries";
-import { formatDateTime, formatMoney, formatNumber } from "@/lib/format";
-import type { NamedCount, PipelineCount } from "@/types/api";
-
-const CHART_COLORS = ["#0f766e", "#0369a1", "#b45309", "#be123c", "#4d7c0f", "#0e7490"];
+import { useDashboard, useManagers } from "@/hooks/queries";
+import { formatMoney, formatNumber } from "@/lib/format";
+import type { AttentionCategory, MetricDelta, NamedCount } from "@/types/api";
 
 function asNamedList(value: NamedCount[] | Record<string, number> | null | undefined): NamedCount[] {
   if (!value) return [];
@@ -35,23 +28,57 @@ function asNamedList(value: NamedCount[] | Record<string, number> | null | undef
   return Object.entries(value).map(([id, count]) => ({ name: id, count }));
 }
 
+function deltaOf(metrics: Record<string, MetricDelta> | undefined, key: string) {
+  return metrics?.[key] ?? null;
+}
+
+function categoryAmount(cat: AttentionCategory) {
+  return cat.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+}
+
+const ATTENTION_HREF: Record<string, string> = {
+  overdue_activities: "/overdue",
+  overdue: "/overdue",
+  no_future_activity: "/stalled?mode=no_future",
+  without_future: "/stalled?mode=no_future",
+  no_movement: "/stalled?mode=no_movement",
+  without_movement: "/stalled?mode=no_movement",
+  regulation: "/admin/sales-rules",
+  violations: "/admin/sales-rules",
+};
+
+function attentionHref(key: string) {
+  const k = key.toLowerCase();
+  for (const [pattern, href] of Object.entries(ATTENTION_HREF)) {
+    if (k.includes(pattern.replace(/_/g, "")) || k.includes(pattern)) return href;
+  }
+  if (k.includes("overdue") || k.includes("просроч")) return "/overdue";
+  if (k.includes("future") || k.includes("следующ")) return "/stalled?mode=no_future";
+  if (k.includes("movement") || k.includes("движен")) return "/stalled?mode=no_movement";
+  if (k.includes("viol") || k.includes("регламент") || k.includes("rule")) return "/admin/sales-rules";
+  return "/deals";
+}
+
 export function DashboardView() {
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
-  const dash = useDashboard(period.from, period.to);
-  const system = useSystem();
+  const periodParams = {
+    preset: period.preset === "custom" ? undefined : period.preset,
+    period_start: period.from,
+    period_end: period.to,
+  };
+  const dash = useDashboard(periodParams);
+  const managers = useManagers(periodParams);
 
   const kpis = dash.data?.kpis;
   const charts = dash.data?.charts;
+  const cmp = dash.data?.comparison?.metrics;
+  const attention = dash.data?.attention;
+  const planFact = dash.data?.plan_fact;
+  const ruleKpis = dash.data?.rule_violations;
 
-  const pipelineData = useMemo(() => {
-    const named = charts?.deals_by_pipeline as PipelineCount[] | undefined;
-    if (named?.length) return named.map((p) => ({ name: p.name, value: p.count }));
-    return asNamedList(charts?.deals_by_stage).map((s) => ({ name: s.name, value: s.count }));
-  }, [charts]);
-
-  const managerData = useMemo(
+  const stageData = useMemo(
     () =>
-      asNamedList(charts?.deals_by_manager)
+      asNamedList(charts?.deals_by_stage)
         .sort((a, b) => b.count - a.count)
         .slice(0, 8),
     [charts],
@@ -59,239 +86,316 @@ export function DashboardView() {
 
   const series = charts?.series_daily ?? kpis?.series_daily ?? [];
 
+  const managerRows = useMemo(() => {
+    const rows = [...(managers.data ?? [])];
+    rows.sort((a, b) => (b.sum_won_opportunity ?? 0) - (a.sum_won_opportunity ?? 0));
+    return rows.slice(0, 8);
+  }, [managers.data]);
+
   if (dash.isLoading && !kpis) return <PageLoading rows={6} />;
   if (dash.isError) return <ErrorState message="Не удалось загрузить дашборд." onRetry={() => void dash.refetch()} />;
+  if (!kpis) return <EmptyState title="Нет данных" description="KPI пока недоступны." />;
 
-  const syncStale = Boolean(system.data?.data_may_be_stale || (system.data && !system.data.bitrix_reachable));
-  const lastSync =
-    dash.data?.sync?.latest_run_finished_at ||
-    (typeof system.data?.last_deals_sync === "object" && system.data?.last_deals_sync?.at) ||
-    null;
+  const objectiveCats = attention?.objective_signals?.categories
+    ? (Object.entries(attention.objective_signals.categories) as [string, AttentionCategory][])
+    : attention?.categories
+      ? (Object.entries(attention.categories) as [string, AttentionCategory][])
+      : [];
+  const businessCats = attention?.business_rule_violations?.categories
+    ? (Object.entries(attention.business_rule_violations.categories) as [string, AttentionCategory][])
+    : [];
+
+  const attentionRows: Array<{ key: string; label: string; count: number; amount: number; href: string }> = [];
+  for (const [key, cat] of objectiveCats) {
+    attentionRows.push({
+      key: `obj-${key}`,
+      label: cat.label,
+      count: cat.count,
+      amount: categoryAmount(cat),
+      href: attentionHref(key + cat.label),
+    });
+  }
+  if (businessCats.length) {
+    const total = businessCats.reduce((s, [, c]) => s + c.count, 0);
+    const amount = businessCats.reduce((s, [, c]) => s + categoryAmount(c), 0);
+    attentionRows.push({
+      key: "biz-violations",
+      label: "Нарушения регламента",
+      count: total,
+      amount,
+      href: "/admin/sales-rules",
+    });
+  } else {
+    attentionRows.push({
+      key: "biz-empty",
+      label: "Нарушения регламента",
+      count: ruleKpis?.open_violations ?? 0,
+      amount: ruleKpis?.amount_under_violations ?? 0,
+      href: "/admin/sales-rules",
+    });
+  }
+
+  const wonDelta = deltaOf(cmp, "sum_won_opportunity");
+  const moneyAtt = attention?.money_requiring_attention;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">Дашборд</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Что сейчас происходит в отделе продаж · {period.from} — {period.to}
-          </p>
+    <div className="section-stack">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[13px] text-muted-foreground">Отдел продаж · период сравнения с предыдущим</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <PeriodPicker value={period} onChange={setPeriod} compact />
+          <DataFreshness freshness={dash.data?.freshness} fallbackAt={kpis.computed_at} compact />
         </div>
-        <PeriodPicker value={period} onChange={setPeriod} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          Обновление данных:{" "}
-          <strong className="font-medium text-foreground">{formatDateTime(lastSync || kpis?.computed_at)}</strong>
-        </span>
-        {system.data?.latest_sync_run ? (
-          <Badge variant={syncStale ? "warning" : "secondary"}>
-            Синхронизация: {system.data.latest_sync_run.status}
-          </Badge>
-        ) : (
-          <Badge variant="secondary">Синхронизация ещё не выполнялась</Badge>
-        )}
-        {syncStale ? <Badge variant="warning">Данные могут быть устаревшими</Badge> : null}
-        {system.data?.demo_mode ? <Badge variant="outline">DEMO</Badge> : null}
-      </div>
+      {/* Hero + secondary strip */}
+      <section className="panel panel-pad">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.95fr)] lg:items-end">
+          <div>
+            <p className="meta">Продажи</p>
+            <p className="kpi-value-lg mt-1.5">{formatMoney(kpis.sum_won_opportunity)}</p>
+            <div className="mt-1.5">
+              <DeltaBadge delta={wonDelta} compact />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border pt-4 sm:grid-cols-5 lg:border-t-0 lg:border-l lg:pl-6 lg:pt-0">
+            <StripMetric
+              label="Активных сделок"
+              value={formatNumber(kpis.active_deals_count)}
+              delta={deltaOf(cmp, "active_deals_count")}
+            />
+            <StripMetric
+              label="В работе"
+              value={formatMoney(kpis.sum_active_opportunity)}
+              delta={deltaOf(cmp, "sum_active_opportunity")}
+            />
+            <StripMetric
+              label="Новых"
+              value={formatNumber(kpis.new_deals_count)}
+              delta={deltaOf(cmp, "new_deals_count")}
+            />
+            <StripMetric label="Выиграно" value={formatNumber(kpis.won_count)} delta={deltaOf(cmp, "won_count")} />
+            <StripMetric label="Проиграно" value={formatNumber(kpis.lost_count)} delta={deltaOf(cmp, "lost_count")} />
+          </div>
+        </div>
+      </section>
 
-      {kpis?.data_quality?.note ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {kpis.data_quality.note}
-        </p>
+      {/* Plan / fact — compact */}
+      {planFact ? (
+        <section className="panel panel-pad">
+          {planFact.plan_set ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="grid grid-cols-3 gap-6 text-[13px]">
+                <div>
+                  <p className="meta">План</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">{formatMoney(planFact.plan)}</p>
+                </div>
+                <div>
+                  <p className="meta">Факт</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">{formatMoney(planFact.fact)}</p>
+                </div>
+                <div>
+                  <p className="meta">Выполнение</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
+                    {planFact.percent != null ? `${planFact.percent}%` : "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="w-full max-w-xs">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width] duration-200"
+                    style={{ width: `${Math.min(100, Math.max(0, planFact.percent ?? 0))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="section-title">План продаж не задан</p>
+                <p className="meta mt-0.5">Факт за период: {formatMoney(planFact.fact)}</p>
+              </div>
+              <Link
+                href="/system"
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Настроить
+              </Link>
+            </div>
+          )}
+        </section>
       ) : null}
 
-      {kpis ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <KpiCard
-            title="Новые сделки"
-            value={formatNumber(kpis.new_deals_count)}
-            href="/deals"
-            source={kpis.definitions?.new_deals_count?.source}
-            formula={kpis.definitions?.new_deals_count?.formula}
-            freshness={kpis.computed_at}
-          />
-          <KpiCard
-            title="Активные сделки"
-            value={formatNumber(kpis.active_deals_count)}
-            href="/deals?closed=false"
-            source={kpis.definitions?.active_deals_count?.source}
-            formula={kpis.definitions?.active_deals_count?.formula}
-            freshness={kpis.computed_at}
-          />
-          <KpiCard
-            title="Успешно закрыто"
-            value={formatNumber(kpis.won_count)}
-            href="/deals?closed=true"
-            source={kpis.definitions?.won_count?.source}
-            formula={kpis.definitions?.won_count?.formula}
-            freshness={kpis.computed_at}
-          />
-          <KpiCard
-            title="Сумма в работе"
-            value={formatMoney(kpis.sum_active_opportunity)}
-            href="/deals?closed=false"
-            source={kpis.definitions?.sum_active_opportunity?.source}
-            formula={kpis.definitions?.sum_active_opportunity?.formula}
-            freshness={kpis.computed_at}
-          />
-          <KpiCard
-            title="Просроченные дела"
-            value={formatNumber(kpis.overdue_activities_unique)}
-            href="/overdue"
-            source={kpis.definitions?.overdue_activities_unique?.source}
-            formula={kpis.definitions?.overdue_activities_unique?.formula}
-            freshness={kpis.computed_at}
-          />
-          <KpiCard
-            title={kpis.deals_without_future_activity_label ?? "Без следующего дела"}
-            value={formatNumber(kpis.deals_without_future_activity_count)}
-            href="/stalled"
-            source={kpis.definitions?.deals_without_future_activity_count?.source}
-            formula={kpis.definitions?.deals_without_future_activity_count?.formula}
-            freshness={kpis.computed_at}
-          />
+      {/* Attention — central */}
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Требует внимания</h2>
+          <p className="text-[13px] tabular-nums text-muted-foreground">
+            {moneyAtt
+              ? `${formatNumber(moneyAtt.deals_count)} сделок · ${formatMoney(moneyAtt.amount)}`
+              : `${formatNumber(kpis.deals_requiring_attention_count ?? 0)} сделок · ${formatMoney(kpis.money_requiring_attention ?? 0)}`}
+          </p>
         </div>
-      ) : (
-        <EmptyState title="Нет KPI" description="API не вернул метрики за период." />
-      )}
+        <ul>
+          {attentionRows.map((row, i) => (
+            <li key={row.key} className={i > 0 ? "border-t border-border" : ""}>
+              <Link
+                href={row.href}
+                className="interactive-row flex items-center gap-4 px-4 py-2.5 text-[13px]"
+              >
+                <span className="min-w-0 flex-1 truncate text-foreground">{row.label}</span>
+                <span className="w-14 text-right font-medium tabular-nums">
+                  {row.count > 0 ? formatNumber(row.count) : "—"}
+                </span>
+                <span className="w-28 text-right tabular-nums text-muted-foreground">
+                  {row.count > 0 ? formatMoney(row.amount) : "—"}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Новые и успешно закрытые</CardTitle>
-            <CardDescription>Динамика по дням (Europe/Moscow)</CardDescription>
-          </CardHeader>
-          <CardContent className="h-72">
-            {!series.length || series.every((d) => d.new === 0 && d.won === 0) ? (
-              <EmptyState title="Нет данных для графика" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={24} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="new" name="Новые" stroke="#0f766e" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="won" name="Закрыто" stroke="#0369a1" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Распределение по воронкам</CardTitle>
-            <CardDescription>Активные сделки</CardDescription>
-          </CardHeader>
-          <CardContent className="h-72">
-            {pipelineData.length === 0 ? (
-              <EmptyState title="Нет активных сделок" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pipelineData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                    {pipelineData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Менеджеры</CardTitle>
-          <CardDescription>Активные сделки по ответственным</CardDescription>
-        </CardHeader>
-        <CardContent className="h-64">
-          {managerData.length === 0 ? (
-            <EmptyState title="Нет данных по менеджерам" />
-          ) : (
+      {/* Charts */}
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="panel panel-pad">
+          <div className="mb-4 flex items-baseline justify-between gap-2">
+            <h2 className="section-title">Продажи / динамика</h2>
+            <span className="meta">новые · выигранные</span>
+          </div>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={managerData} layout="vertical" margin={{ left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#0369a1" radius={[0, 4, 4, 0]} />
-              </BarChart>
+              <LineChart data={series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="0" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={32} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    fontSize: 12,
+                    boxShadow: "none",
+                  }}
+                />
+                <Line type="monotone" dataKey="new" name="Новые" stroke="var(--primary)" strokeWidth={1.75} dot={false} />
+                <Line type="monotone" dataKey="won" name="Выигранные" stroke="#5a5a56" strokeWidth={1.75} dot={false} />
+              </LineChart>
             </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Проблемные сделки</CardTitle>
-            <CardDescription>Без следующего дела или наблюдаемый застой</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(dash.data?.problem_deals ?? []).length === 0 ? (
-              <EmptyState title="Проблемных сделок нет" />
+        <div className="panel panel-pad">
+          <div className="mb-4 flex items-baseline justify-between gap-2">
+            <h2 className="section-title">Распределение активных</h2>
+            <span className="meta">по этапам</span>
+          </div>
+          <div className="h-64">
+            {stageData.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground">Нет данных по этапам.</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Сделка</TableHead>
-                    <TableHead>Флаги</TableHead>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stageData} layout="vertical" margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--border)" horizontal={false} strokeDasharray="0" />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={100}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                      fontSize: 12,
+                      boxShadow: "none",
+                    }}
+                  />
+                  <Bar dataKey="count" name="Сделки" fill="var(--primary)" radius={[0, 3, 3, 0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Managers compact */}
+      <section className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Менеджеры</h2>
+          <Link href="/managers" className="text-[12px] font-medium text-primary hover:underline">
+            Все менеджеры
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="data-table">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4">Менеджер</TableHead>
+                <TableHead className="text-right">Продажи</TableHead>
+                <TableHead className="text-right">Активные</TableHead>
+                <TableHead className="text-right">Просрочки</TableHead>
+                <TableHead className="text-right">Без следующего</TableHead>
+                <TableHead className="pr-4 text-right">Динамика</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {managerRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
+                    Нет данных по менеджерам
+                  </TableCell>
+                </TableRow>
+              ) : (
+                managerRows.map((m) => (
+                  <TableRow key={m.id} className="interactive-row">
+                    <TableCell className="pl-4">
+                      <Link className="font-medium text-foreground hover:text-primary" href={`/managers/${m.id}`}>
+                        {[m.name, m.last_name].filter(Boolean).join(" ") || `ID ${m.id}`}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatMoney(m.sum_won_opportunity)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(m.active_deals_count ?? 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(m.overdue_activities_unique ?? 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatNumber(m.deals_without_future_activity_count ?? 0)}
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      <DeltaBadge delta={m.new_deals_delta} />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(dash.data?.problem_deals ?? []).slice(0, 10).map((d) => (
-                    <TableRow key={d.deal_id}>
-                      <TableCell>
-                        <Link href={`/deals/${d.deal_id}`} className="font-medium text-primary hover:underline">
-                          {d.title}
-                        </Link>
-                        {d.manager ? <p className="text-xs text-muted-foreground">{d.manager}</p> : null}
-                      </TableCell>
-                      <TableCell className="space-x-1">
-                        {d.no_future_activity ? <Badge variant="warning">Нет следующего дела</Badge> : null}
-                        {d.stalled ? <Badge variant="destructive">Наблюдаемый застой</Badge> : null}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+    </div>
+  );
+}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Последние изменения</CardTitle>
-            <CardDescription>Наблюдаемая история (время обнаружения при polling)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(dash.data?.recent_changes ?? []).length === 0 ? (
-              <EmptyState title="Изменений пока нет" />
-            ) : (
-              <ul className="divide-y divide-border">
-                {(dash.data?.recent_changes ?? []).slice(0, 8).map((c, idx) => (
-                  <li key={`${c.deal_id}-${c.field_name}-${idx}`} className="py-3 text-sm">
-                    <Link href={`/deals/${c.deal_id}`} className="font-medium text-primary hover:underline">
-                      Сделка #{c.deal_id}
-                    </Link>
-                    <p className="text-muted-foreground">
-                      {c.field_name}: {c.old_value ?? "—"} → {c.new_value ?? "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(c.observed_at)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+function StripMetric({
+  label,
+  value,
+  delta,
+}: {
+  label: string;
+  value: string;
+  delta?: MetricDelta | null;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="meta truncate">{label}</p>
+      <p className="mt-1 text-[1.125rem] font-semibold tabular-nums tracking-tight">{value}</p>
+      {delta ? (
+        <div className="mt-0.5">
+          <DeltaBadge delta={delta} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -69,12 +69,35 @@ class ChangeEventOut(BaseModel):
     note: str | None = None
 
 
+class TimelineItem(BaseModel):
+    at: datetime
+    kind: str
+    title: str
+    detail: str | None = None
+    is_observed: bool = True
+    note: str | None = None
+
+
+class SnapshotOut(BaseModel):
+    id: int
+    observed_at: datetime
+    content_hash: str
+    payload_summary: dict | None = None
+
+
 class DealDetailOut(DealOut):
     activities: list[ActivityOut] = Field(default_factory=list)
+    current_activities: list[ActivityOut] = Field(default_factory=list)
+    overdue_activities: list[ActivityOut] = Field(default_factory=list)
+    future_activities: list[ActivityOut] = Field(default_factory=list)
     change_events: list[ChangeEventOut] = Field(default_factory=list)
+    timeline: list[TimelineItem] = Field(default_factory=list)
+    snapshots: list[SnapshotOut] = Field(default_factory=list)
+    pipeline_name: str | None = None
     no_future_activity_label: str | None = None
     bitrix_url: str | None = None
     hours_without_observed_movement: float | None = None
+    violations: dict | None = None
 
 
 class DealListResponse(BaseModel):

@@ -1,0 +1,398 @@
+{
+  "probed_at": "2026-10-07T09:38:10.752312+00:00",
+  "webhook": "configured=true",
+  "sanitized_base": "https://focushouse.bitrix24.ru/rest/***/***/",
+  "read_only": true,
+  "write_methods_attempted": false,
+  "distinction": {
+    "A_scope": {
+      "scopes": [
+        "crm",
+        "timeman",
+        "user_brief"
+      ],
+      "has_crm": true,
+      "has_user_brief": true,
+      "has_timeman": true,
+      "timeman_methods_exposed": 14
+    },
+    "B_timeman_enabled": {
+      "value": "YES",
+      "reason": "timeman.status returned workday payload",
+      "status_error": null,
+      "status_error_description": null
+    },
+    "C_time_control_enabled": {
+      "value": "NO",
+      "reason": "timecontrol.settings.get active=false",
+      "settings_summary": {
+        "active": false,
+        "minimum_idle_for_report": 15,
+        "register_offline": true,
+        "register_idle": true,
+        "register_desktop": true,
+        "keys": [
+          "active",
+          "minimum_idle_for_report",
+          "register_desktop",
+          "register_idle",
+          "register_offline",
+          "report_full_type",
+          "report_full_users",
+          "report_request_type",
+          "report_request_users",
+          "report_simple_type",
+          "report_simple_users"
+        ]
+      },
+      "error_code": null,
+      "error_description": null
+    },
+    "D_fields": {
+      "WORKDAY STATUS": "AVAILABLE",
+      "START/FINISH": "AVAILABLE",
+      "DURATION": "AVAILABLE",
+      "BREAKS": "AVAILABLE",
+      "LAST ACTIVITY": "NOT AVAILABLE",
+      "IDLE": "NOT AVAILABLE",
+      "OFFLINE": "NOT AVAILABLE",
+      "DESKTOP EVENTS": "NOT AVAILABLE",
+      "TODAY HISTORY": "AVAILABLE",
+      "YESTERDAY HISTORY": "NOT AVAILABLE",
+      "7 DAY HISTORY": "NOT AVAILABLE"
+    }
+  },
+  "method_probes": {
+    "timeman.status": {
+      "ok": true,
+      "error_code": null,
+      "error_description": null,
+      "http_status": 200,
+      "result_keys": [
+        "STATUS"
+      ],
+      "summary": {
+        "STATUS": "CLOSED",
+        "TIME_START_present": false,
+        "TIME_FINISH_present": false,
+        "DURATION": null,
+        "TIME_LEAKS": null,
+        "ACTIVE": null,
+        "keys": [
+          "STATUS"
+        ]
+      }
+    },
+    "timeman.settings.get": {
+      "ok": false,
+      "error_code": "ERROR_METHOD_NOT_FOUND",
+      "error_description": "Method not found!",
+      "http_status": 404,
+      "result_keys": [],
+      "summary": null
+    },
+    "timeman.timecontrol.settings.get": {
+      "ok": true,
+      "error_code": null,
+      "error_description": null,
+      "http_status": 200,
+      "result_keys": [
+        "active",
+        "minimum_idle_for_report",
+        "register_desktop",
+        "register_idle",
+        "register_offline",
+        "report_full_type",
+        "report_full_users",
+        "report_request_type",
+        "report_request_users",
+        "report_simple_type",
+        "report_simple_users"
+      ],
+      "summary": {
+        "active": false,
+        "minimum_idle_for_report": 15,
+        "register_offline": true,
+        "register_idle": true,
+        "register_desktop": true,
+        "keys": [
+          "active",
+          "minimum_idle_for_report",
+          "register_desktop",
+          "register_idle",
+          "register_offline",
+          "report_full_type",
+          "report_full_users",
+          "report_request_type",
+          "report_request_users",
+          "report_simple_type",
+          "report_simple_users"
+        ]
+      }
+    },
+    "timeman.timecontrol.reports.settings.get": {
+      "ok": true,
+      "error_code": null,
+      "error_description": null,
+      "http_status": 200,
+      "result_keys": [
+        "active",
+        "departments",
+        "minimum_idle_for_report",
+        "report_view_type",
+        "user_admin",
+        "user_head",
+        "user_id"
+      ],
+      "summary": null
+    },
+    "timeman.networkrange.get": {
+      "ok": true,
+      "error_code": null,
+      "error_description": null,
+      "http_status": 200,
+      "result_keys": [],
+      "summary": null
+    }
+  },
+  "managers_sample": [
+    {
+      "bitrix_user_id": 11,
+      "name_masked": "А*** К***",
+      "deal_count": 207,
+      "probes": {
+        "timeman.status": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "STATUS": "EXPIRED",
+            "TIME_START_present": true,
+            "TIME_FINISH_present": false,
+            "DURATION": "00:00:00",
+            "TIME_LEAKS": "00:00:00",
+            "ACTIVE": true,
+            "keys": [
+              "ACTIVE",
+              "DURATION",
+              "ID",
+              "IP_CLOSE",
+              "IP_OPEN",
+              "LAT_CLOSE",
+              "LAT_OPEN",
+              "LON_CLOSE",
+              "LON_OPEN",
+              "STATUS",
+              "TIME_FINISH",
+              "TIME_FINISH_DEFAULT",
+              "TIME_LEAKS",
+              "TIME_START",
+              "TZ_OFFSET"
+            ]
+          }
+        },
+        "timeman.timecontrol.reports.get": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "days_count": 0,
+            "event_types_seen": [],
+            "sources_seen": [],
+            "has_idle": false,
+            "has_offline": false,
+            "has_desktop": false,
+            "has_tm_events": false,
+            "last_event_ts_sample": false
+          }
+        },
+        "timeman.record.list": {
+          "ok": false,
+          "error_code": "ERROR_METHOD_NOT_FOUND",
+          "error_description": "Method not found!",
+          "record_count": 0,
+          "use_api_v3": false
+        }
+      }
+    },
+    {
+      "bitrix_user_id": 13,
+      "name_masked": "А*** П***",
+      "deal_count": 119,
+      "probes": {
+        "timeman.status": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "STATUS": "EXPIRED",
+            "TIME_START_present": true,
+            "TIME_FINISH_present": false,
+            "DURATION": "00:00:00",
+            "TIME_LEAKS": "00:00:00",
+            "ACTIVE": true,
+            "keys": [
+              "ACTIVE",
+              "DURATION",
+              "ID",
+              "IP_CLOSE",
+              "IP_OPEN",
+              "LAT_CLOSE",
+              "LAT_OPEN",
+              "LON_CLOSE",
+              "LON_OPEN",
+              "STATUS",
+              "TIME_FINISH",
+              "TIME_FINISH_DEFAULT",
+              "TIME_LEAKS",
+              "TIME_START",
+              "TZ_OFFSET"
+            ]
+          }
+        },
+        "timeman.timecontrol.reports.get": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "days_count": 0,
+            "event_types_seen": [],
+            "sources_seen": [],
+            "has_idle": false,
+            "has_offline": false,
+            "has_desktop": false,
+            "has_tm_events": false,
+            "last_event_ts_sample": false
+          }
+        },
+        "timeman.record.list": {
+          "ok": false,
+          "error_code": "ERROR_METHOD_NOT_FOUND",
+          "error_description": "Method not found!",
+          "record_count": 0,
+          "use_api_v3": false
+        }
+      }
+    },
+    {
+      "bitrix_user_id": 23,
+      "name_masked": "Н***",
+      "deal_count": 84,
+      "probes": {
+        "timeman.status": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "STATUS": "EXPIRED",
+            "TIME_START_present": true,
+            "TIME_FINISH_present": false,
+            "DURATION": "00:00:00",
+            "TIME_LEAKS": "00:00:00",
+            "ACTIVE": true,
+            "keys": [
+              "ACTIVE",
+              "DURATION",
+              "ID",
+              "IP_CLOSE",
+              "IP_OPEN",
+              "LAT_CLOSE",
+              "LAT_OPEN",
+              "LON_CLOSE",
+              "LON_OPEN",
+              "STATUS",
+              "TIME_FINISH",
+              "TIME_FINISH_DEFAULT",
+              "TIME_LEAKS",
+              "TIME_START",
+              "TZ_OFFSET"
+            ]
+          }
+        },
+        "timeman.timecontrol.reports.get": {
+          "ok": true,
+          "error_code": null,
+          "error_description": null,
+          "summary": {
+            "days_count": 0,
+            "event_types_seen": [],
+            "sources_seen": [],
+            "has_idle": false,
+            "has_offline": false,
+            "has_desktop": false,
+            "has_tm_events": false,
+            "last_event_ts_sample": false
+          }
+        },
+        "timeman.record.list": {
+          "ok": false,
+          "error_code": "ERROR_METHOD_NOT_FOUND",
+          "error_description": "Method not found!",
+          "record_count": 0,
+          "use_api_v3": false
+        }
+      }
+    }
+  ],
+  "history": {
+    "today": "AVAILABLE",
+    "yesterday": "NOT AVAILABLE",
+    "last_7_days": "NOT AVAILABLE",
+    "record_total_in_sample": 0,
+    "note": "Limited list only; no bulk import"
+  },
+  "crm_activity": {
+    "availability": "AVAILABLE",
+    "inventory": {
+      "managers": 72,
+      "deals": 1853,
+      "activities": 16910,
+      "change_events": 76
+    },
+    "note": "CRM ACTIVITY ≠ work time"
+  },
+  "gates": {
+    "TIMEMAN SCOPE": "YES",
+    "TIMEMAN ENABLED": "YES",
+    "TIME CONTROL ENABLED": "NO",
+    "WORKDAY STATUS": "AVAILABLE",
+    "START/FINISH": "AVAILABLE",
+    "DURATION": "AVAILABLE",
+    "BREAKS": "AVAILABLE",
+    "LAST ACTIVITY": "NOT AVAILABLE",
+    "IDLE": "NOT AVAILABLE",
+    "OFFLINE": "NOT AVAILABLE",
+    "DESKTOP EVENTS": "NOT AVAILABLE",
+    "TODAY HISTORY": "AVAILABLE",
+    "YESTERDAY HISTORY": "NOT AVAILABLE",
+    "7 DAY HISTORY": "NOT AVAILABLE",
+    "CRM ACTIVITY METRICS": "AVAILABLE",
+    "NEEDS BITRIX CONFIG CHANGE": "NO",
+    "NEEDS DESKTOP APP": "YES",
+    "READY TO BUILD MANAGER CONTROL": "PARTIAL"
+  },
+  "license": "ru_pro100",
+  "webhook_scope": [
+    "crm",
+    "timeman",
+    "user_brief"
+  ],
+  "timeman_methods_sample": [
+    "timeman.close",
+    "timeman.networkrange.check",
+    "timeman.networkrange.get",
+    "timeman.networkrange.set",
+    "timeman.open",
+    "timeman.pause",
+    "timeman.settings",
+    "timeman.status",
+    "timeman.timecontrol.report.add",
+    "timeman.timecontrol.reports.get",
+    "timeman.timecontrol.reports.settings.get",
+    "timeman.timecontrol.reports.users.get",
+    "timeman.timecontrol.settings.get",
+    "timeman.timecontrol.settings.set"
+  ],
+  "timeman_methods_count": 14,
+  "call_count": 23
+}

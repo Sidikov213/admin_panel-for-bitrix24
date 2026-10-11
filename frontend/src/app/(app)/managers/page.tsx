@@ -1,55 +1,109 @@
 "use client";
 
 import Link from "next/link";
-import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
+import { useState } from "react";
+import { DataFreshness } from "@/components/common/data-freshness";
+import { DeltaBadge } from "@/components/common/delta-badge";
+import { ErrorState, PageLoading } from "@/components/common/page-states";
+import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useManagers } from "@/hooks/queries";
-import { formatMoney, formatNumber, managerName } from "@/lib/format";
+import { useManagers, useSystem } from "@/hooks/queries";
+import { formatMoney, formatNumber } from "@/lib/format";
 
 export default function ManagersPage() {
-  const { data, isLoading, isError, refetch } = useManagers();
+  const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
+  const q = useManagers({
+    preset: period.preset === "custom" ? undefined : period.preset,
+    period_start: period.from,
+    period_end: period.to,
+  });
+  const system = useSystem();
 
-  if (isLoading) return <PageLoading />;
-  if (isError) return <ErrorState message="Не удалось загрузить менеджеров." onRetry={() => void refetch()} />;
+  if (q.isLoading) return <PageLoading rows={8} />;
+  if (q.isError) return <ErrorState message="Не удалось загрузить менеджеров." onRetry={() => void q.refetch()} />;
+
+  const rows = q.data ?? [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-semibold">Менеджеры</h1>
-        <p className="text-sm text-muted-foreground">Показатели за последние 30 дней · без искусственного рейтинга</p>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[13px] text-muted-foreground">
+          {rows.length} менеджеров · без общего рейтинга эффективности
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <PeriodPicker value={period} onChange={setPeriod} compact />
+          <DataFreshness freshness={system.data?.freshness} compact />
+        </div>
       </div>
-      {!data?.length ? (
-        <EmptyState title="Менеджеры не найдены" />
-      ) : (
-        <Table>
+
+      <div className="panel overflow-x-auto">
+        <Table className="data-table">
           <TableHeader>
-            <TableRow>
-              <TableHead>ФИО</TableHead>
-              <TableHead>Активные</TableHead>
-              <TableHead>Новые</TableHead>
-              <TableHead>Закрыто</TableHead>
-              <TableHead>Сумма в работе</TableHead>
-              <TableHead>Без след. дела</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-4">Менеджер</TableHead>
+              <TableHead className="text-right">Активные</TableHead>
+              <TableHead className="text-right">Новые</TableHead>
+              <TableHead className="text-right">Won</TableHead>
+              <TableHead className="text-right">Lost</TableHead>
+              <TableHead className="text-right">Сумма акт.</TableHead>
+              <TableHead className="text-right">Сумма won</TableHead>
+              <TableHead className="text-right">Просрочки</TableHead>
+              <TableHead className="text-right">Без дела</TableHead>
+              <TableHead className="text-right">% без дела</TableHead>
+              <TableHead className="text-right">Open viol.</TableHead>
+              <TableHead className="pr-4 text-right">Динамика</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell>
-                  <Link href={`/managers/${m.id}`} className="font-medium text-primary hover:underline">
-                    {managerName(m)}
+            {rows.map((m) => (
+              <TableRow key={m.id} className="interactive-row">
+                <TableCell className="pl-4">
+                  <Link className="font-medium text-foreground hover:text-primary" href={`/managers/${m.id}`}>
+                    {m.name} {m.last_name}
                   </Link>
                 </TableCell>
-                <TableCell>{formatNumber(m.active_deals_count ?? 0)}</TableCell>
-                <TableCell>{formatNumber(m.new_deals_count ?? 0)}</TableCell>
-                <TableCell>{formatNumber(m.won_count ?? 0)}</TableCell>
-                <TableCell>{formatMoney(m.sum_active_opportunity ?? 0)}</TableCell>
-                <TableCell>{formatNumber(m.deals_without_future_activity_count ?? 0)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=active`}>
+                    {formatNumber(m.active_deals_count ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=new`}>
+                    {formatNumber(m.new_deals_count ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=won`}>
+                    {formatNumber(m.won_count ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=lost`}>
+                    {formatNumber(m.lost_count ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{formatMoney(m.sum_active_opportunity)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatMoney(m.sum_won_opportunity)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=overdue`}>
+                    {formatNumber(m.overdue_activities_unique ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  <Link className="hover:underline" href={`/managers/${m.id}?metric=no_future`}>
+                    {formatNumber(m.deals_without_future_activity_count ?? 0)}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{m.no_future_share ?? 0}%</TableCell>
+                <TableCell className="text-right tabular-nums">{formatNumber(m.open_violations ?? 0)}</TableCell>
+                <TableCell className="pr-4 text-right">
+                  <DeltaBadge delta={m.new_deals_delta} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      )}
+      </div>
     </div>
   );
 }

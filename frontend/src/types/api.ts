@@ -13,6 +13,13 @@ export interface KpiDefinition {
   source: string;
 }
 
+export interface MetricDelta {
+  current: number;
+  previous: number;
+  abs_delta: number;
+  pct_delta: number | null;
+}
+
 export interface KpiMetrics {
   period_start: string;
   period_end: string;
@@ -33,7 +40,12 @@ export interface KpiMetrics {
   observed_stage_changes: number;
   last_observed_deal_change: string | null;
   deals_without_future_activity_count: number;
+  deals_without_future_activity_amount?: number;
   deals_without_future_activity_label?: string;
+  deals_without_movement_count?: number;
+  money_requiring_attention?: number;
+  deals_requiring_attention_count?: number;
+  money_requiring_attention_label?: string;
   series_daily?: DailySeriesPoint[];
   definitions?: Record<string, KpiDefinition>;
   data_quality?: {
@@ -63,8 +75,81 @@ export interface DailySeriesPoint {
   won: number;
 }
 
+export interface Freshness {
+  last_updated_at?: string | null;
+  last_attempted_at?: string | null;
+  age_minutes?: number | null;
+  stale_after_minutes?: number;
+  is_stale?: boolean;
+  sync_failed?: boolean;
+  warning?: string | null;
+}
+
+export interface PlanFact {
+  plan_set: boolean;
+  plan: number | null;
+  fact: number;
+  percent: number | null;
+  remaining: number | null;
+  label: string;
+  fact_metric?: string;
+  currency?: string;
+}
+
+export interface AttentionCategory {
+  label: string;
+  count: number;
+  items: AttentionItem[];
+  note?: string;
+}
+
+export interface AttentionItem {
+  deal_id: number;
+  bitrix_id?: number;
+  title: string;
+  manager?: string | null;
+  manager_id?: number | null;
+  stage?: string | null;
+  amount?: number | null;
+  fact: string;
+  category?: string;
+  bitrix_url?: string | null;
+}
+
 export interface DashboardResponse {
   kpis: KpiMetrics;
+  comparison?: {
+    current_period: { start: string; end: string; preset?: string };
+    previous_period: { start: string; end: string; preset?: string };
+    metrics: Record<string, MetricDelta>;
+  };
+  attention?: {
+    title: string;
+    money_requiring_attention: { label: string; deals_count: number; amount: number };
+    categories: Record<string, AttentionCategory>;
+    objective_signals?: {
+      label: string;
+      categories: Record<string, AttentionCategory>;
+    };
+    business_rule_violations?: {
+      label: string;
+      total?: number;
+      enabled_rules?: number;
+      note?: string | null;
+      categories?: Record<string, AttentionCategory>;
+    };
+    rules_note?: string;
+  };
+  rule_violations?: {
+    deals_with_violations: number;
+    high_severity_violations: number;
+    amount_under_violations: number;
+    open_violations: number;
+    enabled_rules: number;
+    note?: string | null;
+  };
+  plan_fact?: PlanFact;
+  freshness?: Freshness;
   charts: {
     series_daily?: DailySeriesPoint[] | null;
     deals_by_stage: NamedCount[] | Record<string, number> | null;
@@ -78,11 +163,12 @@ export interface DashboardResponse {
     latest_run_status: string | null;
     latest_run_finished_at: string | null;
     data_may_be_stale: boolean;
-    stale_note: string;
+    stale_note: string | null;
   };
   meta?: {
     period_start: string;
     period_end: string;
+    preset?: string;
     computed_at?: string;
   };
 }
@@ -102,13 +188,15 @@ export interface ProblemDeal {
   deal_id: number;
   bitrix_id?: number;
   title: string;
-  stalled: boolean;
-  reason: string | null;
-  no_future_activity: boolean;
+  stalled?: boolean;
+  reason?: string | null;
+  no_future_activity?: boolean;
   no_future_activity_label?: string;
   manager?: string | null;
   stage?: string | null;
   last_observed_activity_at?: string | null;
+  fact?: string;
+  amount?: number | null;
 }
 
 export interface StageBrief {
@@ -130,10 +218,19 @@ export interface ManagerListItem extends ManagerBrief {
   active_deals_count?: number;
   new_deals_count?: number;
   won_count?: number;
+  lost_count?: number;
   sum_active_opportunity?: number;
   sum_won_opportunity?: number;
   overdue_activities_unique?: number;
   deals_without_future_activity_count?: number;
+  no_future_share?: number;
+  observed_stage_changes?: number;
+  open_violations?: number;
+  high_severity_violations?: number;
+  resolved_violations?: number;
+  violation_rate?: number | null;
+  new_deals_delta?: MetricDelta;
+  period?: { start: string; end: string; preset?: string };
 }
 
 export interface ManagerDetail {
@@ -149,6 +246,22 @@ export interface ManagerDetail {
     has_future_activity: boolean;
     date_modify: string | null;
   }>;
+  comparison?: {
+    current_period: { start: string; end: string };
+    previous_period: { start: string; end: string };
+    metrics: Record<string, MetricDelta>;
+  };
+  plan_fact?: PlanFact;
+  problem_deals?: Array<{
+    id: number;
+    bitrix_id: number;
+    title: string;
+    stage_name: string | null;
+    opportunity: number | null;
+    fact: string;
+    bitrix_url: string | null;
+  }>;
+  meta?: { period_start: string; period_end: string; preset?: string };
 }
 
 export interface Deal {
@@ -188,12 +301,62 @@ export interface Activity {
   completed_at: string | null;
 }
 
+export interface TimelineItem {
+  at: string;
+  kind: string;
+  title: string;
+  detail: string | null;
+  is_observed: boolean;
+  note: string | null;
+}
+
+export interface SnapshotItem {
+  id: number;
+  observed_at: string;
+  content_hash: string;
+  payload_summary: Record<string, unknown> | null;
+}
+
 export interface DealDetail extends Deal {
   activities: Activity[];
+  current_activities?: Activity[];
+  overdue_activities?: Activity[];
+  future_activities?: Activity[];
   change_events: DealChangeEvent[];
+  timeline?: TimelineItem[];
+  snapshots?: SnapshotItem[];
+  pipeline_name?: string | null;
   no_future_activity_label: string | null;
   bitrix_url: string | null;
   hours_without_observed_movement: number | null;
+  violations?: {
+    active: Array<{
+      id: number;
+      rule_id: number;
+      rule_name: string;
+      type: string;
+      severity: string;
+      status: string;
+      details?: string | null;
+      current_value?: string | null;
+      threshold?: string | null;
+      detected_at?: string | null;
+      resolved_at?: string | null;
+    }>;
+    resolved: Array<{
+      id: number;
+      rule_id: number;
+      rule_name: string;
+      type: string;
+      severity: string;
+      status: string;
+      details?: string | null;
+      current_value?: string | null;
+      threshold?: string | null;
+      detected_at?: string | null;
+      resolved_at?: string | null;
+    }>;
+  };
 }
 
 export interface DealListResponse {
@@ -209,6 +372,10 @@ export interface PipelineStage {
   name: string;
   sort: number;
   semantics: string | null;
+  deals_count?: number;
+  amount?: number;
+  share_of_active_pipeline?: number;
+  share_of_all_active?: number;
 }
 
 export interface Pipeline {
@@ -219,33 +386,80 @@ export interface Pipeline {
   stages: PipelineStage[];
 }
 
+export interface PipelineAnalyticsItem {
+  id: number;
+  bitrix_id: number;
+  name: string;
+  current_distribution: {
+    active_deals: number;
+    active_amount: number;
+    share_of_all_active: number;
+    stages: PipelineStage[];
+    note?: string;
+  };
+  period_outcomes: {
+    period_start: string;
+    period_end: string;
+    new_deals: number;
+    won: number;
+    lost: number;
+    sum_won: number;
+    observed_stage_changes: number;
+    note?: string;
+  };
+  funnel: Array<{ name: string; value: number; amount: number }>;
+}
+
+export interface PipelineAnalyticsResponse {
+  pipelines: PipelineAnalyticsItem[];
+  all_active_deals: number;
+  distinction?: Record<string, string>;
+  period?: { start: string; end: string; preset?: string };
+}
+
 export interface OverdueActivity {
   id: number;
   bitrix_id: number;
-  subject: string;
-  owner_id: number | null;
+  subject: string | null;
+  owner_id?: number | null;
   deadline: string | null;
-  is_overdue: boolean;
+  is_overdue?: boolean;
+  overdue_label?: string;
+  manager?: string | null;
+  manager_id?: number | null;
+  deal_id?: number | null;
+  deal_title?: string | null;
+  pipeline_category_id?: number | null;
+  stage?: string | null;
+  amount?: number | null;
+  bitrix_url?: string | null;
 }
 
 export interface OverdueResponse {
   items: OverdueActivity[];
   total: number;
+  groups?: Record<string, OverdueActivity[]> | null;
+  note?: string;
 }
 
 export interface StalledDealItem {
   deal_id: number;
   bitrix_id?: number;
   title: string;
+  amount?: number | null;
   reason: string | null;
   last_observed_activity_at: string | null;
   stage_changed_observed_at: string | null;
   has_future_activity: boolean;
   no_future_activity?: boolean;
   label_no_future?: string | null;
+  time_without_future_task?: string | null;
   hours_without_observed_movement?: number | null;
   stage?: string | null;
+  pipeline_category_id?: number | null;
   manager?: string | null;
+  manager_id?: number | null;
+  bitrix_url?: string | null;
   disclaimer?: string;
 }
 
@@ -254,6 +468,8 @@ export interface StalledResponse {
   enabled?: boolean;
   items: StalledDealItem[];
   total: number;
+  sum_opportunity?: number;
+  summary_label?: string | null;
   disclaimer?: string;
   rules_config?: {
     min_hours_since_last_activity: number | null;
@@ -263,8 +479,36 @@ export interface StalledResponse {
   };
 }
 
+export interface StalledRulesResponse {
+  items: Array<Record<string, unknown>>;
+  total: number;
+  engine_ready: boolean;
+  rules_applied: boolean;
+  note: string;
+}
+
 export interface ReportsResponse {
-  report: KpiMetrics;
+  title?: string;
+  period?: { start: string; end: string; preset?: string };
+  previous_period?: { start: string; end: string };
+  overview?: Record<string, unknown>;
+  problems?: Record<string, number>;
+  regulation_violations?: {
+    configured?: boolean;
+    enabled?: boolean;
+    message?: string;
+    open?: number;
+    new_during_period?: number;
+    resolved?: number;
+    by_type?: Array<{ type: string; count: number }>;
+    by_manager?: Array<{ manager_id?: number | null; manager_name: string; count: number }>;
+    label?: string;
+  };
+  managers?: Array<Record<string, unknown>>;
+  dynamics?: Record<string, MetricDelta>;
+  freshness?: Freshness;
+  kpis?: KpiMetrics;
+  report?: KpiMetrics;
 }
 
 export interface SyncRunInfo {
@@ -295,6 +539,24 @@ export interface SystemStatus {
   latest_sync_run: SyncRunInfo | null;
   recent_sync_runs?: SyncRunInfo[];
   integrations?: Record<string, { status: string; note?: string; read_only?: boolean }>;
+  worker_status?: string;
+  db_ok?: boolean;
+  last_successful_sync?: string | null;
+  last_attempted_sync?: string | null;
+  deal_cursor?: { at?: string } | null;
+  activity_cursor?: { at?: string } | null;
+  last_full_reconcile?: { at?: string } | null;
+  duration_last_sync_seconds?: number | null;
+  errors_24h?: number;
+  failed_runs_24h?: number;
+  totals?: {
+    deals: number;
+    activities: number;
+    snapshots: number;
+    change_events: number;
+  };
+  freshness?: Freshness;
+  webhook_configured?: boolean;
 }
 
 export type PeriodType = "week" | "month" | "quarter" | "year";
@@ -307,4 +569,131 @@ export interface SalesTarget {
   period_end: string;
   amount: string | number;
   currency: string;
+}
+
+export interface TimemanFreshness {
+  last_updated_at?: string | null;
+  last_updated_local?: string | null;
+  age_minutes?: number | null;
+  stale?: boolean;
+  ok?: boolean;
+  history_since?: string | null;
+  history_since_note?: string;
+  time_control?: {
+    available: boolean;
+    label: string;
+    status: string;
+    features?: string[];
+  };
+}
+
+export interface ManagerControlListItem {
+  id: number;
+  bitrix_id: number;
+  name: string;
+  last_name: string;
+  display_name: string;
+  bitrix_user_active?: boolean;
+  monitored?: boolean;
+  status_normalized: string;
+  status_label: string;
+  is_stale_unclosed?: boolean;
+  stale_since_date?: string | null;
+  stale_since_label?: string | null;
+  status_tooltip?: string | null;
+  time_start?: string | null;
+  time_finish?: string | null;
+  duration_seconds?: number | null;
+  duration_display?: string | null;
+  time_leaks_seconds?: number | null;
+  time_leaks_display?: string | null;
+  today_metrics_available?: boolean;
+  crm_actions_today: number;
+  overdue_activities: number;
+  no_future_activity: number;
+  last_timeman_poll_at?: string | null;
+  last_timeman_poll_local?: string | null;
+  has_snapshot?: boolean;
+  /** @deprecated use today_metrics_available / has_snapshot */
+  workday_available?: boolean;
+}
+
+export interface ManagerControlListResponse {
+  date: string;
+  timezone: string;
+  freshness: TimemanFreshness;
+  items: ManagerControlListItem[];
+  total: number;
+}
+
+export interface ManagerControlCrmActivity {
+  created_deals: number;
+  changed_deals: number;
+  completed_activities: number;
+  stage_changes: number;
+  opportunity_changes: number;
+  overdue_activities: number;
+  no_future_activity: number;
+}
+
+export interface ManagerControlWeekRow {
+  date: string;
+  workday_available: boolean;
+  missing_reason?: string | null;
+  note?: string | null;
+  status_normalized?: string | null;
+  status_label?: string | null;
+  time_start?: string | null;
+  time_finish?: string | null;
+  duration_seconds?: number | null;
+  duration_display?: string | null;
+  time_leaks_seconds?: number | null;
+  time_leaks_display?: string | null;
+  crm_activity?: Partial<ManagerControlCrmActivity> & { crm_actions_today?: number };
+  show_as_zero_workday?: boolean;
+}
+
+export interface ManagerControlDetail {
+  id: number;
+  bitrix_id: number;
+  name: string;
+  last_name: string;
+  display_name: string;
+  bitrix_user_active?: boolean;
+  date: string;
+  timezone: string;
+  freshness: TimemanFreshness;
+  today: {
+    current_status: {
+      status_normalized: string;
+      status_label: string;
+      is_stale_unclosed?: boolean;
+      stale_since_date?: string | null;
+      stale_since_label?: string | null;
+      tooltip?: string | null;
+      has_snapshot?: boolean;
+      last_timeman_poll_at?: string | null;
+      last_timeman_poll_local?: string | null;
+    };
+    workday: {
+      available: boolean;
+      note?: string | null;
+      time_start?: string | null;
+      time_finish?: string | null;
+      duration_seconds?: number | null;
+      duration_display?: string | null;
+      time_leaks_seconds?: number | null;
+      time_leaks_display?: string | null;
+    } | null;
+    timeline: Array<{
+      kind: string;
+      label: string;
+      at?: string;
+      duration_seconds?: number | null;
+      duration_display?: string | null;
+      source?: string;
+    }>;
+    crm_activity: ManagerControlCrmActivity;
+  };
+  week: ManagerControlWeekRow[];
 }

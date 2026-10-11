@@ -29,7 +29,7 @@ def test_source_has_only_read_rest_calls() -> None:
 
 
 def test_read_methods_list() -> None:
-    # Document Stage-1 Bitrix REST surface
+    # Document Bitrix REST read surface (incl. Manager Control Timeman)
     expected = {
         "crm.deal.list",
         "crm.deal.get",
@@ -38,7 +38,12 @@ def test_read_methods_list() -> None:
         "user.search",
         "crm.dealcategory.list",
         "crm.dealcategory.stage.list",
+        "crm.deal.fields",
+        "timeman.status",
     }
     src = inspect.getsource(BitrixClient)
     for method in expected:
         assert method in src
+    # Never allow write Timeman methods
+    for write in ("timeman.open", "timeman.close", "timeman.pause", "timeman.settings.set"):
+        assert write not in BitrixClient.ALLOWED_METHODS

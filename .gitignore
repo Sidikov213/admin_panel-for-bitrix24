@@ -1,8 +1,12 @@
+# Secrets / local env
 .env
-.env.local
-.env.*.local
-*.pyc
+.env.*
+!.env.example
+!**/.env.example
+
+# Python
 __pycache__/
+*.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -10,16 +14,27 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+coverage/
+
+# Node / Next.js
 node_modules/
 .next/
 out/
 dist/
 build/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+
+# Logs
 *.log
+logs/
+
+# IDE / OS
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-pgdata/
-*.sqlite3
-.idea/
-.vscode/
-coverage/

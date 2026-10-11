@@ -1,8 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { Info } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type KpiCardProps = {
@@ -14,43 +13,37 @@ type KpiCardProps = {
   formula?: string;
   freshness?: string;
   className?: string;
+  footer?: ReactNode;
+  /** Compact strip metric — no card chrome */
+  variant?: "card" | "strip";
 };
 
-export function KpiCard({ title, value, href, hint, source, formula, freshness, className }: KpiCardProps) {
-  const meta = [
-    source && `Источник: ${source}`,
-    formula && `Формула: ${formula}`,
-    freshness && `Актуальность: ${freshness}`,
-    hint,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  const inner = (
-    <Card
+/** Dense metric cell. Prefer strip; card only when a surface is truly needed. */
+export function KpiCard({
+  title,
+  value,
+  href,
+  hint,
+  className,
+  footer,
+  variant = "strip",
+}: KpiCardProps) {
+  const body = (
+    <div
       className={cn(
-        "relative overflow-hidden transition-shadow",
-        href && "hover:shadow-md hover:border-primary/30 cursor-pointer",
+        variant === "card" && "rounded-[var(--radius)] border border-border bg-card px-3.5 py-3",
+        variant === "strip" && "min-w-0",
+        href && "transition-colors duration-150 hover:bg-muted/50 rounded-md",
         className,
       )}
+      title={hint}
     >
-      <div className="absolute inset-y-0 left-0 w-1 bg-accent" />
-      <CardHeader className="pb-2 pl-7">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          {meta ? (
-            <span title={meta} className="text-muted-foreground">
-              <Info className="h-3.5 w-3.5" />
-            </span>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardContent className="pl-7">
-        <p className="font-serif text-3xl font-semibold tracking-tight">{value}</p>
-      </CardContent>
-    </Card>
+      <p className="text-[12px] font-medium text-muted-foreground">{title}</p>
+      <p className="kpi-value mt-1 text-[1.625rem]">{value}</p>
+      {footer ? <div className="mt-1.5">{footer}</div> : null}
+    </div>
   );
 
-  if (href) return <Link href={href}>{inner}</Link>;
-  return inner;
+  if (href) return <Link href={href}>{body}</Link>;
+  return body;
 }

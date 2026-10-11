@@ -57,6 +57,10 @@ class BitrixClient:
             # Live Stage 1.5: dealcategory.stage.list returns SEMANTICS=null;
             # crm.status.list provides S/F/P for DEAL_STAGE_{category}.
             "crm.status.list",
+            # Stage 2.5: field metadata for required_fields picker (READ ONLY)
+            "crm.deal.fields",
+            # Manager Control V1: workday status only (READ ONLY — no open/close/pause/settings.set)
+            "timeman.status",
         }
     )
 
@@ -247,6 +251,21 @@ class BitrixClient:
             "crm.status.list",
             {"filter": {"ENTITY_ID": entity_id}, "order": {"SORT": "ASC"}},
         )
+
+    async def crm_deal_fields(self) -> dict[str, Any]:
+        """READ ONLY deal field metadata (standard + UF_*)."""
+        data = await self.call("crm.deal.fields", {})
+        result = data.get("result", data)
+        return result if isinstance(result, dict) else {}
+
+    async def timeman_status(self, user_id: int | None = None) -> dict[str, Any]:
+        """READ ONLY current workday status. Never open/close/pause."""
+        params: dict[str, Any] = {}
+        if user_id is not None:
+            params["USER_ID"] = user_id
+        data = await self.call("timeman.status", params)
+        result = data.get("result", data)
+        return result if isinstance(result, dict) else {}
 
     async def ping(self) -> bool:
         try:

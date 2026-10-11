@@ -65,12 +65,35 @@ async def mark_full_reconcile() -> None:
         await session.commit()
 
 
+async def _run_sales_rules_evaluation_after_sync() -> None:
+    """Analytics job after successful Bitrix sync — must never fail the sync cycle."""
+    from app.services.sales_rules.engine import run_evaluation_safe
+
+    result = await run_evaluation_safe()
+    if not result.get("ok"):
+        logger.warning("sales_rules_evaluation_skipped_or_failed result=%s", result)
+
+
+async def _run_timeman_collect_isolated() -> None:
+    """Timeman poll — independent of CRM sync success/failure. Never raises."""
+    from app.services.timeman_collector import run_timeman_collect_safe
+
+    result = await run_timeman_collect_safe()
+    if not result.get("ok"):
+        logger.warning("timeman_collector_cycle_failed result=%s", {k: result.get(k) for k in ("ok", "errors", "error_message")})
+
+
 async def scheduled_job() -> None:
     full = await should_full_reconcile()
     ok = await run_sync_cycle(full_reconcile=full)
     # Only advance reconcile watermark after a successful full run
     if full and ok:
         await mark_full_reconcile()
+    # Non-blocking relative to Bitrix: evaluation errors do not undo sync success
+    if ok:
+        await _run_sales_rules_evaluation_after_sync()
+    # Timeman always attempted after CRM cycle; failure must not affect CRM outcome
+    await _run_timeman_collect_isolated()
 
 
 def main() -> None:
@@ -101,6 +124,9 @@ def main() -> None:
                 await mark_full_reconcile()
             elif not ok:
                 logger.warning("bootstrap_sync_failed watermark_not_advanced=%s", full)
+            if ok:
+                await _run_sales_rules_evaluation_after_sync()
+            await _run_timeman_collect_isolated()
         scheduler.start()
         while True:
             await asyncio.sleep(3600)

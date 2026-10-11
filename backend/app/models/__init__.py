@@ -9,6 +9,14 @@ from app.models.crm import (
     DealChangeEvent,
     DealSnapshot,
 )
+from app.models.manager_control import ManagerWorkday, ManagerWorkdaySnapshot, MonitoredManager
+from app.models.sales_rules import (
+    BitrixDealField,
+    SalesRule,
+    SalesRuleAudit,
+    SalesRuleViolation,
+)
+from app.models.stalled_rules import StalledRule
 from app.models.sync import SalesTarget, SyncRun, SyncState, SyncStatus, SyncType
 from app.models.targets import PeriodType
 
@@ -24,6 +32,9 @@ __all__ = [
     "CrmActivity",
     "DealSnapshot",
     "DealChangeEvent",
+    "ManagerWorkdaySnapshot",
+    "ManagerWorkday",
+    "MonitoredManager",
     "SyncRun",
     "SyncType",
     "SyncStatus",
@@ -31,4 +42,9 @@ __all__ = [
     "SalesTarget",
     "AnalyticsDaily",
     "PeriodType",
+    "StalledRule",
+    "SalesRule",
+    "SalesRuleViolation",
+    "SalesRuleAudit",
+    "BitrixDealField",
 ]

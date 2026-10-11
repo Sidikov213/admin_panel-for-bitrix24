@@ -7,9 +7,13 @@ import type {
   ManagerListItem,
   OverdueResponse,
   Pipeline,
+  PipelineAnalyticsResponse,
   ReportsResponse,
   SalesTarget,
   StalledResponse,
+  StalledRulesResponse,
+  ManagerControlDetail,
+  ManagerControlListResponse,
   SystemStatus,
   User,
 } from "@/types/api";
@@ -40,7 +44,10 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 function buildUrl(path: string, params?: RequestOptions["params"]): string {
   const base = getApiBase();
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${base}${normalized}`, typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  const url = new URL(
+    `${base}${normalized}`,
+    typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
+  );
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== "") {
@@ -86,12 +93,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!res.ok) {
-    const detail = typeof data === "object" && data && "detail" in data ? (data as { detail: unknown }).detail : data;
+    const detail =
+      typeof data === "object" && data && "detail" in data ? (data as { detail: unknown }).detail : data;
     throw new ApiError(res.statusText || "Request failed", res.status, detail);
   }
 
   return data as T;
 }
+
+export type PeriodParams = {
+  period_start?: string;
+  period_end?: string;
+  preset?: string;
+  pipeline_id?: number;
+  manager_id?: number;
+};
 
 export const api = {
   login: (email: string, password: string) =>
@@ -101,36 +117,107 @@ export const api = {
 
   me: () => request<User>("/auth/me"),
 
-  dashboard: (params?: {
-    period_start?: string;
-    period_end?: string;
-    pipeline_id?: number;
-    manager_id?: number;
-  }) => request<DashboardResponse>("/dashboard", { params }),
+  dashboard: (params?: PeriodParams) => request<DashboardResponse>("/dashboard", { params }),
 
-  reports: (period_start: string, period_end: string, pipeline_id?: number, manager_id?: number) =>
-    request<ReportsResponse>("/reports", {
-      params: { period_start, period_end, pipeline_id, manager_id },
-    }),
+  reports: (params: PeriodParams) => request<ReportsResponse>("/reports", { params }),
 
   deals: (params: Record<string, string | number | boolean | undefined | null>) =>
     request<DealListResponse>("/deals", { params }),
 
   deal: (id: number) => request<DealDetail>(`/deals/${id}`),
 
-  managers: () => request<ManagerListItem[]>("/managers"),
+  managers: (params?: PeriodParams) => request<ManagerListItem[]>("/managers", { params }),
 
-  manager: (id: number, period_start?: string, period_end?: string) =>
-    request<ManagerDetail>(`/managers/${id}`, { params: { period_start, period_end } }),
+  manager: (id: number, params?: PeriodParams) =>
+    request<ManagerDetail>(`/managers/${id}`, { params }),
 
-  pipelines: () => request<Pipeline[]>("/pipelines"),
+  managerDeals: (
+    id: number,
+    metric: string,
+    params?: PeriodParams & { limit?: number },
+  ) =>
+    request<{ items: Array<Record<string, unknown>>; total: number; metric: string }>(
+      `/managers/${id}/deals`,
+      { params: { metric, ...params } },
+    ),
 
-  overdue: () => request<OverdueResponse>("/overdue"),
+  pipelines: (params?: PeriodParams & { analytics?: boolean }) =>
+    request<PipelineAnalyticsResponse | Pipeline[]>("/pipelines", {
+      params: { analytics: params?.analytics ?? true, ...params },
+    }),
 
-  stalled: (mode: "no_future" | "rules" = "no_future") =>
-    request<StalledResponse>("/stalled", { params: { mode } }),
+  overdue: (params?: Record<string, string | number | boolean | undefined | null>) =>
+    request<OverdueResponse>("/overdue", { params }),
+
+  stalled: (mode: "no_future" | "rules" = "no_future", params?: PeriodParams) =>
+    request<StalledResponse>("/stalled", { params: { mode, ...params } }),
+
+  stalledRules: () => request<StalledRulesResponse>("/stalled-rules"),
+
+  salesRules: () => request<{ items: SalesRule[]; total: number; comments_note?: string }>("/sales-rules"),
+
+  salesRule: (id: number) => request<SalesRule>(`/sales-rules/${id}`),
+
+  createSalesRule: (body: Partial<SalesRule>) =>
+    request<SalesRule>("/sales-rules", { method: "POST", body }),
+
+  updateSalesRule: (id: number, body: Partial<SalesRule>) =>
+    request<SalesRule>(`/sales-rules/${id}`, { method: "PATCH", body }),
+
+  deleteSalesRule: (id: number) =>
+    request<void>(`/sales-rules/${id}`, { method: "DELETE" }),
+
+  previewSalesRule: (body: Partial<SalesRule>) =>
+    request<SalesRulePreview>("/sales-rules/preview", { method: "POST", body }),
+
+  evaluateSalesRules: () =>
+    request<Record<string, unknown>>("/sales-rules/evaluate", { method: "POST" }),
+
+  dealFields: () =>
+    request<{ items: Array<{ field_name: string; title: string; type?: string; is_user_field?: boolean }> }>(
+      "/sales-rules/deal-fields",
+    ),
+
+  syncDealFields: () =>
+    request<{ ok: boolean; count?: number }>("/sales-rules/deal-fields/sync", { method: "POST" }),
 
   system: () => request<SystemStatus>("/system"),
 
   targets: () => request<SalesTarget[]>("/targets"),
+
+  managerControl: () => request<ManagerControlListResponse>("/manager-control"),
+
+  managerControlDetail: (id: number) =>
+    request<ManagerControlDetail>(`/manager-control/${id}`),
+};
+
+export type SalesRule = {
+  id?: number;
+  rule_name: string;
+  description?: string | null;
+  pipeline_bitrix_id?: number | null;
+  stage_id?: number | null;
+  pipeline_name?: string | null;
+  stage_name?: string | null;
+  enabled: boolean;
+  max_idle_minutes?: number | null;
+  future_activity_required?: boolean | null;
+  max_next_activity_minutes?: number | null;
+  overdue_activity_allowed?: boolean | null;
+  required_fields?: string[] | null;
+  required_comment?: boolean | null;
+  comment_max_age_minutes?: number | null;
+  max_stage_duration_minutes?: number | null;
+  severity: string;
+  human_description?: string;
+  comments_capability?: string;
+};
+
+export type SalesRulePreview = {
+  deals_affected: number;
+  amount_affected: number;
+  by_manager: Array<{ manager_id: number | null; manager_name: string; deals_count: number; amount: number }>;
+  persisted: boolean;
+  human_description?: string;
+  note?: string;
 };

@@ -14,12 +14,14 @@ async def dashboard(
     db: DbSession,
     period_start: date | None = Query(default=None),
     period_end: date | None = Query(default=None),
-    pipeline_id: int | None = Query(default=None),
+    preset: str | None = Query(default=None, description="today|yesterday|last_7_days|current_week|..."),
+    pipeline_id: int | None = Query(default=None, description="Bitrix category_id"),
     manager_id: int | None = Query(default=None),
 ) -> dict:
     return await DashboardService(db).get_dashboard(
         period_start=period_start,
         period_end=period_end,
+        preset=preset,
         pipeline_id=pipeline_id,
         manager_id=manager_id,
     )

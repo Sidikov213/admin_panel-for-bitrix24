@@ -92,3 +92,33 @@ class SyncRepository:
     async def recent_runs(self, limit: int = 10) -> list[SyncRun]:
         stmt = select(SyncRun).order_by(SyncRun.started_at.desc()).limit(limit)
         return list((await self._session.execute(stmt)).scalars().all())
+
+    async def latest_successful_run(self) -> SyncRun | None:
+        stmt = (
+            select(SyncRun)
+            .where(SyncRun.status == SyncStatus.success)
+            .order_by(SyncRun.finished_at.desc().nullslast())
+            .limit(1)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def errors_and_retries_24h(self) -> dict:
+        from datetime import timedelta
+
+        from app.core.timezone import utc_now
+        from sqlalchemy import func
+
+        since = utc_now() - timedelta(hours=24)
+        errors = (
+            await self._session.execute(
+                select(func.coalesce(func.sum(SyncRun.errors_count), 0)).where(SyncRun.started_at >= since)
+            )
+        ).scalar_one()
+        failed_runs = (
+            await self._session.execute(
+                select(func.count()).select_from(SyncRun).where(
+                    SyncRun.started_at >= since, SyncRun.status == SyncStatus.failed
+                )
+            )
+        ).scalar_one()
+        return {"errors_count_24h": int(errors or 0), "failed_runs_24h": int(failed_runs or 0)}

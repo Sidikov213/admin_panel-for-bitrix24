@@ -236,6 +236,18 @@ async def compute_period_kpis(
         else []
     )
 
+    from app.analytics.attention import money_requiring_attention, no_future_summary
+
+    money = await money_requiring_attention(session, pipeline_id=pipeline_id, manager_id=manager_id)
+    no_future_sum = await no_future_summary(session, pipeline_id=pipeline_id, manager_id=manager_id)
+
+    # Idle = active deals with no observed movement for ≥2 days (display fact, not SLA)
+    idle_count = 0
+    for d in active_deals:
+        ref = _as_utc(d.last_observed_activity_at or d.stage_changed_observed_at or d.date_modify)
+        if ref is not None and (now - ref).total_seconds() >= 2 * 86400:
+            idle_count += 1
+
     return {
         "period_start": period_start.isoformat(),
         "period_end": period_end.isoformat(),
@@ -256,7 +268,12 @@ async def compute_period_kpis(
         "observed_stage_changes": stage_changes,
         "last_observed_deal_change": last_change.isoformat() if isinstance(last_change, datetime) else None,
         "deals_without_future_activity_count": len(no_future),
+        "deals_without_future_activity_amount": no_future_sum["amount"],
         "deals_without_future_activity_label": "нет следующего запланированного дела",
+        "deals_without_movement_count": idle_count,
+        "money_requiring_attention": money["amount"],
+        "deals_requiring_attention_count": money["deals_count"],
+        "money_requiring_attention_label": money["label"],
         "series_daily": series,
         "definitions": KPI_DEFINITIONS,
         "data_quality": {
