@@ -40,7 +40,8 @@ LIVE_ACTIVITY_FIXTURE = [
         "OWNER_TYPE_ID": "2",
         "OWNER_ID": "8581",
         "CREATED": "2026-10-04T12:00:00+03:00",
-        "DEADLINE": "2026-10-10T15:00:00+03:00",
+        # Far-future deadlines so has_future_activity stays True regardless of wall clock
+        "DEADLINE": "2099-10-10T15:00:00+03:00",
         "COMPLETED": "N",
         "LAST_UPDATED": "2026-10-05T15:41:49+03:00",
         # DATE_MODIFY intentionally absent — live portal returns null/missing
@@ -53,7 +54,7 @@ LIVE_ACTIVITY_FIXTURE = [
         "OWNER_TYPE_ID": "2",
         "OWNER_ID": "8581",
         "CREATED": "2026-10-05T10:00:00+03:00",
-        "DEADLINE": "2026-10-12T12:00:00+03:00",
+        "DEADLINE": "2099-10-12T12:00:00+03:00",
         "COMPLETED": "N",
         "LAST_UPDATED": "2026-10-05T15:45:09+03:00",
     },
