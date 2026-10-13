@@ -587,6 +587,32 @@ export interface TimemanFreshness {
   };
 }
 
+export interface ManagerControlScheduleBrief {
+  configured: boolean;
+  label?: string;
+  id?: number;
+  name?: string;
+  start?: string | null;
+  end?: string | null;
+  is_working?: boolean;
+}
+
+export interface ManagerControlViolationBadge {
+  type: string;
+  label: string;
+  severity: string;
+  is_preview?: boolean;
+}
+
+export interface ManagerControlLimitations {
+  time_control: boolean;
+  note: string;
+}
+
+export interface ManagerControlPolicyBrief {
+  enforcement_start_date?: string | null;
+}
+
 export interface ManagerControlListItem {
   id: number;
   bitrix_id: number;
@@ -614,6 +640,11 @@ export interface ManagerControlListItem {
   last_timeman_poll_at?: string | null;
   last_timeman_poll_local?: string | null;
   has_snapshot?: boolean;
+  workday_today_row?: boolean;
+  schedule?: ManagerControlScheduleBrief;
+  violations_count?: number;
+  violation_badges?: ManagerControlViolationBadge[];
+  has_violations?: boolean;
   /** @deprecated use today_metrics_available / has_snapshot */
   workday_available?: boolean;
 }
@@ -622,6 +653,8 @@ export interface ManagerControlListResponse {
   date: string;
   timezone: string;
   freshness: TimemanFreshness;
+  policy?: ManagerControlPolicyBrief;
+  limitations?: ManagerControlLimitations;
   items: ManagerControlListItem[];
   total: number;
 }
@@ -653,6 +686,30 @@ export interface ManagerControlWeekRow {
   show_as_zero_workday?: boolean;
 }
 
+export interface ManagerControlScheduleToday {
+  configured: boolean;
+  label?: string;
+  id?: number;
+  name?: string;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  required_minutes?: number | null;
+  is_working?: boolean;
+  kind?: string | null;
+}
+
+export interface ManagerControlViolationRow {
+  type: string;
+  label: string;
+  severity: string;
+  threshold?: string | number | null;
+  actual?: string | number | null;
+  details?: Record<string, unknown> | null;
+  is_preview?: boolean;
+  detected_at?: string;
+  resolved_at?: string | null;
+}
+
 export interface ManagerControlDetail {
   id: number;
   bitrix_id: number;
@@ -663,6 +720,8 @@ export interface ManagerControlDetail {
   date: string;
   timezone: string;
   freshness: TimemanFreshness;
+  policy?: ManagerControlPolicyBrief;
+  limitations?: ManagerControlLimitations;
   today: {
     current_status: {
       status_normalized: string;
@@ -675,6 +734,7 @@ export interface ManagerControlDetail {
       last_timeman_poll_at?: string | null;
       last_timeman_poll_local?: string | null;
     };
+    schedule?: ManagerControlScheduleToday;
     workday: {
       available: boolean;
       note?: string | null;
@@ -694,6 +754,156 @@ export interface ManagerControlDetail {
       source?: string;
     }>;
     crm_activity: ManagerControlCrmActivity;
+    violations?: {
+      open: ManagerControlViolationRow[];
+      resolved: ManagerControlViolationRow[];
+    };
   };
   week: ManagerControlWeekRow[];
+}
+
+export interface ManagerControlWeekReportRow {
+  date: string;
+  plan?: {
+    schedule_name?: string | null;
+    is_working?: boolean;
+    start?: string | null;
+    end?: string | null;
+    required_minutes?: number | null;
+    kind?: string | null;
+  } | null;
+  schedule_configured?: boolean;
+  time_start?: string | null;
+  time_finish?: string | null;
+  duration_display?: string | null;
+  time_leaks_display?: string | null;
+  late_minutes?: number | null;
+  shortfall_minutes?: number | null;
+  violations?: Array<{
+    type: string;
+    label: string;
+    state: string;
+    severity: string;
+    is_preview?: boolean;
+  }>;
+  crm_actions?: number;
+  no_historical_data?: boolean;
+  missing_data_label?: string | null;
+}
+
+export interface ManagerControlWeekReport {
+  manager_id: number;
+  period: { start: string; end: string };
+  rows: ManagerControlWeekReportRow[];
+  totals: {
+    working_days: number;
+    days_with_data: number;
+    plan_minutes: number;
+    fact_seconds: number;
+    fact_display: string;
+    delta_minutes: number;
+    late_count: number;
+    not_closed_count: number;
+    open_violations: number;
+  };
+  freshness: TimemanFreshness;
+  limitations?: ManagerControlLimitations;
+}
+
+export interface ManagerControlMonthReport {
+  manager_id: number;
+  period: { start: string; end: string; year: number; month: number };
+  plan_working_days: number;
+  marked_days: number;
+  plan_minutes: number;
+  fact_seconds: number;
+  fact_display: string;
+  delta_minutes: number;
+  late_starts: number;
+  early_finishes: number;
+  not_closed: number;
+  not_started: number;
+  total_open_violations: number;
+  violations_by_type: Record<string, number>;
+  history_since?: string | null;
+  freshness: TimemanFreshness;
+}
+
+export interface ManagerControlTeamReportItem {
+  id: number;
+  display_name: string;
+  working_days_plan: number;
+  marked_days: number;
+  plan_minutes: number;
+  fact_seconds: number;
+  fact_display: string;
+  delta_minutes: number;
+  late_starts: number;
+  not_closed: number;
+  open_violations: number;
+  crm_actions: number;
+}
+
+export interface ManagerControlTeamReport {
+  period: { start: string; end: string };
+  items: ManagerControlTeamReportItem[];
+  total: number;
+  freshness: TimemanFreshness;
+  csv_headers?: string[];
+}
+
+export interface McWorkSchedule {
+  id?: number;
+  name: string;
+  timezone?: string;
+  weekdays?: number[];
+  start_time: string;
+  end_time: string;
+  required_minutes?: number | null;
+  late_grace_minutes?: number | null;
+  early_finish_grace_minutes?: number | null;
+  max_break_minutes?: number | null;
+  not_started_threshold_minutes?: number | null;
+  not_closed_grace_minutes?: number | null;
+  enabled?: boolean;
+  is_default?: boolean;
+  note?: string | null;
+}
+
+export interface McScheduleAssignment {
+  id: number;
+  schedule_id: number;
+  manager_id?: number | null;
+  department_key?: string | null;
+  note?: string | null;
+}
+
+export interface McCalendarOverride {
+  id: number;
+  day_date: string;
+  kind: string;
+  manager_id?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  required_minutes?: number | null;
+  label?: string | null;
+  note?: string | null;
+}
+
+export interface McControlPolicy {
+  enforcement_start_date?: string | null;
+  severity_by_type?: Record<string, string>;
+  note?: string | null;
+}
+
+export interface McSchedulePreview {
+  manager_id: number;
+  schedule_id: number;
+  days_with_data: number;
+  message?: string;
+  late_starts: number;
+  not_closed: number;
+  short_days: number;
+  not_started: number;
+  total_violations: number;
 }

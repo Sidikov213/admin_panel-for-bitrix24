@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, type SalesRule, type SalesRulePreview } from "@/lib/api";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { getBoolActiveLabel, getEnabledLabel, getSeverityLabel } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
 const emptyForm: Partial<SalesRule> = {
@@ -87,7 +88,8 @@ export default function SalesRulesAdminPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[13px] text-muted-foreground">
-          {list.data?.total ?? 0} правил · enabled {items.filter((i) => i.enabled).length}
+          {list.data?.total ?? 0} правил · {getEnabledLabel(true).toLowerCase()}{" "}
+          {items.filter((i) => i.enabled).length}
         </p>
         <div className="flex gap-2">
           <Button
@@ -100,10 +102,10 @@ export default function SalesRulesAdminPage() {
               setPreview(null);
             }}
           >
-            Новое
+            Новое правило
           </Button>
           <Button type="button" variant="secondary" size="sm" onClick={() => evaluate.mutate()}>
-            Evaluate
+            Пересчитать
           </Button>
         </div>
       </div>
@@ -115,7 +117,6 @@ export default function SalesRulesAdminPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.4fr)_minmax(240px,1fr)]">
-        {/* Rules list */}
         <aside className="panel overflow-hidden">
           <div className="border-b border-border px-3 py-2.5">
             <h2 className="section-title">Правила</h2>
@@ -138,13 +139,15 @@ export default function SalesRulesAdminPage() {
                       <span className="truncate text-[13px] font-medium">{r.rule_name || "—"}</span>
                       {r.enabled ? (
                         <Badge variant="success" className="shrink-0 text-[10px]">
-                          on
+                          {getBoolActiveLabel(true)}
                         </Badge>
                       ) : (
-                        <Badge className="shrink-0 text-[10px]">off</Badge>
+                        <Badge className="shrink-0 text-[10px]">{getBoolActiveLabel(false)}</Badge>
                       )}
                     </span>
-                    <span className="truncate text-[11px] text-muted-foreground">{r.severity}</span>
+                    <span className="truncate text-[11px] text-muted-foreground">
+                      {getSeverityLabel(r.severity)}
+                    </span>
                   </button>
                 </li>
               ))
@@ -152,7 +155,6 @@ export default function SalesRulesAdminPage() {
           </ul>
         </aside>
 
-        {/* Editor */}
         <section className="panel panel-pad space-y-3">
           <h2 className="section-title">{editId ? `Редактирование #${editId}` : "Новое правило"}</h2>
 
@@ -166,7 +168,7 @@ export default function SalesRulesAdminPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-[12px]">Pipeline (CATEGORY_ID)</Label>
+              <Label className="text-[12px]">Воронка</Label>
               <Input
                 className="mt-1 h-8"
                 type="number"
@@ -180,7 +182,7 @@ export default function SalesRulesAdminPage() {
               />
             </div>
             <div>
-              <Label className="text-[12px]">Stage id</Label>
+              <Label className="text-[12px]">Этап</Label>
               <Input
                 className="mt-1 h-8"
                 type="number"
@@ -193,16 +195,16 @@ export default function SalesRulesAdminPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-[12px]">Severity</Label>
+              <Label className="text-[12px]">Уровень</Label>
               <select
                 className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={form.severity ?? "medium"}
                 onChange={(e) => setForm((f) => ({ ...f, severity: e.target.value }))}
               >
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-                <option value="critical">critical</option>
+                <option value="low">{getSeverityLabel("low")}</option>
+                <option value="medium">{getSeverityLabel("medium")}</option>
+                <option value="high">{getSeverityLabel("high")}</option>
+                <option value="critical">{getSeverityLabel("critical")}</option>
               </select>
             </div>
             <label className="flex items-end gap-2 pb-1 text-[13px]">
@@ -211,12 +213,13 @@ export default function SalesRulesAdminPage() {
                 checked={Boolean(form.enabled)}
                 onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))}
               />
-              Enabled
+              Включено
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-[12px]">max_idle_minutes</Label>
+              <Label className="text-[12px]">Макс. простой, мин</Label>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">Без активности по сделке</p>
               <Input
                 className="mt-1 h-8"
                 type="number"
@@ -230,7 +233,7 @@ export default function SalesRulesAdminPage() {
               />
             </div>
             <div>
-              <Label className="text-[12px]">max_stage_duration_minutes</Label>
+              <Label className="text-[12px]">Макс. на этапе, мин</Label>
               <Input
                 className="mt-1 h-8"
                 type="number"
@@ -244,6 +247,20 @@ export default function SalesRulesAdminPage() {
               />
             </div>
           </div>
+          <div>
+            <Label className="text-[12px]">Макс. до следующего дела, мин</Label>
+            <Input
+              className="mt-1 h-8"
+              type="number"
+              value={form.max_next_activity_minutes ?? ""}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  max_next_activity_minutes: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+            />
+          </div>
           <div className="flex flex-wrap gap-4 text-[13px]">
             <label className="flex items-center gap-2">
               <input
@@ -256,7 +273,7 @@ export default function SalesRulesAdminPage() {
                   }))
                 }
               />
-              future activity required
+              Требуется следующее дело
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -269,14 +286,14 @@ export default function SalesRulesAdminPage() {
                   }))
                 }
               />
-              overdue not allowed
+              Просроченные дела запрещены
             </label>
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <Label className="text-[12px]">required_fields</Label>
+              <Label className="text-[12px]">Обязательные поля</Label>
               <Button type="button" variant="outline" size="sm" className="h-7 text-[12px]" onClick={() => syncFields.mutate()}>
-                Sync fields
+                Обновить поля
               </Button>
             </div>
             <select
@@ -290,7 +307,7 @@ export default function SalesRulesAdminPage() {
             >
               {(fields.data?.items ?? []).map((f) => (
                 <option key={f.field_name} value={f.field_name}>
-                  {f.field_name} — {f.title}
+                  {f.title || f.field_name}
                 </option>
               ))}
             </select>
@@ -300,7 +317,7 @@ export default function SalesRulesAdminPage() {
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-3">
             <Button type="button" variant="outline" size="sm" onClick={() => previewMut.mutate()} disabled={previewMut.isPending}>
-              Preview
+              Предпросмотр
             </Button>
             <Button type="button" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
               {editId ? "Сохранить" : "Создать"}
@@ -313,12 +330,11 @@ export default function SalesRulesAdminPage() {
           </div>
         </section>
 
-        {/* Preview panel */}
         <aside className="panel panel-pad">
-          <h2 className="section-title mb-3">Preview impact</h2>
+          <h2 className="section-title mb-3">Влияние правила</h2>
           {!preview ? (
             <p className="text-[13px] text-muted-foreground">
-              Запустите Preview, чтобы оценить влияние правила до включения.
+              Запустите предпросмотр, чтобы оценить влияние правила до включения.
             </p>
           ) : (
             <div className="space-y-3 text-[13px]">

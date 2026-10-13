@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useManager, useSystem } from "@/hooks/queries";
 import { api } from "@/lib/api";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { getMetricDrillLabel } from "@/lib/ui-labels";
 import type { MetricDelta } from "@/types/api";
 
 function ManagerDetailInner() {
@@ -76,10 +77,10 @@ function ManagerDetailInner() {
       <section className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-4 sm:grid-cols-4 lg:grid-cols-8">
         <Strip label="Активные" value={formatNumber(kpis.active_deals_count)} delta={cmp?.active_deals_count} />
         <Strip label="Новые" value={formatNumber(kpis.new_deals_count)} delta={cmp?.new_deals_count} />
-        <Strip label="Won" value={formatNumber(kpis.won_count)} delta={cmp?.won_count} />
-        <Strip label="Lost" value={formatNumber(kpis.lost_count)} delta={cmp?.lost_count} />
+        <Strip label="Выиграно" value={formatNumber(kpis.won_count)} delta={cmp?.won_count} />
+        <Strip label="Проиграно" value={formatNumber(kpis.lost_count)} delta={cmp?.lost_count} />
         <Strip label="Сумма акт." value={formatMoney(kpis.sum_active_opportunity)} />
-        <Strip label="Сумма won" value={formatMoney(kpis.sum_won_opportunity)} />
+        <Strip label="Сумма выигранных" value={formatMoney(kpis.sum_won_opportunity)} />
         <Strip label="Просрочки" value={formatNumber(kpis.overdue_activities_unique)} />
         <Strip label="Без дела" value={formatNumber(kpis.deals_without_future_activity_count)} />
       </section>
@@ -104,7 +105,7 @@ function ManagerDetailInner() {
       {metric ? (
         <section className="panel overflow-hidden">
           <div className="border-b border-border px-4 py-2.5">
-            <h2 className="section-title">Drill-down: {metric}</h2>
+            <h2 className="section-title">{getMetricDrillLabel(metric)}</h2>
           </div>
           <Table className="data-table">
             <TableHeader>

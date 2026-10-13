@@ -80,3 +80,30 @@ export function useManagerControlDetail(id: number) {
     refetchInterval: 60_000,
   });
 }
+
+export function useManagerControlWeek(id: number, anchor?: string) {
+  return useQuery({
+    queryKey: ["manager-control", id, "week", anchor ?? ""],
+    queryFn: () => api.managerControlWeek(id, anchor ? { anchor } : undefined),
+    enabled: id > 0,
+  });
+}
+
+export function useManagerControlMonth(id: number, year?: number, month?: number) {
+  return useQuery({
+    queryKey: ["manager-control", id, "month", year ?? "", month ?? ""],
+    queryFn: () => api.managerControlMonth(id, { year, month }),
+    enabled: id > 0,
+  });
+}
+
+export function useManagerControlReport(params?: {
+  period?: "week" | "month";
+  start?: string;
+  end?: string;
+}) {
+  return useQuery({
+    queryKey: ["manager-control", "report", params?.period ?? "week", params?.start ?? "", params?.end ?? ""],
+    queryFn: () => api.managerControlReport(params),
+  });
+}

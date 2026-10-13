@@ -31,7 +31,7 @@ export function DataFreshness({
       <div className={cn("flex items-center gap-2 text-[12px] text-muted-foreground", className)}>
         <span className="tabular-nums">{formatDateTime(at) || "—"}</span>
         {freshness?.sync_failed ? (
-          <span className="text-[11px] font-medium text-destructive">ошибка sync</span>
+          <span className="text-[11px] font-medium text-destructive">ошибка синхр.</span>
         ) : stale && warning ? (
           <span className="text-[11px] font-medium text-[var(--warning)]">устарело</span>
         ) : (

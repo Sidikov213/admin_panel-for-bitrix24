@@ -62,9 +62,9 @@ async def list_sales_rules(_user: CurrentUser, db: DbSession) -> dict:
         "enabled_count": sum(1 for i in items if i["enabled"]),
         "comments_capability": "unsupported",
         "comments_note": (
-            "Проверка комментариев недоступна: в текущей Bitrix интеграции нет READ ONLY "
-            "sync timeline/comments. Поля required_comment / comment_max_age_minutes "
-            "сохранены в модели, но evaluation их не применяет."
+            "Проверка комментариев недоступна: синхронизация ленты и комментариев Bitrix "
+            "пока не подключена. Настройки «обязательный комментарий» и «срок комментария» "
+            "сохранены, но ещё не применяются."
         ),
     }
 

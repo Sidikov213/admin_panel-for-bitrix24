@@ -8,7 +8,8 @@
 - Sales analytics / dashboard / plan-fact
 - Sales Rules Engine (регламент; comment-based checks — disabled)
 - Manager Control V2 + Timeman collector (RO `timeman.status`)
-- Avito Phase 1: RO client + capability/link probes (без UI / full sync)
+- Manager Control V3: configurable schedules, local calendar, workday violations, week/month/team reports (без Time Control)
+- Avito Phase 1: RO client + capability/link probes (без UI / full sync) — отдельная ветка
 
 ## Не реализовано (осознанно)
 
@@ -21,7 +22,9 @@
 - Telegram-рассылки
 - Production deploy / VPS hardening без отдельного разрешения
 - Интеграция с SQLite `/opt/prosrochka` и production FocusGroup SLA bot (`/opt/focusgroup-sla`)
-- Business calendar для SLA / stalled
+- Bitrix Time Control / desktop idle-offline (осознанно; MC V3 использует только Timeman)
+- Автозагрузка российского производственного календаря из внешнего сервиса (локальный calendar admin)
+- Business calendar для Sales Rules / stalled SLA
 - READ ONLY sync timeline/comments Bitrix (нужен для comment-based sales rules)
 
 ## Polling и данные Bitrix

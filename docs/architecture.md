@@ -43,6 +43,7 @@
    Full reconcile по watermark `FULL_RECONCILE_HOURS` (иначе incremental).
 2. **Sales Rules evaluation** — только после успешного deal/activity sync; ошибки не откатывают sync.
 3. **Timeman collector** — всегда после CRM-цикла, изолированно (`TIMEMAN_COLLECTOR_ENABLED`); сбой не влияет на CRM.
+4. **Workday violation evaluation** (MC V3) — после Timeman, `run_violation_evaluation_safe`; сбой не ломает Timeman/CRM.
 
 Категории CRM по умолчанию: `BITRIX_CATEGORY_IDS=1,39` (Сваи, Отложенный спрос).
 
@@ -54,7 +55,8 @@
 | `app/services/sync_service` | Оркестрация sync, snapshots, change events |
 | `app/analytics/*` | KPI, периоды, compare, attention, freshness |
 | `app/services/sales_rules` | Engine, CRUD, violations, aggregates (после sync) |
-| `app/services/timeman_*` / `manager_control_*` | Timeman RO poll, Manager Control V2, monitored roster |
+| `app/services/timeman_*` / `manager_control_*` | Timeman RO poll, Manager Control V2 board |
+| `app/services/workday_rules` / `schedule_service` / `violation_evaluator` / `mc_reports` | Manager Control V3: schedules, calendar, violations, week/month/team reports |
 | `app/integrations/avito` | READ ONLY client + config multi-account (Phase 1 probe) |
 | `app/auth` | Argon2, sessions, CSRF, RBAC (`admin` / `viewer`) |
 | `app/ai`, `app/integrations/sla` | Stubs без внешних вызовов |

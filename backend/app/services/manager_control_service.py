@@ -12,8 +12,10 @@ from app.core.config import get_settings
 from app.core.timezone import app_tz, local_day_bounds, utc_now
 from app.models.crm import CrmActivity, CrmDeal, CrmManager, DealChangeEvent
 from app.models.manager_control import ManagerWorkday, ManagerWorkdaySnapshot
+from app.models.work_schedules import WorkdayViolation
 from app.repositories.sync import SyncRepository
 from app.services.monitored_roster import list_monitored_managers
+from app.services.schedule_service import get_or_create_policy, resolve_day_plan_for_manager
 from app.services.timeman_collector import STATE_HISTORY_SINCE, STATE_LAST_SYNC
 from app.services.timeman_parse import (
     STATUS_NO_DATA,
@@ -24,6 +26,7 @@ from app.services.timeman_parse import (
     local_dates_back,
     status_label_ru,
 )
+from app.services.workday_rules import STATE_OPEN, violation_label_ru
 
 FRESHNESS_STALE_MINUTES = 15
 
@@ -70,8 +73,8 @@ async def get_timeman_freshness(session: AsyncSession) -> dict[str, Any]:
         "time_control": {
             "available": False,
             "label": "Расширенный контроль активности",
-            "status": "Недоступно — Time Control не включён в Bitrix24.",
-            "features": ["Idle", "Offline", "Desktop activity"],
+            "status": "Недоступно: контроль присутствия Time Control в Bitrix24 выключен.",
+            "features": ["Простой", "Офлайн", "Активность за компьютером"],
         },
     }
 
@@ -317,6 +320,21 @@ async def list_manager_control(session: AsyncSession) -> dict[str, Any]:
     ).scalars().all() if ids else []
     wd_by = {w.manager_id: w for w in workdays}
 
+    open_viols = (
+        await session.execute(
+            select(WorkdayViolation).where(
+                WorkdayViolation.manager_id.in_(ids or [-1]),
+                WorkdayViolation.work_date == today,
+                WorkdayViolation.state == STATE_OPEN,
+            )
+        )
+    ).scalars().all() if ids else []
+    viols_by: dict[int, list[WorkdayViolation]] = {}
+    for v in open_viols:
+        viols_by.setdefault(v.manager_id, []).append(v)
+
+    policy = await get_or_create_policy(session)
+
     items = []
     for m in managers:
         snap = snaps.get(m.id)
@@ -334,6 +352,15 @@ async def list_manager_control(session: AsyncSession) -> dict[str, Any]:
         if snap is not None:
             last_poll = snap.observed_at.isoformat()
             last_poll_local = _as_utc(snap.observed_at).astimezone(app_tz()).strftime("%H:%M")
+
+        sch, plan = await resolve_day_plan_for_manager(session, m.id, today)
+        mv = viols_by.get(m.id, [])
+        badges = []
+        for v in mv[:3]:
+            label = violation_label_ru(v.violation_type)
+            if v.violation_type == "LATE_START" and v.details and v.details.get("late_minutes") is not None:
+                label = f"Опоздание {v.details['late_minutes']} мин"
+            badges.append({"type": v.violation_type, "label": label, "severity": v.severity, "is_preview": v.is_preview})
 
         items.append(
             {
@@ -364,6 +391,21 @@ async def list_manager_control(session: AsyncSession) -> dict[str, Any]:
                 "last_timeman_poll_local": last_poll_local,
                 "has_snapshot": snap is not None,
                 "workday_today_row": wd_by.get(m.id) is not None,
+                "schedule": (
+                    {
+                        "id": sch.id,
+                        "name": sch.name,
+                        "configured": True,
+                        "start": plan.start_hm if plan else None,
+                        "end": plan.end_hm if plan else None,
+                        "is_working": bool(plan and plan.is_working),
+                    }
+                    if sch
+                    else {"configured": False, "label": "Рабочий график не настроен"}
+                ),
+                "violations_count": len(mv),
+                "violation_badges": badges,
+                "has_violations": len(mv) > 0,
             }
         )
 
@@ -371,8 +413,17 @@ async def list_manager_control(session: AsyncSession) -> dict[str, Any]:
         "date": today.isoformat(),
         "timezone": settings.APP_TIMEZONE,
         "freshness": freshness,
+        "policy": {
+            "enforcement_start_date": (
+                policy.enforcement_start_date.isoformat() if policy.enforcement_start_date else None
+            ),
+        },
         "items": items,
         "total": len(items),
+        "limitations": {
+            "time_control": False,
+            "note": "Контроль присутствия Time Control в Bitrix24 выключен. Простои и офлайн недоступны. Рабочее время берётся из Timeman.",
+        },
     }
 
 
@@ -481,6 +532,17 @@ async def get_manager_control_detail(
         _as_utc(snap.observed_at).astimezone(app_tz()).strftime("%H:%M") if snap else None
     )
 
+    sch, plan = await resolve_day_plan_for_manager(session, manager_id, today)
+    policy = await get_or_create_policy(session)
+    viol_rows = (
+        await session.execute(
+            select(WorkdayViolation).where(
+                WorkdayViolation.manager_id == manager_id,
+                WorkdayViolation.work_date == today,
+            )
+        )
+    ).scalars().all()
+
     return {
         "id": manager.id,
         "bitrix_id": manager.bitrix_id,
@@ -491,6 +553,11 @@ async def get_manager_control_detail(
         "date": today.isoformat(),
         "timezone": settings.APP_TIMEZONE,
         "freshness": freshness,
+        "policy": {
+            "enforcement_start_date": (
+                policy.enforcement_start_date.isoformat() if policy.enforcement_start_date else None
+            ),
+        },
         "today": {
             "current_status": {
                 "status_normalized": classified["status_normalized"],
@@ -503,6 +570,20 @@ async def get_manager_control_detail(
                 "last_timeman_poll_at": last_poll,
                 "last_timeman_poll_local": last_poll_local,
             },
+            "schedule": (
+                {
+                    "configured": True,
+                    "id": sch.id,
+                    "name": sch.name,
+                    "planned_start": plan.start_hm if plan else None,
+                    "planned_end": plan.end_hm if plan else None,
+                    "required_minutes": plan.required_minutes if plan else None,
+                    "is_working": bool(plan and plan.is_working),
+                    "kind": plan.kind if plan else None,
+                }
+                if sch
+                else {"configured": False, "label": "Рабочий график не настроен"}
+            ),
             "workday": {
                 "available": today_m["available"],
                 "time_start": today_m["time_start"],
@@ -527,6 +608,37 @@ async def get_manager_control_detail(
                 "overdue_activities": metrics.get("overdue_activities", 0),
                 "no_future_activity": metrics.get("no_future_activity", 0),
             },
+            "violations": {
+                "open": [
+                    {
+                        "type": v.violation_type,
+                        "label": violation_label_ru(v.violation_type),
+                        "severity": v.severity,
+                        "threshold": v.threshold_value,
+                        "actual": v.actual_value,
+                        "details": v.details,
+                        "is_preview": v.is_preview,
+                        "detected_at": v.detected_at.isoformat(),
+                    }
+                    for v in viol_rows
+                    if v.state == STATE_OPEN
+                ],
+                "resolved": [
+                    {
+                        "type": v.violation_type,
+                        "label": violation_label_ru(v.violation_type),
+                        "severity": v.severity,
+                        "resolved_at": v.resolved_at.isoformat() if v.resolved_at else None,
+                        "is_preview": v.is_preview,
+                    }
+                    for v in viol_rows
+                    if v.state != STATE_OPEN
+                ],
+            },
         },
         "week": week,
+        "limitations": {
+            "time_control": False,
+            "note": "Контроль присутствия Time Control в Bitrix24 выключен. Простои и офлайн недоступны. Рабочее время — Timeman, CRM считается отдельно.",
+        },
     }

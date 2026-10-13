@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDeal } from "@/hooks/queries";
 import { bitrixDealUrl } from "@/lib/bitrix-url";
 import { formatDateTime, formatMoney, managerName } from "@/lib/format";
+import { getFieldLabel, getSeverityLabel } from "@/lib/ui-labels";
 
 export function DealDetailView({ id }: { id: number }) {
   const deal = useDeal(id);
@@ -91,7 +92,7 @@ export function DealDetailView({ id }: { id: number }) {
                     >
                       <span className="absolute -left-[3px] top-4 h-1.5 w-1.5 rounded-full bg-primary" />
                       <p className="meta tabular-nums">{formatDateTime(c.observed_at)}</p>
-                      <p className="mt-0.5 text-[13px] font-medium">{c.field_name}</p>
+                      <p className="mt-0.5 text-[13px] font-medium">{getFieldLabel(c.field_name)}</p>
                       <p className="text-[13px] text-muted-foreground">
                         {c.old_value ?? "—"} → {c.new_value ?? "—"}
                       </p>
@@ -145,12 +146,12 @@ export function DealDetailView({ id }: { id: number }) {
                     <p className="text-[13px] font-medium">{v.rule_name}</p>
                     <p className="text-[12px] text-muted-foreground">{v.details}</p>
                     <p className="meta mt-0.5">
-                      {v.severity} · {formatDateTime(v.detected_at)}
+                      {getSeverityLabel(v.severity)} · {formatDateTime(v.detected_at)}
                     </p>
                   </div>
                 ))}
                 {(d.violations?.resolved?.length ?? 0) > 0 ? (
-                  <p className="meta pt-1">Resolved: {d.violations!.resolved.length}</p>
+                  <p className="meta pt-1">Устранено: {d.violations!.resolved.length}</p>
                 ) : null}
               </div>
             )}
@@ -161,14 +162,14 @@ export function DealDetailView({ id }: { id: number }) {
       {(d.snapshots?.length ?? 0) > 0 ? (
         <section className="panel overflow-hidden">
           <div className="border-b border-border px-4 py-3">
-            <h2 className="section-title">Snapshots</h2>
+            <h2 className="section-title">Снимки состояния</h2>
           </div>
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Observed</TableHead>
-                <TableHead>Hash</TableHead>
-                <TableHead className="pr-4">Summary</TableHead>
+                <TableHead className="pl-4">Зафиксировано</TableHead>
+                <TableHead>Хеш</TableHead>
+                <TableHead className="pr-4">Кратко</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -14,6 +14,14 @@ import type {
   StalledRulesResponse,
   ManagerControlDetail,
   ManagerControlListResponse,
+  ManagerControlMonthReport,
+  ManagerControlTeamReport,
+  ManagerControlWeekReport,
+  McCalendarOverride,
+  McControlPolicy,
+  McScheduleAssignment,
+  McSchedulePreview,
+  McWorkSchedule,
   SystemStatus,
   User,
 } from "@/types/api";
@@ -189,6 +197,76 @@ export const api = {
 
   managerControlDetail: (id: number) =>
     request<ManagerControlDetail>(`/manager-control/${id}`),
+
+  managerControlWeek: (id: number, params?: { anchor?: string }) =>
+    request<ManagerControlWeekReport>(`/manager-control/${id}/week`, { params }),
+
+  managerControlMonth: (id: number, params?: { year?: number; month?: number }) =>
+    request<ManagerControlMonthReport>(`/manager-control/${id}/month`, { params }),
+
+  managerControlReport: (params?: {
+    period?: "week" | "month";
+    start?: string;
+    end?: string;
+  }) => request<ManagerControlTeamReport>("/manager-control/report", { params }),
+
+  managerControlReportCsvUrl: (params?: { start?: string; end?: string }) =>
+    buildUrl("/manager-control/report.csv", params),
+
+  mcAdminSchedules: () =>
+    request<{ items: McWorkSchedule[]; total: number }>("/manager-control/admin/schedules"),
+
+  mcAdminCreateSchedule: (body: McWorkSchedule) =>
+    request<McWorkSchedule>("/manager-control/admin/schedules", { method: "POST", body }),
+
+  mcAdminUpdateSchedule: (id: number, body: McWorkSchedule) =>
+    request<McWorkSchedule>(`/manager-control/admin/schedules/${id}`, { method: "PATCH", body }),
+
+  mcAdminDeleteSchedule: (id: number) =>
+    request<{ ok: boolean }>(`/manager-control/admin/schedules/${id}`, { method: "DELETE" }),
+
+  mcAdminAssignments: () =>
+    request<{ items: McScheduleAssignment[]; total: number }>("/manager-control/admin/assignments"),
+
+  mcAdminCreateAssignment: (body: {
+    schedule_id: number;
+    manager_id?: number | null;
+    department_key?: string | null;
+    note?: string | null;
+  }) => request<McScheduleAssignment>("/manager-control/admin/assignments", { method: "POST", body }),
+
+  mcAdminDeleteAssignment: (id: number) =>
+    request<{ ok: boolean }>(`/manager-control/admin/assignments/${id}`, { method: "DELETE" }),
+
+  mcAdminCalendar: (params?: { start?: string; end?: string }) =>
+    request<{ items: McCalendarOverride[]; total: number }>("/manager-control/admin/calendar", {
+      params,
+    }),
+
+  mcAdminUpsertCalendar: (body: {
+    day_date: string;
+    kind: string;
+    manager_id?: number | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    required_minutes?: number | null;
+    label?: string | null;
+    note?: string | null;
+  }) => request<{ id: number; day_date: string; kind: string }>("/manager-control/admin/calendar", {
+    method: "POST",
+    body,
+  }),
+
+  mcAdminDeleteCalendar: (id: number) =>
+    request<{ ok: boolean }>(`/manager-control/admin/calendar/${id}`, { method: "DELETE" }),
+
+  mcAdminPolicy: () => request<McControlPolicy>("/manager-control/admin/policy"),
+
+  mcAdminPatchPolicy: (body: Partial<McControlPolicy>) =>
+    request<McControlPolicy>("/manager-control/admin/policy", { method: "PATCH", body }),
+
+  mcAdminPreview: (params: { schedule_id: number; manager_id: number; days?: number }) =>
+    request<McSchedulePreview>("/manager-control/admin/preview", { params }),
 };
 
 export type SalesRule = {

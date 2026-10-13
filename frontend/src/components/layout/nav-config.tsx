@@ -45,6 +45,7 @@ export const navGroups: NavGroup[] = [
       { href: "/overdue", label: "Просроченные", icon: Clock },
       { href: "/stalled", label: "Без следующего дела", icon: PauseCircle },
       { href: "/admin/sales-rules", label: "Регламент", icon: Settings },
+      { href: "/admin/manager-control", label: "Графики контроля", icon: Settings },
     ],
   },
   {
@@ -80,6 +81,8 @@ export const pageTitles: Record<string, string> = {
   "/deals": "Сделки",
   "/managers": "Менеджеры",
   "/manager-control": "Контроль менеджеров",
+  "/manager-control/report": "Отчёт контроля менеджеров",
+  "/admin/manager-control": "Графики контроля",
   "/pipelines": "Воронки",
   "/overdue": "Просроченные дела",
   "/stalled": "Без следующего дела",
@@ -93,6 +96,7 @@ export function resolvePageTitle(pathname: string): string {
   if (pageTitles[pathname]) return pageTitles[pathname];
   if (pathname.startsWith("/deals/")) return "Сделка";
   if (pathname.startsWith("/managers/")) return "Менеджер";
+  if (pathname.startsWith("/manager-control/report")) return pageTitles["/manager-control/report"];
   if (pathname.startsWith("/manager-control/")) return "Контроль менеджера";
   for (const [path, title] of Object.entries(pageTitles)) {
     if (pathname.startsWith(path)) return title;

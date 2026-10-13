@@ -10,6 +10,14 @@ from app.models.crm import (
     DealSnapshot,
 )
 from app.models.manager_control import ManagerWorkday, ManagerWorkdaySnapshot, MonitoredManager
+from app.models.work_schedules import (
+    CalendarDayOverride,
+    ManagerAbsence,
+    ManagerControlPolicy,
+    ScheduleAssignment,
+    WorkSchedule,
+    WorkdayViolation,
+)
 from app.models.sales_rules import (
     BitrixDealField,
     SalesRule,
@@ -35,6 +43,12 @@ __all__ = [
     "ManagerWorkdaySnapshot",
     "ManagerWorkday",
     "MonitoredManager",
+    "WorkSchedule",
+    "ScheduleAssignment",
+    "CalendarDayOverride",
+    "ManagerAbsence",
+    "WorkdayViolation",
+    "ManagerControlPolicy",
     "SyncRun",
     "SyncType",
     "SyncStatus",

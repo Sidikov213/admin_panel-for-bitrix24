@@ -43,14 +43,14 @@ export default function ManagersPage() {
               <TableHead className="pl-4">Менеджер</TableHead>
               <TableHead className="text-right">Активные</TableHead>
               <TableHead className="text-right">Новые</TableHead>
-              <TableHead className="text-right">Won</TableHead>
-              <TableHead className="text-right">Lost</TableHead>
+              <TableHead className="text-right">Выиграно</TableHead>
+              <TableHead className="text-right">Проиграно</TableHead>
               <TableHead className="text-right">Сумма акт.</TableHead>
-              <TableHead className="text-right">Сумма won</TableHead>
+              <TableHead className="text-right">Сумма выигр.</TableHead>
               <TableHead className="text-right">Просрочки</TableHead>
               <TableHead className="text-right">Без дела</TableHead>
               <TableHead className="text-right">% без дела</TableHead>
-              <TableHead className="text-right">Open viol.</TableHead>
+              <TableHead className="text-right">Откр. наруш.</TableHead>
               <TableHead className="pr-4 text-right">Динамика</TableHead>
             </TableRow>
           </TableHeader>

@@ -103,8 +103,8 @@ export default function PipelinesPage() {
                   </TableBody>
                 </Table>
                 <p className="text-[13px] text-muted-foreground">
-                  Исходы: новые {p.period_outcomes.new_deals} · Won {p.period_outcomes.won} · Lost{" "}
-                  {p.period_outcomes.lost} · won {formatMoney(p.period_outcomes.sum_won)} · смены этапов{" "}
+                  Исходы: новые {p.period_outcomes.new_deals} · выиграно {p.period_outcomes.won} · проиграно{" "}
+                  {p.period_outcomes.lost} · сумма выигр. {formatMoney(p.period_outcomes.sum_won)} · смены этапов{" "}
                   {p.period_outcomes.observed_stage_changes}
                 </p>
               </div>

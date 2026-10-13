@@ -83,6 +83,18 @@ async def _run_timeman_collect_isolated() -> None:
         logger.warning("timeman_collector_cycle_failed result=%s", {k: result.get(k) for k in ("ok", "errors", "error_message")})
 
 
+async def _run_violation_evaluation_isolated() -> None:
+    """Workday violations after Timeman — never fails Timeman/CRM cycle."""
+    from app.services.violation_evaluator import run_violation_evaluation_safe
+
+    result = await run_violation_evaluation_safe()
+    if not result.get("ok"):
+        logger.warning(
+            "violation_evaluation_failed result=%s",
+            {k: result.get(k) for k in ("ok", "errors", "error_message")},
+        )
+
+
 async def scheduled_job() -> None:
     full = await should_full_reconcile()
     ok = await run_sync_cycle(full_reconcile=full)
@@ -94,6 +106,8 @@ async def scheduled_job() -> None:
         await _run_sales_rules_evaluation_after_sync()
     # Timeman always attempted after CRM cycle; failure must not affect CRM outcome
     await _run_timeman_collect_isolated()
+    # Violations after Timeman; isolation from sync + collector
+    await _run_violation_evaluation_isolated()
 
 
 def main() -> None:
@@ -127,6 +141,7 @@ def main() -> None:
             if ok:
                 await _run_sales_rules_evaluation_after_sync()
             await _run_timeman_collect_isolated()
+            await _run_violation_evaluation_isolated()
         scheduler.start()
         while True:
             await asyncio.sleep(3600)

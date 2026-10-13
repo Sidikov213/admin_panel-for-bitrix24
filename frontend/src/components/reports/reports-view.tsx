@@ -8,6 +8,7 @@ import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/comm
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useReports } from "@/hooks/queries";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { getDynamicsKeyLabel } from "@/lib/ui-labels";
 import type { MetricDelta, PlanFact } from "@/types/api";
 
 export function ReportsView() {
@@ -64,13 +65,13 @@ export function ReportsView() {
             label="План"
             value={planFact?.plan_set ? formatMoney(planFact.plan) : "не задан"}
           />
-          <Metric label="Факт (won)" value={formatMoney((overview?.sum_won as number) ?? planFact?.fact)} />
+          <Metric label="Факт (выиграно)" value={formatMoney((overview?.sum_won as number) ?? planFact?.fact)} />
           <Metric
-            label="Новые / Won / Lost"
+            label="Новые / Выиграно / Проиграно"
             value={`${formatNumber(overview?.new_deals as number)} / ${formatNumber(overview?.won as number)} / ${formatNumber(overview?.lost as number)}`}
           />
           <div>
-            <p className="meta">Активный pipeline</p>
+            <p className="meta">Активная воронка</p>
             <p className="mt-1.5 text-[1.375rem] font-semibold tabular-nums tracking-tight">
               {formatNumber(overview?.active_pipeline_count as number)}
             </p>
@@ -87,8 +88,8 @@ export function ReportsView() {
           <span className="meta">сигналы контроля</span>
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-4">
-          <Metric label="Overdue" value={formatNumber(problems?.overdue)} />
-          <Metric label="No future" value={formatNumber(problems?.no_future_activity)} />
+          <Metric label="Просроченные" value={formatNumber(problems?.overdue)} />
+          <Metric label="Без следующего дела" value={formatNumber(problems?.no_future_activity)} />
           <Metric label="Требуют внимания" value={formatNumber(problems?.deals_requiring_attention)} />
           <Metric label="Сумма внимания" value={formatMoney(problems?.money_requiring_attention)} />
         </div>
@@ -106,9 +107,9 @@ export function ReportsView() {
           ) : (
             <div className="space-y-5">
               <div className="grid grid-cols-3 gap-6">
-                <Metric label="Open" value={formatNumber(reg.open)} />
-                <Metric label="New during period" value={formatNumber(reg.new_during_period)} />
-                <Metric label="Resolved" value={formatNumber(reg.resolved)} />
+                <Metric label="Открыто" value={formatNumber(reg.open)} />
+                <Metric label="Новые за период" value={formatNumber(reg.new_during_period)} />
+                <Metric label="Устранено" value={formatNumber(reg.resolved)} />
               </div>
               {(reg.by_type?.length || 0) > 0 ? (
                 <ul className="divide-y divide-border rounded-md border border-border">
@@ -137,9 +138,9 @@ export function ReportsView() {
                 <TableHead className="pl-5">Менеджер</TableHead>
                 <TableHead className="text-right">Активные</TableHead>
                 <TableHead className="text-right">Новые</TableHead>
-                <TableHead className="text-right">Won</TableHead>
-                <TableHead className="text-right">Сумма won</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
+                <TableHead className="text-right">Выиграно</TableHead>
+                <TableHead className="text-right">Сумма выигранных</TableHead>
+                <TableHead className="text-right">Просроченные</TableHead>
                 <TableHead className="pr-5 text-right">Без дела</TableHead>
               </TableRow>
             </TableHeader>
@@ -168,7 +169,7 @@ export function ReportsView() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-3 lg:grid-cols-6">
             {Object.entries(dynamics).map(([key, d]) => (
               <div key={key}>
-                <p className="meta">{key}</p>
+                <p className="meta">{getDynamicsKeyLabel(key)}</p>
                 <p className="mt-1.5 text-[1.25rem] font-semibold tabular-nums tracking-tight">{d.current}</p>
                 <div className="mt-0.5">
                   <DeltaBadge delta={d} />

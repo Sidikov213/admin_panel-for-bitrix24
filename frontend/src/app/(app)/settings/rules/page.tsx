@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useStalledRules } from "@/hooks/queries";
+import { getEnabledLabel } from "@/lib/ui-labels";
 
 export default function StalledRulesSettingsPage() {
   const q = useStalledRules();
@@ -36,9 +37,9 @@ export default function StalledRulesSettingsPage() {
           <CardDescription>{data?.note}</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Поля правила: pipeline_id, stage_id, max_idle_minutes, future_activity_required,
-          max_next_activity_minutes, business calendar, deal status, enabled. Сейчас UI показывает
-          черновики; enable принудительно выключен на API.
+          В правиле задаются: воронка, этап, макс. простой (мин), требование следующего дела, макс.
+          до следующего дела, календарь, статус сделки, включено/выключено. Сейчас UI показывает
+          черновики; включение на API принудительно выключено.
         </CardContent>
       </Card>
 
@@ -48,11 +49,11 @@ export default function StalledRulesSettingsPage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Название</TableHead>
-              <TableHead>Pipeline</TableHead>
-              <TableHead>Stage</TableHead>
-              <TableHead>max_idle</TableHead>
-              <TableHead>future required</TableHead>
-              <TableHead>enabled</TableHead>
+              <TableHead>Воронка</TableHead>
+              <TableHead>Этап</TableHead>
+              <TableHead>Макс. простой, мин</TableHead>
+              <TableHead>След. дело обязательно</TableHead>
+              <TableHead>Статус</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,11 +68,17 @@ export default function StalledRulesSettingsPage() {
                 <TableRow key={String(r.id)}>
                   <TableCell>{String(r.id)}</TableCell>
                   <TableCell>{String(r.name || "—")}</TableCell>
-                  <TableCell>{String(r.pipeline_bitrix_id ?? "any")}</TableCell>
-                  <TableCell>{String(r.stage_id ?? "any")}</TableCell>
+                  <TableCell>{String(r.pipeline_bitrix_id ?? "любая")}</TableCell>
+                  <TableCell>{String(r.stage_id ?? "любой")}</TableCell>
                   <TableCell>{String(r.max_idle_minutes ?? "—")}</TableCell>
-                  <TableCell>{String(r.future_activity_required)}</TableCell>
-                  <TableCell>{String(r.enabled)}</TableCell>
+                  <TableCell>
+                    {r.future_activity_required === true
+                      ? "да"
+                      : r.future_activity_required === false
+                        ? "нет"
+                        : "—"}
+                  </TableCell>
+                  <TableCell>{getEnabledLabel(Boolean(r.enabled))}</TableCell>
                 </TableRow>
               ))
             )}
