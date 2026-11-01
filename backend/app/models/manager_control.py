@@ -108,8 +108,8 @@ class MonitoredManager(TimestampMixin, Base):
     manager_id: Mapped[int] = mapped_column(
         ForeignKey("crm_managers.id", ondelete="CASCADE"), primary_key=True
     )
-    auto_included: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    manual_include: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    auto_included: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    manual_include: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     manual_exclude: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)

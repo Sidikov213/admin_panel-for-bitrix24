@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.locks import AdvisoryLock
 from app.core.config import get_settings
 from app.core.timezone import app_tz, utc_now
 from app.integrations.bitrix.client import BitrixClient, BitrixClientError
@@ -51,23 +52,10 @@ async def list_relevant_managers(
 ) -> list[CrmManager]:
     """Monitored sales managers (roster) — not Bitrix is_active alone."""
     managers = await list_monitored_managers(session)
-    return managers[:limit]
-
-
-async def _try_lock(session: AsyncSession) -> bool:
-    try:
-        result = await session.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": _LOCK_KEY})
-        return bool(result.scalar())
-    except Exception:
-        # SQLite tests: advisory locks unavailable — proceed without lock
-        return True
-
-
-async def _unlock(session: AsyncSession) -> None:
-    try:
-        await session.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": _LOCK_KEY})
-    except Exception:
-        pass
+    managers.sort(key=lambda m: m.id)
+    cursor = (await SyncRepository(session).get_state("timeman_roster_cursor") or {}).get("manager_id", 0)
+    ordered = [m for m in managers if m.id > cursor] + [m for m in managers if m.id <= cursor]
+    return ordered[:max(1, limit)]
 
 
 async def upsert_workday_from_snapshot(
@@ -197,7 +185,8 @@ class TimemanCollector:
         if isinstance(self._client, BitrixClient) and not self._client.webhook_configured:
             return TimemanCollectResult(ok=False, error_message="bitrix_not_configured")
 
-        locked = await _try_lock(self._session)
+        lock = AdvisoryLock(self._session, _LOCK_KEY)
+        locked = await lock.acquire()
         if not locked:
             logger.info("timeman_collector_skip_lock_held")
             return TimemanCollectResult(ok=True, error_message="lock_held")
@@ -226,17 +215,19 @@ class TimemanCollector:
             for mgr in managers:
                 try:
                     payload = await self._client.timeman_status(int(mgr.bitrix_id))
+                    observed_at = utc_now()
                     parsed = parse_timeman_status_payload(
                         payload,
                         observed_at=observed_at,
                         app_timezone_name=settings.APP_TIMEZONE,
                     )
-                    inserted, deduped = await persist_parsed_status_safe(
-                        self._session,
-                        manager=mgr,
-                        parsed=parsed,
-                        observed_at=observed_at,
-                    )
+                    async with self._session.begin_nested():
+                        inserted, deduped = await persist_parsed_status_safe(
+                            self._session,
+                            manager=mgr,
+                            parsed=parsed,
+                            observed_at=observed_at,
+                        )
                     if inserted:
                         result.snapshots_inserted += 1
                         result.workdays_upserted += 1
@@ -258,10 +249,12 @@ class TimemanCollector:
                         type(e).__name__,
                     )
 
+            if managers:
+                await repo.set_state("timeman_roster_cursor", {"manager_id": managers[-1].id})
             await self._session.commit()
 
             result.last_updated_at = observed_at.isoformat()
-            result.ok = result.errors == 0 or result.snapshots_inserted > 0 or result.snapshots_deduped > 0
+            result.ok = result.errors == 0
             # Partial success still records freshness
             await repo.set_state(
                 STATE_LAST_SYNC,
@@ -303,7 +296,7 @@ class TimemanCollector:
                 pass
             return result
         finally:
-            await _unlock(self._session)
+            await lock.release()
 
 
 async def run_timeman_collect_safe() -> dict[str, Any]:

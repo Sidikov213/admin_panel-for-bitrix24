@@ -138,13 +138,17 @@ async def evaluate_manager_day(
     snap = (
         await session.execute(
             select(ManagerWorkdaySnapshot)
-            .where(ManagerWorkdaySnapshot.manager_id == manager_id)
+            .where(ManagerWorkdaySnapshot.manager_id == manager_id, ManagerWorkdaySnapshot.work_date == day)
             .order_by(ManagerWorkdaySnapshot.observed_at.desc())
             .limit(1)
         )
     ).scalar_one_or_none()
 
-    today = now.astimezone(app_tz()).date()
+    if wd is None and snap is None:
+        return {"manager_id": manager_id, "day": day.isoformat(), "coverage": "unknown",
+                "candidates": 0, "upserted": 0, "resolved": 0, "is_preview": preview}
+
+    today = day
     classified = classify_current_status(
         status_raw=snap.status_raw if snap else None,
         time_start=snap.time_start if snap else (wd.time_start if wd else None),
@@ -169,7 +173,19 @@ async def evaluate_manager_day(
         is_stale=is_stale,
     )
 
-    candidates = evaluate_day_violations(plan, facts, day=day, now=now)
+    from app.analytics.freshness import _parse_ts
+    observed = _parse_ts(wd.last_observed_at if wd else snap.observed_at)
+    # Do not extrapolate an old observation past its coverage (e.g. an open
+    # morning snapshot does not prove that the employee failed to close at night).
+    evaluation_time = min(now, observed) if observed else now
+    if facts.time_start and facts.time_start.astimezone(app_tz()).date() != day:
+        from dataclasses import replace
+        facts = replace(facts, time_start=None, time_finish=None, duration_seconds=None, time_leaks_seconds=None)
+    candidates = evaluate_day_violations(plan, facts, day=day, now=evaluation_time)
+    if facts.status_normalized in {None, "unknown", "unavailable", "no_data", "unknown_bitrix"}:
+        # Missing evidence proves neither a violation nor its resolution.
+        return {"manager_id": manager_id, "day": day.isoformat(), "coverage": "unknown",
+                "candidates": 0, "upserted": 0, "resolved": 0, "is_preview": preview}
     # STALE without schedule still allowed; other types require plan
     if plan is None:
         candidates = [c for c in candidates if c.violation_type == "STALE_UNCLOSED_DAY"]
@@ -203,6 +219,10 @@ async def run_violation_evaluation(
     days_back: int = 2,
 ) -> dict[str, Any]:
     """Evaluate today + recent local days for all monitored managers."""
+    if session.get_bind().dialect.name == "postgresql":
+        from sqlalchemy import text
+        if not await session.scalar(text("SELECT pg_try_advisory_xact_lock(172913522)")):
+            return {"ok": False, "reason": "evaluation_in_progress"}
     now = utc_now()
     today = now.astimezone(app_tz()).date()
     managers = await list_monitored_managers(session)
@@ -212,7 +232,8 @@ async def run_violation_evaluation(
         for offset in range(0, max(1, days_back)):
             day = today - timedelta(days=offset)
             try:
-                results.append(await evaluate_manager_day(session, m.id, day, now=now))
+                async with session.begin_nested():
+                    results.append(await evaluate_manager_day(session, m.id, day, now=now))
             except Exception:
                 errors += 1
                 logger.exception("violation_eval_manager_failed manager_id=%s day=%s", m.id, day)

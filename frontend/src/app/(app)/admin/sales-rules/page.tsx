@@ -161,7 +161,7 @@ export default function SalesRulesAdminPage() {
           <div>
             <Label className="text-[12px]">Название</Label>
             <Input
-              className="mt-1 h-8"
+              className="mt-1 h-10"
               value={form.rule_name ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, rule_name: e.target.value }))}
             />
@@ -170,7 +170,7 @@ export default function SalesRulesAdminPage() {
             <div>
               <Label className="text-[12px]">Воронка</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 type="number"
                 value={form.pipeline_bitrix_id ?? ""}
                 onChange={(e) =>
@@ -184,7 +184,7 @@ export default function SalesRulesAdminPage() {
             <div>
               <Label className="text-[12px]">Этап</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 type="number"
                 value={form.stage_id ?? ""}
                 onChange={(e) =>
@@ -197,7 +197,7 @@ export default function SalesRulesAdminPage() {
             <div>
               <Label className="text-[12px]">Уровень</Label>
               <select
-                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={form.severity ?? "medium"}
                 onChange={(e) => setForm((f) => ({ ...f, severity: e.target.value }))}
               >
@@ -221,7 +221,7 @@ export default function SalesRulesAdminPage() {
               <Label className="text-[12px]">Макс. простой, мин</Label>
               <p className="mt-0.5 text-[10px] text-muted-foreground">Без активности по сделке</p>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 type="number"
                 value={form.max_idle_minutes ?? ""}
                 onChange={(e) =>
@@ -235,7 +235,7 @@ export default function SalesRulesAdminPage() {
             <div>
               <Label className="text-[12px]">Макс. на этапе, мин</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 type="number"
                 value={form.max_stage_duration_minutes ?? ""}
                 onChange={(e) =>
@@ -250,7 +250,7 @@ export default function SalesRulesAdminPage() {
           <div>
             <Label className="text-[12px]">Макс. до следующего дела, мин</Label>
             <Input
-              className="mt-1 h-8"
+              className="mt-1 h-10"
               type="number"
               value={form.max_next_activity_minutes ?? ""}
               onChange={(e) =>

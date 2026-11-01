@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.venv
+venv
+__pycache__
+.pytest_cache
+*.pyc
+*.log
+*.sql
+*.dump
+tests
+scripts/*
+!scripts/docker_start.py

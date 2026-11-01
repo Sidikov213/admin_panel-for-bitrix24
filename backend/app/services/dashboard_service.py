@@ -51,25 +51,13 @@ class DashboardService:
         last_deals = await self._sync_repo.get_state("last_deals_sync")
         last_acts = await self._sync_repo.get_state("last_activities_sync")
         latest = await self._sync_repo.latest_run()
-        latest_ok = await self._sync_repo.latest_successful_run()
+        freshness = await self._sync_repo.crm_freshness()
 
-        last_ok_at = None
-        if latest_ok and latest_ok.finished_at:
-            last_ok_at = latest_ok.finished_at
-        elif isinstance(last_deals, dict):
-            last_ok_at = last_deals.get("at")
-
-        freshness = build_freshness(
-            last_successful_sync_at=last_ok_at,
-            last_attempted_sync_at=latest.finished_at if latest and latest.finished_at else last_ok_at,
-            latest_run_status=latest.status.value if latest else None,
-        )
-
-        plan_fact = await TargetsService(self._session).plan_fact_for_range(rng.start, rng.end)
+        plan_fact = await TargetsService(self._session).plan_fact_for_range(rng.start, rng.end, manager_id=manager_id, pipeline_id=pipeline_id)
 
         from app.services.sales_rules.aggregates import dashboard_violation_kpis
 
-        rule_kpis = await dashboard_violation_kpis(self._session)
+        rule_kpis = await dashboard_violation_kpis(self._session, manager_id=manager_id, pipeline_id=pipeline_id)
 
         return {
             "kpis": kpis,

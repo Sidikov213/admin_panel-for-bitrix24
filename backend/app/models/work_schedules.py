@@ -41,7 +41,7 @@ class WorkSchedule(TimestampMixin, Base):
     # Minutes after scheduled end before WORKDAY_NOT_CLOSED may fire
     not_closed_grace_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
@@ -60,7 +60,7 @@ class ScheduleAssignment(TimestampMixin, Base):
     manager_id: Mapped[int | None] = mapped_column(
         ForeignKey("crm_managers.id", ondelete="CASCADE"), nullable=True, unique=True
     )
-    department_key: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    department_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     schedule = relationship("WorkSchedule")

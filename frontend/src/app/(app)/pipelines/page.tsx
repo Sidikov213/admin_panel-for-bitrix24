@@ -10,6 +10,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CATEGORY_AXIS_WIDTH,
+  CATEGORY_LABEL_WIDTH,
+  CategoryAxisTick,
+  CategoryBarTooltip,
+  categoryChartHeight,
+} from "@/components/charts/category-axis-tick";
 import { DataFreshness } from "@/components/common/data-freshness";
 import { ErrorState, PageLoading } from "@/components/common/page-states";
 import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
@@ -70,14 +77,22 @@ export default function PipelinesPage() {
               </p>
             </div>
             <div className="grid gap-4 p-4 lg:grid-cols-2">
-              <div className="h-56">
+              <div className="min-w-0 overflow-hidden" style={{ height: categoryChartHeight(p.funnel.length) }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={p.funnel} margin={{ top: 4, right: 8, left: 0, bottom: 24 }}>
-                    <CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval={0} angle={-20} textAnchor="end" height={56} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={28} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, boxShadow: "none" }} />
-                    <Bar dataKey="value" name="Сделки" fill="var(--primary)" radius={[3, 3, 0, 0]} barSize={18} />
+                  <BarChart data={p.funnel} layout="vertical" margin={{ left: 8, right: 12, top: 8, bottom: 4 }} barCategoryGap={10}>
+                    <CartesianGrid stroke="var(--border)" horizontal={false} strokeDasharray="0" />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={CATEGORY_AXIS_WIDTH}
+                      interval={0}
+                      tick={<CategoryAxisTick maxWidth={CATEGORY_LABEL_WIDTH} />}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CategoryBarTooltip />} />
+                    <Bar dataKey="value" name="Сделки" fill="var(--primary)" radius={[0, 3, 3, 0]} barSize={16} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

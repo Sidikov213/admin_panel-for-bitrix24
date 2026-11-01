@@ -136,7 +136,6 @@ class DealSnapshot(TimestampMixin, Base):
     deal: Mapped[CrmDeal] = relationship(back_populates="snapshots")
 
     __table_args__ = (
-        UniqueConstraint("deal_id", "content_hash", name="uq_deal_snapshots_deal_hash"),
         Index("ix_deal_snapshots_deal_observed", "deal_id", "observed_at"),
     )
 
@@ -154,4 +153,4 @@ class DealChangeEvent(Base):
 
     deal: Mapped[CrmDeal] = relationship(back_populates="change_events")
 
-    __table_args__ = (Index("ix_deal_change_events_deal_observed", "deal_id", "observed_at"),)
+    __table_args__ = (Index("ix_deal_change_events_deal_observed", "deal_id", "observed_at"), Index("ix_deal_change_events_observed_at", "observed_at"))

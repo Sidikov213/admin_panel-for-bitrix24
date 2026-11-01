@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+      - manager-control-v3
+      - "codex/**"
       - stage2-analytics
       - stage25-sales-rules
       - stage26-visual-redesign
@@ -55,6 +57,41 @@ jobs:
 
       - name: Run pytest
         run: pytest -q
+
+  postgres:
+    name: PostgreSQL migrations and regressions
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: audit
+          POSTGRES_PASSWORD: ci-synthetic-only
+          POSTGRES_DB: focus_audit_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U audit -d focus_audit_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://audit:ci-synthetic-only@127.0.0.1:5432/focus_audit_ci
+      FOCUS_TEST_POSTGRES_URL: postgresql+asyncpg://audit:ci-synthetic-only@127.0.0.1:5432/focus_audit_ci
+      BITRIX_WEBHOOK_URL: ""
+      SESSION_SECRET: ci-synthetic-only
+      DEMO_MODE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: alembic upgrade head
+      - run: alembic check
+      - run: alembic downgrade base
+      - run: alembic upgrade head
+      - run: pytest tests/test_product_repairs.py -q
 
   frontend:
     name: Frontend lint and build

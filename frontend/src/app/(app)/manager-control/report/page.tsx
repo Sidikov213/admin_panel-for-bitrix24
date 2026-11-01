@@ -38,7 +38,7 @@ export default function ManagerControlReportPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month")}>
-            <SelectTrigger className="h-8 w-36 text-[13px]">
+            <SelectTrigger className="h-10 w-36 text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -82,7 +82,7 @@ export default function ManagerControlReportPage() {
                 <TableCell className="text-right tabular-nums">{formatNumber(row.marked_days)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatNumber(row.plan_minutes)}</TableCell>
                 <TableCell className="text-right tabular-nums">{row.fact_display}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatNumber(row.delta_minutes)}</TableCell>
+                <TableCell className="text-right tabular-nums">{row.delta_minutes == null ? "Нет данных" : formatNumber(row.delta_minutes)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatNumber(row.late_starts)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatNumber(row.not_closed)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatNumber(row.open_violations)}</TableCell>

@@ -32,7 +32,7 @@ export default function OverduePage() {
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={groupBy} onValueChange={setGroupBy}>
-            <SelectTrigger className="h-8 w-40 text-[13px]">
+            <SelectTrigger className="h-10 w-40 text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -42,7 +42,7 @@ export default function OverduePage() {
             </SelectContent>
           </Select>
           <Input
-            className="h-8 w-32 text-[13px]"
+            className="h-10 w-32 text-[13px]"
             value={minMin}
             onChange={(e) => setMinMin(e.target.value)}
             placeholder="Мин. мин."

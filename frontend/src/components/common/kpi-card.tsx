@@ -31,7 +31,7 @@ export function KpiCard({
   const body = (
     <div
       className={cn(
-        variant === "card" && "rounded-[var(--radius)] border border-border bg-card px-3.5 py-3",
+        variant === "card" && "panel px-4 py-3.5",
         variant === "strip" && "min-w-0",
         href && "transition-colors duration-150 hover:bg-muted/50 rounded-md",
         className,

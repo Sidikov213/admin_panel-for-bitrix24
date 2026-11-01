@@ -1,9 +1,10 @@
 const dateTimeFmt = new Intl.DateTimeFormat("ru-RU", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "Europe/Moscow",
 });
 
-const dateFmt = new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" });
+const dateFmt = new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeZone: "Europe/Moscow" });
 
 const numberFmt = new Intl.NumberFormat("ru-RU");
 

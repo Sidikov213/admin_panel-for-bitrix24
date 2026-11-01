@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.sync import SyncRun, SyncState, SyncStatus, SyncType
+from app.db.locks import AdvisoryLock
 
 # Stable across processes (unlike Python hash(), which is salted per process).
 # deals + full_reconcile share one key so they cannot mutate CRM rows concurrently.
@@ -24,18 +25,21 @@ def advisory_lock_key(sync_type: SyncType) -> int:
 class SyncRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+        self._locks: dict[int, AdvisoryLock] = {}
 
     async def try_advisory_lock(self, sync_type: SyncType) -> bool:
         key = advisory_lock_key(sync_type)
-        result = await self._session.execute(
-            text("SELECT pg_try_advisory_lock(:k)"),
-            {"k": key},
-        )
-        return bool(result.scalar())
+        lock = AdvisoryLock(self._session, key)
+        if await lock.acquire():
+            self._locks[key] = lock
+            return True
+        return False
 
     async def advisory_unlock(self, sync_type: SyncType) -> None:
         key = advisory_lock_key(sync_type)
-        await self._session.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": key})
+        lock = self._locks.pop(key, None)
+        if lock:
+            await lock.release()
 
     async def start_run(self, sync_type: SyncType) -> SyncRun:
         from app.core.timezone import utc_now
@@ -92,6 +96,23 @@ class SyncRepository:
     async def recent_runs(self, limit: int = 10) -> list[SyncRun]:
         stmt = select(SyncRun).order_by(SyncRun.started_at.desc()).limit(limit)
         return list((await self._session.execute(stmt)).scalars().all())
+
+    async def crm_freshness(self) -> dict:
+        from app.analytics.freshness import _parse_ts, build_freshness
+        stamps = [_parse_ts(await self.get_state(key)) for key in (
+            "last_deals_sync", "last_activities_sync", "last_dictionaries_sync"
+        )]
+        runs = [await self.latest_run(t) for t in SyncType]
+        deals = [r for r in runs if r and r.sync_type in (SyncType.deals, SyncType.full_reconcile)]
+        phases = [r for r in runs if r and r.sync_type in (SyncType.activities, SyncType.dictionaries)]
+        if deals:
+            phases.append(max(deals, key=lambda r: r.started_at))
+        failed = any(r.status == SyncStatus.failed for r in phases)
+        return build_freshness(
+            last_successful_sync_at=min(stamps) if all(stamps) else None,
+            last_attempted_sync_at=max((r.started_at for r in phases), default=None),
+            latest_run_status="failed" if failed else None,
+        )
 
     async def latest_successful_run(self) -> SyncRun | None:
         stmt = (

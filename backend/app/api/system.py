@@ -27,11 +27,8 @@ async def system_status(_user: CurrentUser, db: DbSession) -> dict:
     latest = await repo.latest_run()
     err24 = await repo.errors_and_retries_24h()
 
-    freshness = build_freshness(
-        last_successful_sync_at=latest_ok.finished_at if latest_ok else None,
-        last_attempted_sync_at=latest.finished_at if latest and latest.finished_at else None,
-        latest_run_status=latest.status.value if latest else None,
-    )
+    freshness = await repo.crm_freshness()
+    base["data_may_be_stale"] = base["data_may_be_stale"] or freshness["is_stale"]
 
     # Worker inferred from sync freshness (no separate process probe in compose)
     worker_status = "running" if freshness.get("age_minutes") is not None and freshness["age_minutes"] < 20 else "unknown"

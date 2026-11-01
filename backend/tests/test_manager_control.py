@@ -134,7 +134,7 @@ async def test_day_aggregation_updates(db_session) -> None:
     mgr = CrmManager(bitrix_id=102, name="B", last_name="Agg", is_active=True)
     db_session.add(mgr)
     await db_session.flush()
-    observed = utc_now()
+    observed = datetime(2026, 10, 28, 10, 0, tzinfo=app_tz())
     today = observed.astimezone(app_tz()).date()
     start_s = datetime(today.year, today.month, today.day, 9, 0, tzinfo=app_tz()).isoformat()
     finish_s = datetime(today.year, today.month, today.day, 18, 0, tzinfo=app_tz()).isoformat()

@@ -799,9 +799,9 @@ export interface ManagerControlWeekReport {
     working_days: number;
     days_with_data: number;
     plan_minutes: number;
-    fact_seconds: number;
+    fact_seconds: number | null;
     fact_display: string;
-    delta_minutes: number;
+    delta_minutes: number | null;
     late_count: number;
     not_closed_count: number;
     open_violations: number;
@@ -816,9 +816,9 @@ export interface ManagerControlMonthReport {
   plan_working_days: number;
   marked_days: number;
   plan_minutes: number;
-  fact_seconds: number;
+  fact_seconds: number | null;
   fact_display: string;
-  delta_minutes: number;
+  delta_minutes: number | null;
   late_starts: number;
   early_finishes: number;
   not_closed: number;
@@ -835,9 +835,9 @@ export interface ManagerControlTeamReportItem {
   working_days_plan: number;
   marked_days: number;
   plan_minutes: number;
-  fact_seconds: number;
+  fact_seconds: number | null;
   fact_display: string;
-  delta_minutes: number;
+  delta_minutes: number | null;
   late_starts: number;
   not_closed: number;
   open_violations: number;

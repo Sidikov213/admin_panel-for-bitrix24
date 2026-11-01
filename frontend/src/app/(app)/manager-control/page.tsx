@@ -92,12 +92,12 @@ export default function ManagerControlPage() {
         <div className="flex flex-wrap gap-2">
           <Input
             placeholder="Поиск менеджера"
-            className="h-8 w-44 text-[13px]"
+            className="h-10 w-52 rounded-[12px] bg-card text-[13px]"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 w-40 text-[13px]">
+            <SelectTrigger className="h-10 w-44 rounded-[12px] bg-card text-[13px]">
               <SelectValue placeholder="Статус" />
             </SelectTrigger>
             <SelectContent>
@@ -111,7 +111,7 @@ export default function ManagerControlPage() {
             </SelectContent>
           </Select>
           <Select value={violationsFilter} onValueChange={setViolationsFilter}>
-            <SelectTrigger className="h-8 w-44 text-[13px]">
+            <SelectTrigger className="h-10 w-48 rounded-[12px] bg-card text-[13px]">
               <SelectValue placeholder="Нарушения" />
             </SelectTrigger>
             <SelectContent>

@@ -16,34 +16,25 @@ logger = logging.getLogger(__name__)
 
 
 async def run_sync_cycle(*, full_reconcile: bool = False) -> bool:
-    """Run dictionaries → deals → activities. Returns True if deal phase succeeded."""
+    """Run dictionaries → deals → activities. Returns True only if all phases completed successfully."""
     settings = get_settings()
     if not settings.BITRIX_WEBHOOK_URL:
         logger.info("sync_skip_bitrix_not_configured")
         return False
 
-    async with async_session_factory() as session:
-        orchestrator = SyncOrchestrator(session)
-        await orchestrator.run_dictionaries()
-    async with async_session_factory() as session:
-        orchestrator = SyncOrchestrator(session)
-        await orchestrator.run_deals(full=full_reconcile)
-    async with async_session_factory() as session:
-        orchestrator = SyncOrchestrator(session)
-        # Full activity pull only on full reconcile; otherwise LAST_UPDATED delta
-        await orchestrator.run_activities(full=full_reconcile)
-
-    async with async_session_factory() as session:
-        sync_type = SyncType.full_reconcile if full_reconcile else SyncType.deals
-        latest = (
-            await session.execute(
-                select(SyncRun)
-                .where(SyncRun.sync_type == sync_type)
-                .order_by(SyncRun.started_at.desc())
-                .limit(1)
-            )
-        ).scalar_one_or_none()
-        return latest is not None and latest.status == SyncStatus.success
+    results = []
+    for phase in ("dictionaries", "deals", "activities"):
+        try:
+            async with async_session_factory() as session:
+                orchestrator = SyncOrchestrator(session)
+                if phase == "dictionaries":
+                    results.append(await orchestrator.run_dictionaries())
+                else:
+                    results.append(await getattr(orchestrator, f"run_{phase}")(full=full_reconcile))
+        except Exception as exc:
+            logger.warning("sync_cycle_phase_failed phase=%s type=%s", phase, type(exc).__name__)
+            results.append(False)
+    return all(results)
 
 
 async def should_full_reconcile() -> bool:
@@ -96,18 +87,21 @@ async def _run_violation_evaluation_isolated() -> None:
 
 
 async def scheduled_job() -> None:
-    full = await should_full_reconcile()
-    ok = await run_sync_cycle(full_reconcile=full)
-    # Only advance reconcile watermark after a successful full run
-    if full and ok:
-        await mark_full_reconcile()
-    # Non-blocking relative to Bitrix: evaluation errors do not undo sync success
-    if ok:
-        await _run_sales_rules_evaluation_after_sync()
-    # Timeman always attempted after CRM cycle; failure must not affect CRM outcome
-    await _run_timeman_collect_isolated()
-    # Violations after Timeman; isolation from sync + collector
-    await _run_violation_evaluation_isolated()
+    try:
+        full = await should_full_reconcile()
+        ok = await run_sync_cycle(full_reconcile=full)
+        if full and ok:
+            await mark_full_reconcile()
+        if ok:
+            await _run_sales_rules_evaluation_after_sync()
+    except Exception as exc:
+        logger.warning("crm_cycle_failed type=%s", type(exc).__name__)
+    finally:
+        try:
+            await _run_timeman_collect_isolated()
+        finally:
+            await _run_violation_evaluation_isolated()
+
 
 
 def main() -> None:
@@ -126,22 +120,7 @@ def main() -> None:
 
     async def bootstrap() -> None:
         logger.info("sync_worker_start")
-        if not settings.BITRIX_WEBHOOK_URL:
-            logger.info("bootstrap_skipped_bitrix_not_configured")
-        else:
-            # After a successful full initial sync, bootstrap must be incremental.
-            # Full reconcile only when last_full_reconcile is missing/stale.
-            full = await should_full_reconcile()
-            logger.info("bootstrap_sync_mode full_reconcile=%s", full)
-            ok = await run_sync_cycle(full_reconcile=full)
-            if full and ok:
-                await mark_full_reconcile()
-            elif not ok:
-                logger.warning("bootstrap_sync_failed watermark_not_advanced=%s", full)
-            if ok:
-                await _run_sales_rules_evaluation_after_sync()
-            await _run_timeman_collect_isolated()
-            await _run_violation_evaluation_isolated()
+        await scheduled_job()
         scheduler.start()
         while True:
             await asyncio.sleep(3600)

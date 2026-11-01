@@ -1,0 +1,519 @@
+{
+  "audit_date": "2026-10-28",
+  "timezone": "Europe/Moscow",
+  "head": "6c34ef5b45e10dec527de8010dcb193fe46bff84",
+  "scope": "Working tree including pre-existing frontend changes; synthetic isolated PostgreSQL only",
+  "baseline_tests": {
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0,
+    "reported_warnings": 0,
+    "seconds": 27.63,
+    "warning_filter": "ignore::DeprecationWarning"
+  },
+  "avito_branch_tests": {
+    "branch": "avito-phase1-probe",
+    "passed": 12,
+    "failed": 0,
+    "seconds": 0.22,
+    "configuration_warning": 1,
+    "live_api_called": false
+  },
+  "frontend": {
+    "lint_exit": 0,
+    "warnings": 2,
+    "build_exit": 0,
+    "browser_runtime": "BLOCKED: automatic approval review rejected local frontend start (blocked by policy)"
+  },
+  "alembic": {
+    "head": "20261013_0007",
+    "base_to_head": "FAIL: DuplicateTableError stalled_rules in 0003; 0001 imports live metadata",
+    "synthetic_tail_0003_to_0007": "PASS after constructing test-only pre-0003 baseline and stamp 0002; not a valid clean install",
+    "check": "FAIL: model/migration index and uniqueness drift"
+  },
+  "compose": {
+    "config_exit": 0,
+    "docker_daemon": "unavailable",
+    "production_compose": "absent"
+  },
+  "runtime": {
+    "python": "3.13.14",
+    "pytest": "8.3.4",
+    "SQLAlchemy": "2.0.36",
+    "alembic": "1.14.0",
+    "asyncpg": "0.30.0",
+    "fastapi": "0.115.6",
+    "postgres": "18",
+    "node": "v24.13.0"
+  },
+  "diagnostics": {
+    "schema": {
+      "tables": [
+        "analytics_daily",
+        "bitrix_deal_fields",
+        "calendar_day_overrides",
+        "crm_activities",
+        "crm_deals",
+        "crm_managers",
+        "crm_pipelines",
+        "crm_stages",
+        "deal_change_events",
+        "deal_snapshots",
+        "login_attempts",
+        "manager_absences",
+        "manager_control_policy",
+        "manager_workday_snapshots",
+        "manager_workdays",
+        "monitored_managers",
+        "sales_rule_audits",
+        "sales_rule_violations",
+        "sales_rules",
+        "sales_targets",
+        "schedule_assignments",
+        "sessions",
+        "stalled_rules",
+        "sync_runs",
+        "sync_state",
+        "users",
+        "work_schedules",
+        "workday_violations"
+      ],
+      "table_count": 28
+    },
+    "department_assignment": {
+      "explicit_department_resolves": 1,
+      "production_caller_without_department": null
+    },
+    "collector_starvation": {
+      "monitored": 55,
+      "polled_first": 50,
+      "same_ids_next_cycle": true,
+      "never_polled": [
+        51,
+        52,
+        53,
+        54,
+        55
+      ]
+    },
+    "viewer_login": {
+      "http": 200
+    },
+    "viewer_get_mutates": {
+      "http": 200,
+      "roster_before": 0,
+      "roster_after": 55,
+      "policies_created": 1
+    },
+    "rbac": {
+      "viewer_admin_get": 403,
+      "viewer_admin_post": 403
+    },
+    "missing_history_week": {
+      "http": 200,
+      "result": {
+        "working_days": 0,
+        "days_with_data": 0,
+        "plan_minutes": 0,
+        "fact_seconds": 0,
+        "fact_display": "00:00:00",
+        "delta_minutes": 0,
+        "late_count": 0,
+        "not_closed_count": 0,
+        "open_violations": 0
+      }
+    },
+    "missing_history_month": {
+      "http": 200,
+      "result": {
+        "marked_days": 0,
+        "fact_seconds": 0,
+        "fact_display": "00:00:00",
+        "delta_minutes": 0
+      }
+    },
+    "missing_history_team": {
+      "http": 200,
+      "result": {
+        "id": 1,
+        "display_name": "Audit 00 Synthetic",
+        "working_days_plan": 0,
+        "marked_days": 0,
+        "plan_minutes": 0,
+        "fact_seconds": 0,
+        "fact_display": "00:00:00",
+        "delta_minutes": 0,
+        "late_starts": 0,
+        "not_closed": 0,
+        "open_violations": 0,
+        "crm_actions": 4
+      }
+    },
+    "invalid_month": {
+      "http": 500,
+      "body": "Internal Server Error"
+    },
+    "schedule_validation": {
+      "without_csrf": 403,
+      "invalid_payload_with_csrf": 200
+    },
+    "dead_worker_freshness": {
+      "http": 200,
+      "data_may_be_stale": false
+    },
+    "no_observation_violation": {
+      "types": [
+        "WORKDAY_NOT_STARTED"
+      ],
+      "evaluation": {
+        "manager_id": 1,
+        "day": "2026-10-27",
+        "schedule_id": 1,
+        "has_schedule": true,
+        "is_working_day": true,
+        "candidates": 1,
+        "upserted": 1,
+        "resolved": 0,
+        "is_preview": true
+      }
+    },
+    "snapshot_reversion": {
+      "actual_upstream": "A",
+      "latest_snapshot_value": "B",
+      "snapshots_count": 2
+    },
+    "empty_activity_reconcile": {
+      "existing_activities": 1,
+      "has_future_activity": true
+    },
+    "advisory_unlock_other_connection": {
+      "acquired": true,
+      "original_pid": 11864,
+      "unlock_pid": 25580,
+      "locks_still_held": 1
+    },
+    "perf_dashboard": {
+      "ms": [
+        178.0,
+        130.8,
+        136.5
+      ],
+      "median_ms": 136.5,
+      "sql_counts": [
+        62,
+        62,
+        62
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_deals": {
+      "ms": [
+        28.4,
+        21.6,
+        21.3
+      ],
+      "median_ms": 21.6,
+      "sql_counts": [
+        6,
+        6,
+        6
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_manager_list": {
+      "ms": [
+        50.4,
+        27.6,
+        27.3
+      ],
+      "median_ms": 27.6,
+      "sql_counts": [
+        11,
+        11,
+        11
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_manager_control": {
+      "ms": [
+        159.1,
+        171.1,
+        181.8
+      ],
+      "median_ms": 171.1,
+      "sql_counts": [
+        131,
+        131,
+        131
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_manager_detail": {
+      "ms": [
+        127.1,
+        79.4,
+        66.1
+      ],
+      "median_ms": 79.4,
+      "sql_counts": [
+        54,
+        54,
+        54
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_manager_control_detail": {
+      "ms": [
+        89.1,
+        85.1,
+        89.9
+      ],
+      "median_ms": 89.1,
+      "sql_counts": [
+        67,
+        67,
+        67
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_week": {
+      "ms": [
+        111.4,
+        101.2,
+        83.7
+      ],
+      "median_ms": 101.2,
+      "sql_counts": [
+        70,
+        70,
+        70
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_month": {
+      "ms": [
+        71.7,
+        65.2,
+        63.8
+      ],
+      "median_ms": 65.2,
+      "sql_counts": [
+        69,
+        69,
+        69
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_team": {
+      "ms": [
+        3489.1,
+        3126.2,
+        3228.3
+      ],
+      "median_ms": 3228.3,
+      "sql_counts": [
+        3289,
+        3289,
+        3289
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_pipelines": {
+      "ms": [
+        65.4,
+        46.8,
+        45.3
+      ],
+      "median_ms": 46.8,
+      "sql_counts": [
+        21,
+        21,
+        21
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    },
+    "perf_reports": {
+      "ms": [
+        98.0,
+        97.1,
+        96.2
+      ],
+      "median_ms": 97.1,
+      "sql_counts": [
+        54,
+        54,
+        54
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    }
+  },
+  "extra_diagnostics": {
+    "today_snapshot_applied_yesterday": [
+      {
+        "type": "LATE_START",
+        "date": "2026-10-27",
+        "details": {
+          "late_minutes": 1440,
+          "grace_minutes": 0
+        }
+      },
+      {
+        "type": "WORKDAY_NOT_CLOSED",
+        "date": "2026-10-27",
+        "details": {
+          "grace_minutes": 0
+        }
+      },
+      {
+        "type": "SHORT_WORKDAY",
+        "date": "2026-10-27",
+        "details": {
+          "actual_minutes": 60,
+          "required_minutes": 480
+        }
+      }
+    ],
+    "orphan_overdue": {
+      "all": 2,
+      "pipeline1": 1
+    },
+    "db_row_failure_isolation": {
+      "exception": "PendingRollbackError"
+    },
+    "full_cycle_with_failed_activities": {
+      "reported_success": true
+    },
+    "crm_exception_skips_timeman": {
+      "timeman_called": false
+    },
+    "logging_redaction": {
+      "synthetic_credential_survives": true
+    }
+  },
+  "secrets_scan": {
+    "reachable_blobs": 366,
+    "confirmed_real_secret_findings": 0,
+    "limitation": "Pattern-based scan of reachable refs, not proof of historical absence; no credential values emitted",
+    "fixture_false_positive": 1,
+    "backend_dotenv_exists": true,
+    "backend_dockerignore_exists": false,
+    "encoding_coverage": {
+      "utf-8-sig": 361,
+      "utf-16": 3,
+      "utf-16-le": 2
+    },
+    "final_pattern_candidates": [
+      {
+        "path": "backend/scripts/audit_full_suite.py",
+        "blob": "8b5dc6150c03",
+        "line": 212,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/audit_full_suite.py",
+        "blob": "8b5dc6150c03",
+        "line": 360,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/audit_full_suite.py",
+        "blob": "8b5dc6150c03",
+        "line": 386,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/audit_http_suite.py",
+        "blob": "57bd6f4a497d",
+        "line": 39,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/audit_http_suite.py",
+        "blob": "57bd6f4a497d",
+        "line": 128,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/audit_http_suite.py",
+        "blob": "57bd6f4a497d",
+        "line": 151,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/scripts/perf_seed_and_bench.py",
+        "blob": "641b8a989be9",
+        "line": 168,
+        "pattern": "secret_assignment"
+      },
+      {
+        "path": "backend/tests/test_bitrix_sanitize.py",
+        "blob": "867746a213ef",
+        "line": 14,
+        "pattern": "webhook"
+      },
+      {
+        "path": "backend/tests/test_avito_client.py",
+        "blob": "65da5e15b8d6",
+        "line": 58,
+        "pattern": "secret_assignment"
+      }
+    ],
+    "candidate_review": "Nine locations: seven audit/demo password literals, one synthetic webhook fixture, one Avito legacy fixture; production account absence not verified."
+  },
+  "external_calls": {
+    "git_ls_remote": true,
+    "bitrix": false,
+    "avito": false,
+    "ssh": false,
+    "deploy": false
+  },
+  "cleanup": {
+    "audit_backend_stopped": true,
+    "temporary_postgres_stopped": true,
+    "production_changed": false
+  }
+}

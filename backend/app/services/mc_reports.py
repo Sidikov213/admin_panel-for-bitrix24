@@ -13,7 +13,7 @@ from app.models.manager_control import ManagerWorkday
 from app.models.work_schedules import WorkdayViolation
 from app.services.manager_control_service import _crm_metrics_for_managers, get_timeman_freshness
 from app.services.monitored_roster import list_monitored_managers
-from app.services.schedule_service import resolve_day_plan_for_manager
+from app.services.schedule_service import ReportPlans
 from app.services.timeman_collector import STATE_HISTORY_SINCE
 from app.repositories.sync import SyncRepository
 from app.services.timeman_parse import format_seconds
@@ -47,6 +47,8 @@ async def week_report(session: AsyncSession, manager_id: int, *, anchor: date | 
     start = anchor - timedelta(days=anchor.weekday())
     end = start + timedelta(days=6)
     history_since = await _history_since(session)
+    plans = await ReportPlans.load(session, start, end)
+    today = utc_now().astimezone(app_tz()).date()
 
     workdays = (
         await session.execute(
@@ -80,19 +82,25 @@ async def week_report(session: AsyncSession, manager_id: int, *, anchor: date | 
     not_closed_n = 0
     viol_n = 0
     days_with_data = 0
+    measured_days = 0
+    missing_work_days = 0
 
     for d in _daterange(start, end):
-        sch, plan = await resolve_day_plan_for_manager(session, manager_id, d)
+        sch, plan = plans.resolve(manager_id, d)
         wd = wd_by.get(d)
         day_viols = viols_by.get(d, [])
-        open_viols = [v for v in day_viols if v.state == STATE_OPEN]
+        open_viols = [v for v in day_viols if v.state == STATE_OPEN and not v.is_preview]
         crm = (await _crm_metrics_for_managers(session, [manager_id], day=d)).get(manager_id, {})
 
         no_history = history_since is not None and d < history_since
         if wd is not None:
             days_with_data += 1
 
-        if plan and plan.is_working:
+        if wd is not None and wd.duration_seconds is not None:
+            measured_days += 1
+        if plan and plan.is_working and d <= today:
+            if wd is None or wd.duration_seconds is None:
+                missing_work_days += 1
             working_days += 1
             if plan.required_minutes:
                 plan_minutes_total += plan.required_minutes
@@ -100,10 +108,10 @@ async def week_report(session: AsyncSession, manager_id: int, *, anchor: date | 
         if wd and wd.duration_seconds:
             fact_seconds_total += wd.duration_seconds
 
-        late = next((v for v in day_viols if v.violation_type == "LATE_START"), None)
+        late = next((v for v in open_viols if v.violation_type == "LATE_START"), None)
         if late:
             late_n += 1
-        if any(v.violation_type == "WORKDAY_NOT_CLOSED" for v in day_viols):
+        if any(v.violation_type == "WORKDAY_NOT_CLOSED" for v in open_viols):
             not_closed_n += 1
         viol_n += len(open_viols)
 
@@ -150,9 +158,9 @@ async def week_report(session: AsyncSession, manager_id: int, *, anchor: date | 
                     for v in day_viols
                 ],
                 "crm_actions": crm.get("crm_actions_today", 0),
-                "no_historical_data": no_history and wd is None,
+                "no_historical_data": wd is None,
                 "missing_data_label": (
-                    "Нет исторических данных Focus Analytics" if (no_history and wd is None) else None
+                    "Нет исторических данных Focus Analytics" if wd is None else None
                 ),
             }
         )
@@ -165,9 +173,10 @@ async def week_report(session: AsyncSession, manager_id: int, *, anchor: date | 
             "working_days": working_days,
             "days_with_data": days_with_data,
             "plan_minutes": plan_minutes_total,
-            "fact_seconds": fact_seconds_total,
-            "fact_display": format_seconds(fact_seconds_total),
-            "delta_minutes": (fact_seconds_total // 60) - plan_minutes_total,
+            "fact_seconds": fact_seconds_total if measured_days else None,
+            "coverage_complete": measured_days > 0 and missing_work_days == 0,
+            "fact_display": format_seconds(fact_seconds_total) if measured_days else "Нет данных",
+            "delta_minutes": (fact_seconds_total // 60) - plan_minutes_total if measured_days and not missing_work_days else None,
             "late_count": late_n,
             "not_closed_count": not_closed_n,
             "open_violations": viol_n,
@@ -190,6 +199,8 @@ async def month_report(
         end = date(year, month + 1, 1) - timedelta(days=1)
 
     history_since = await _history_since(session)
+    plans = await ReportPlans.load(session, start, end)
+    today = utc_now().astimezone(app_tz()).date()
     workdays = (
         await session.execute(
             select(ManagerWorkday).where(
@@ -209,6 +220,7 @@ async def month_report(
                 WorkdayViolation.work_date >= start,
                 WorkdayViolation.work_date <= end,
                 WorkdayViolation.state == STATE_OPEN,
+                WorkdayViolation.is_preview.is_(False),
             )
             .group_by(WorkdayViolation.violation_type)
         )
@@ -219,15 +231,21 @@ async def month_report(
     plan_minutes = 0
     fact_seconds = 0
     marked_days = 0
+    measured_days = 0
+    missing_work_days = 0
     for d in _daterange(start, end):
-        if history_since and d < history_since:
+        if d > today:
             continue
-        _, plan = await resolve_day_plan_for_manager(session, manager_id, d)
+        _, plan = plans.resolve(manager_id, d)
         if plan and plan.is_working:
             plan_days += 1
             if plan.required_minutes:
                 plan_minutes += plan.required_minutes
         wd = wd_by.get(d)
+        if plan and plan.is_working and (wd is None or wd.duration_seconds is None):
+            missing_work_days += 1
+        if wd is not None and wd.duration_seconds is not None:
+            measured_days += 1
         if wd is not None:
             marked_days += 1
             if wd.duration_seconds:
@@ -239,9 +257,10 @@ async def month_report(
         "plan_working_days": plan_days,
         "marked_days": marked_days,
         "plan_minutes": plan_minutes,
-        "fact_seconds": fact_seconds,
-        "fact_display": format_seconds(fact_seconds),
-        "delta_minutes": (fact_seconds // 60) - plan_minutes,
+        "fact_seconds": fact_seconds if measured_days else None,
+        "coverage_complete": measured_days > 0 and missing_work_days == 0,
+        "fact_display": format_seconds(fact_seconds) if measured_days else "Нет данных",
+        "delta_minutes": (fact_seconds // 60) - plan_minutes if measured_days and not missing_work_days else None,
         "late_starts": viol_counts.get("LATE_START", 0),
         "early_finishes": viol_counts.get("EARLY_FINISH", 0),
         "not_closed": viol_counts.get("WORKDAY_NOT_CLOSED", 0) + viol_counts.get("STALE_UNCLOSED_DAY", 0),
@@ -262,13 +281,15 @@ async def team_report(
     managers = await list_monitored_managers(session)
     ids = [m.id for m in managers]
     history_since = await _history_since(session)
+    plans = await ReportPlans.load(session, start, end)
+    today = utc_now().astimezone(app_tz()).date()
 
     workday_agg = (
         await session.execute(
             select(
                 ManagerWorkday.manager_id,
                 func.count(),
-                func.coalesce(func.sum(ManagerWorkday.duration_seconds), 0),
+                func.sum(ManagerWorkday.duration_seconds),
             )
             .where(
                 ManagerWorkday.manager_id.in_(ids or [-1]),
@@ -278,7 +299,7 @@ async def team_report(
             .group_by(ManagerWorkday.manager_id)
         )
     ).all()
-    wd_map = {mid: {"days": int(c), "seconds": int(s)} for mid, c, s in workday_agg}
+    wd_map = {mid: {"days": int(c), "seconds": int(s) if s is not None else None} for mid, c, s in workday_agg}
 
     viol_agg = (
         await session.execute(
@@ -292,6 +313,7 @@ async def team_report(
                 WorkdayViolation.work_date >= start,
                 WorkdayViolation.work_date <= end,
                 WorkdayViolation.state == STATE_OPEN,
+                WorkdayViolation.is_preview.is_(False),
             )
             .group_by(WorkdayViolation.manager_id, WorkdayViolation.violation_type)
         )
@@ -304,25 +326,31 @@ async def team_report(
     # Use single-pass per day batched.
     crm_totals: dict[int, int] = {i: 0 for i in ids}
     for d in _daterange(start, end):
-        if history_since and d < history_since:
+        if d > today:
             continue
         day_crm = await _crm_metrics_for_managers(session, ids, day=d)
         for mid, m in day_crm.items():
             crm_totals[mid] = crm_totals.get(mid, 0) + int(m.get("crm_actions_today", 0))
 
+    covered = set((await session.execute(select(ManagerWorkday.manager_id, ManagerWorkday.work_date).where(
+        ManagerWorkday.work_date.between(start, end), ManagerWorkday.duration_seconds.isnot(None)
+    ))).all())
     items = []
     for m in managers:
         plan_minutes = 0
         plan_days = 0
+        missing_days = 0
         for d in _daterange(start, end):
-            if history_since and d < history_since:
+            if d > today:
                 continue
-            _, plan = await resolve_day_plan_for_manager(session, m.id, d)
+            _, plan = plans.resolve(m.id, d)
             if plan and plan.is_working:
                 plan_days += 1
+                if (m.id, d) not in covered:
+                    missing_days += 1
                 if plan.required_minutes:
                     plan_minutes += plan.required_minutes
-        w = wd_map.get(m.id, {"days": 0, "seconds": 0})
+        w = wd_map.get(m.id, {"days": 0, "seconds": None})
         v = viol_map.get(m.id, {})
         items.append(
             {
@@ -332,8 +360,9 @@ async def team_report(
                 "marked_days": w["days"],
                 "plan_minutes": plan_minutes,
                 "fact_seconds": w["seconds"],
-                "fact_display": format_seconds(w["seconds"]),
-                "delta_minutes": (w["seconds"] // 60) - plan_minutes,
+                "fact_display": format_seconds(w["seconds"]) if w["seconds"] is not None else "Нет данных",
+                "coverage_complete": w["seconds"] is not None and missing_days == 0,
+                "delta_minutes": (w["seconds"] // 60) - plan_minutes if w["seconds"] is not None and not missing_days else None,
                 "late_starts": v.get("LATE_START", 0),
                 "not_closed": v.get("WORKDAY_NOT_CLOSED", 0) + v.get("STALE_UNCLOSED_DAY", 0),
                 "open_violations": sum(v.values()),

@@ -31,7 +31,7 @@ async def enabled_rules_count(session: AsyncSession) -> int:
     )
 
 
-async def dashboard_violation_kpis(session: AsyncSession) -> dict[str, Any]:
+async def dashboard_violation_kpis(session: AsyncSession, *, manager_id: int | None = None, pipeline_id: int | None = None) -> dict[str, Any]:
     if not await enabled_rules_count(session):
         return {
             "rules_configured": await rules_configured(session),
@@ -43,7 +43,14 @@ async def dashboard_violation_kpis(session: AsyncSession) -> dict[str, Any]:
             "note": "Регламент не настроен" if not await rules_configured(session) else "Правила выключены",
         }
 
-    open_q = select(SalesRuleViolation).where(SalesRuleViolation.status == ViolationStatus.open.value)
+    scope = [CrmDeal.missing_from_bitrix.is_(False)]
+    if manager_id is not None:
+        scope.append(CrmDeal.assigned_by_id == manager_id)
+    if pipeline_id is not None:
+        scope.append(CrmDeal.category_id == pipeline_id)
+    scoped_ids = select(CrmDeal.id).where(*scope)
+    conditions = [SalesRuleViolation.status == ViolationStatus.open.value, SalesRuleViolation.deal_id.in_(scoped_ids)]
+    open_q = select(SalesRuleViolation).where(*conditions)
     open_count = (
         await session.execute(select(func.count()).select_from(open_q.subquery()))
     ).scalar_one()
@@ -53,7 +60,7 @@ async def dashboard_violation_kpis(session: AsyncSession) -> dict[str, Any]:
             select(func.count())
             .select_from(SalesRuleViolation)
             .where(
-                SalesRuleViolation.status == ViolationStatus.open.value,
+                *conditions,
                 SalesRuleViolation.severity.in_(("high", "critical")),
             )
         )
@@ -62,7 +69,7 @@ async def dashboard_violation_kpis(session: AsyncSession) -> dict[str, Any]:
     # Deduped deal amount under any open violation
     deal_ids_sq = (
         select(SalesRuleViolation.deal_id)
-        .where(SalesRuleViolation.status == ViolationStatus.open.value)
+        .where(*conditions)
         .distinct()
         .subquery()
     )

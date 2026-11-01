@@ -114,7 +114,7 @@ export function PeriodPicker({
           else onChange({ preset: p, ...periodFromPreset(p) });
         }}
       >
-        <SelectTrigger className={compact ? "h-8 w-[9.5rem] text-[13px]" : "w-52"}>
+        <SelectTrigger className={compact ? "h-10 w-[11rem] rounded-full bg-card px-4 text-[13px]" : "h-10 w-56 rounded-full bg-card px-4"}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -129,13 +129,13 @@ export function PeriodPicker({
         <>
           <Input
             type="date"
-            className="h-8 w-[9.5rem] text-[13px]"
+            className="h-10 w-[9.5rem] rounded-[12px] bg-card text-[13px]"
             value={value.from}
             onChange={(e) => onChange({ ...value, from: e.target.value })}
           />
           <Input
             type="date"
-            className="h-8 w-[9.5rem] text-[13px]"
+            className="h-10 w-[9.5rem] rounded-[12px] bg-card text-[13px]"
             value={value.to}
             onChange={(e) => onChange({ ...value, to: e.target.value })}
           />

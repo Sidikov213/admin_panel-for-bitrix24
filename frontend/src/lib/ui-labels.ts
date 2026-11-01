@@ -41,6 +41,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const VIOLATION_TYPE_LABELS: Record<string, string> = {
+  NO_FUTURE_ACTIVITY: "Нет следующего дела",
+  OVERDUE_ACTIVITY: "Просроченное дело",
+  IDLE_TOO_LONG: "Долго нет активности по сделке",
+  STAGE_TOO_LONG: "Превышен срок на этапе",
+  NEXT_ACTIVITY_TOO_FAR: "Следующее дело назначено слишком поздно",
+  REQUIRED_FIELD_MISSING: "Не заполнено обязательное поле",
+  COMMENT_MISSING: "Нет комментария",
+  COMMENT_TOO_OLD: "Комментарий устарел",
   WORKDAY_NOT_STARTED: "Рабочий день не начат",
   LATE_START: "Опоздание",
   WORKDAY_NOT_CLOSED: "Рабочий день не завершён",
@@ -52,8 +60,8 @@ const VIOLATION_TYPE_LABELS: Record<string, string> = {
 
 const CALENDAR_KIND_LABELS: Record<string, string> = {
   holiday: "Праздник / выходной",
-  short_day: "Сокращённый день",
-  working_override: "Рабочий день (переопределение)",
+  shortened: "Сокращённый день",
+  working: "Рабочий день (переопределение)",
 };
 
 const WORKER_STATUS_LABELS: Record<string, string> = {
@@ -136,11 +144,12 @@ export function getBoolActiveLabel(enabled: boolean | null | undefined): string 
   return "—";
 }
 
-export const VIOLATION_TYPES = Object.keys(VIOLATION_TYPE_LABELS);
+export const VIOLATION_TYPES = ["WORKDAY_NOT_STARTED", "LATE_START", "WORKDAY_NOT_CLOSED", "EARLY_FINISH", "SHORT_WORKDAY", "BREAK_LIMIT_EXCEEDED", "STALE_UNCLOSED_DAY"];
 
 /** Common Bitrix / CRM field codes → Russian display. */
 const FIELD_NAME_LABELS: Record<string, string> = {
   TITLE: "Название",
+  CLOSED: "Закрыта",
   STAGE_ID: "Этап",
   OPPORTUNITY: "Сумма",
   CURRENCY_ID: "Валюта",
@@ -167,7 +176,7 @@ const DYNAMICS_KEY_LABELS: Record<string, string> = {
 
 export function getFieldLabel(fieldName: string | null | undefined): string {
   if (!fieldName) return "—";
-  return FIELD_NAME_LABELS[fieldName] ?? fieldName;
+  return FIELD_NAME_LABELS[fieldName.toUpperCase()] ?? fieldName;
 }
 
 export function getDynamicsKeyLabel(key: string): string {
@@ -192,6 +201,7 @@ export function getMetricDrillLabel(key: string | null | undefined): string {
 
 /** Human label for sync_type codes from worker. */
 const SYNC_TYPE_LABELS: Record<string, string> = {
+  dictionaries: "Справочники",
   incremental: "Инкрементальная",
   full_reconcile: "Полная сверка",
   deals: "Сделки",

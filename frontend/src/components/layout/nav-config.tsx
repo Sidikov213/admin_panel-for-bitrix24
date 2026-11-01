@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BarChart3,
   Briefcase,
+  CalendarClock,
   Clock,
   GitBranch,
   LayoutDashboard,
@@ -45,7 +46,6 @@ export const navGroups: NavGroup[] = [
       { href: "/overdue", label: "Просроченные", icon: Clock },
       { href: "/stalled", label: "Без следующего дела", icon: PauseCircle },
       { href: "/admin/sales-rules", label: "Регламент", icon: Settings },
-      { href: "/admin/manager-control", label: "Графики контроля", icon: Settings },
     ],
   },
   {
@@ -64,6 +64,11 @@ export const navGroups: NavGroup[] = [
     items: [{ href: "/system", label: "Система", icon: Wrench }],
   },
 ];
+
+export const adminNavGroup: NavGroup = {
+  title: "Администрирование",
+  items: [{ href: "/admin/manager-control", label: "Графики контроля", icon: CalendarClock }],
+};
 
 export const futureNav: NavItem[] = [
   { href: "#avito", label: "Avito", icon: Store, disabled: true, badge: "Скоро" },
@@ -91,6 +96,28 @@ export const pageTitles: Record<string, string> = {
   "/admin/sales-rules": "Регламент",
   "/settings/rules": "Правила",
 };
+
+export const pageSubtitles: Record<string, string> = {
+  "/dashboard": "Отдел продаж",
+  "/deals": "Список и фильтры сделок",
+  "/pipelines": "Текущее распределение по этапам",
+  "/overdue": "Дела с просроченным сроком",
+  "/stalled": "Сделки без следующего шага",
+  "/managers": "Результаты команды",
+  "/manager-control": "Рабочий день и нарушения",
+  "/reports": "Сводка за выбранный период",
+  "/system": "Синхронизация и состояние данных",
+  "/admin/sales-rules": "Правила ведения сделок",
+  "/admin/manager-control": "Графики, назначения и пороги",
+};
+
+export function resolvePageSubtitle(pathname: string): string {
+  if (pageSubtitles[pathname]) return pageSubtitles[pathname];
+  if (pathname.startsWith("/deals/")) return "Карточка сделки";
+  if (pathname.startsWith("/managers/")) return "Показатели менеджера";
+  if (pathname.startsWith("/manager-control/")) return "Рабочий день менеджера";
+  return "";
+}
 
 export function resolvePageTitle(pathname: string): string {
   if (pageTitles[pathname]) return pageTitles[pathname];

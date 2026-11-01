@@ -1,8 +1,9 @@
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 
 from app.auth.csrf import validate_csrf
@@ -29,21 +30,40 @@ class RosterPatch(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
 
+ClockTime = Annotated[str, Field(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]
+Minutes = Annotated[int, Field(ge=0, le=1440)]
+
+
 class ScheduleIn(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=128)
     timezone: str = "Europe/Moscow"
-    weekdays: list[int] = Field(default_factory=list)
-    start_time: str
-    end_time: str
-    required_minutes: int | None = None
-    late_grace_minutes: int | None = None
-    early_finish_grace_minutes: int | None = None
-    max_break_minutes: int | None = None
-    not_started_threshold_minutes: int | None = None
-    not_closed_grace_minutes: int | None = None
+    weekdays: list[Annotated[int, Field(ge=1, le=7)]] = Field(default_factory=list, max_length=7)
+    start_time: ClockTime
+    end_time: ClockTime
+    required_minutes: Minutes | None = None
+    late_grace_minutes: Minutes | None = None
+    early_finish_grace_minutes: Minutes | None = None
+    max_break_minutes: Minutes | None = None
+    not_started_threshold_minutes: Minutes | None = None
+    not_closed_grace_minutes: Minutes | None = None
     enabled: bool = True
     is_default: bool = False
     note: str | None = None
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Unknown timezone") from None
+        return value
+
+    @model_validator(mode="after")
+    def daytime_schedule(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("End must be after start; overnight schedules are not supported")
+        return self
 
 
 class AssignmentIn(BaseModel):
@@ -55,27 +75,48 @@ class AssignmentIn(BaseModel):
 
 class CalendarIn(BaseModel):
     day_date: date
-    kind: str
+    kind: Literal["working", "weekend", "holiday", "shortened", "day_off"]
     manager_id: int | None = None
-    start_time: str | None = None
-    end_time: str | None = None
-    required_minutes: int | None = None
+    start_time: ClockTime | None = None
+    end_time: ClockTime | None = None
+    required_minutes: Minutes | None = None
     label: str | None = None
     note: str | None = None
+
+    @model_validator(mode="after")
+    def valid_override(self):
+        if bool(self.start_time) != bool(self.end_time):
+            raise ValueError("Provide both start and end time")
+        if self.start_time and self.end_time <= self.start_time:
+            raise ValueError("End must be after start")
+        if self.kind == "shortened" and self.required_minutes is None and not self.start_time:
+            raise ValueError("Shortened day requires working times or required minutes")
+        return self
 
 
 class AbsenceIn(BaseModel):
     manager_id: int
     date_from: date
     date_to: date
-    kind: str = "absence"
+    kind: Literal["absence", "vacation", "sick", "day_off"] = "absence"
     note: str | None = None
+
+    @model_validator(mode="after")
+    def ordered_dates(self):
+        if self.date_to < self.date_from:
+            raise ValueError("date_to must not precede date_from")
+        return self
 
 
 class PolicyIn(BaseModel):
     enforcement_start_date: date | None = None
     severity_by_type: dict[str, str] | None = None
     note: str | None = None
+
+
+def _validate_range(start: date, end: date):
+    if end < start or (end - start).days > 92:
+        raise HTTPException(status_code=422, detail="Report range must be ordered and at most 93 days")
 
 
 # --- board / detail (existing) ---
@@ -107,6 +148,7 @@ async def team_report(
     else:
         s = today - timedelta(days=today.weekday())
         e = s + timedelta(days=6)
+    _validate_range(s, e)
     return await mc_reports.team_report(db, start=s, end=e)
 
 
@@ -125,26 +167,19 @@ async def team_report_csv(
     if not start or not end:
         start = today - timedelta(days=today.weekday())
         end = start + timedelta(days=6)
+    _validate_range(start, end)
     data = await mc_reports.team_report(db, start=start, end=end)
-    lines = [",".join(data["csv_headers"])]
-    for it in data["items"]:
-        lines.append(
-            ",".join(
-                [
-                    f"\"{it['display_name']}\"",
-                    str(it["working_days_plan"]),
-                    str(it["marked_days"]),
-                    str(it["plan_minutes"]),
-                    str(it["fact_seconds"]),
-                    str(it["delta_minutes"]),
-                    str(it["late_starts"]),
-                    str(it["not_closed"]),
-                    str(it["open_violations"]),
-                    str(it["crm_actions"]),
-                ]
-            )
-        )
-    body = "\n".join(lines) + "\n"
+    import csv
+    import io
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(data["csv_headers"])
+    for item in data["items"]:
+        name = item["display_name"]
+        if name.lstrip().startswith(("=", "+", "-", "@")) or name.startswith(("\t", "\r")):
+            name = "'" + name
+        writer.writerow([name] + [item[key] for key in data["csv_headers"][1:]])
+    body = output.getvalue()
     return Response(
         content=body,
         media_type="text/csv; charset=utf-8",
@@ -439,7 +474,6 @@ async def admin_create_absence(
 @router.get("/admin/policy")
 async def admin_get_policy(_admin: AdminUser, db: DbSession) -> dict:
     policy = await schedules.get_or_create_policy(db)
-    await db.commit()
     return {
         "enforcement_start_date": (
             policy.enforcement_start_date.isoformat() if policy.enforcement_start_date else None
@@ -458,7 +492,7 @@ async def admin_patch_policy(
     csrf_header: CsrfHeader = None,
 ) -> dict:
     validate_csrf(request, csrf_header)
-    policy = await schedules.get_or_create_policy(db)
+    policy = await schedules.get_or_create_policy(db, create=True)
     data = body.model_dump(exclude_unset=True)
     if "enforcement_start_date" in data:
         policy.enforcement_start_date = data["enforcement_start_date"]
@@ -505,8 +539,8 @@ async def manager_month(
     manager_id: int,
     _user: CurrentUser,
     db: DbSession,
-    year: int | None = None,
-    month: int | None = None,
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    month: int | None = Query(default=None, ge=1, le=12),
 ) -> dict:
     from app.core.timezone import app_tz, utc_now
 

@@ -343,6 +343,12 @@ async def apply_detections(
 
 
 async def run_evaluation(session: AsyncSession) -> dict[str, Any]:
+    if session.get_bind().dialect.name == "postgresql":
+        from sqlalchemy import text
+        # Transaction-scoped: API dependency/worker commit releases the lock.
+        acquired = await session.scalar(text("SELECT pg_try_advisory_xact_lock(172913521)"))
+        if not acquired:
+            return {"ok": False, "reason": "evaluation_in_progress"}
     t0 = utc_now()
     rules = await load_enabled_rules(session)
     detected = await detect_all(session, rules=rules, now=t0)
@@ -370,7 +376,7 @@ async def run_evaluation_safe() -> dict[str, Any]:
             return result
     except Exception as exc:
         logger.exception("sales_rules_evaluation_failed")
-        return {"ok": False, "error": str(exc)}
+        return {"ok": False, "error": type(exc).__name__}
 
 
 async def preview_rule_impact(

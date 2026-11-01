@@ -2,13 +2,15 @@
 
 import subprocess
 import sys
+import os
 
 
 def main() -> None:
     print("Running migrations...", flush=True)
     subprocess.check_call([sys.executable, "-m", "alembic", "upgrade", "head"])
     print("Starting API...", flush=True)
-    subprocess.check_call(
+    os.execv(
+        sys.executable,
         [
             sys.executable,
             "-m",

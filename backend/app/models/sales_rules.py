@@ -12,6 +12,8 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -113,8 +115,8 @@ class SalesRuleViolation(Base):
         Index("ix_srv_type_status", "violation_type", "status"),
         Index("ix_srv_detected", "detected_at"),
         Index("ix_srv_resolved", "resolved_at"),
-        # Partial unique (open only) is created in Alembic for PostgreSQL.
-        # SQLite tests use application-level open-map instead of a full unique.
+        Index("uq_srv_open_deal_rule_type", "deal_id", "rule_id", "violation_type",
+              unique=True, postgresql_where=text("status = 'open'"), sqlite_where=text("status = 'open'")),
     )
 
 
@@ -141,7 +143,8 @@ class BitrixDealField(TimestampMixin, Base):
     __tablename__ = "bitrix_deal_fields"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    field_name: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    field_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    __table_args__ = (UniqueConstraint("field_name"),)
     title: Mapped[str] = mapped_column(String(512), nullable=False, default="")
     type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_required_in_bitrix: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

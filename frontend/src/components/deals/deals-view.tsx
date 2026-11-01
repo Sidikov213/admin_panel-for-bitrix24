@@ -35,7 +35,7 @@ export function DealsView() {
 
   const pipelines = usePipelines({ analytics: false });
   const managers = useManagers();
-  const pipeList = Array.isArray(pipelines.data) ? pipelines.data : [];
+  const pipeList = useMemo(() => Array.isArray(pipelines.data) ? pipelines.data : [], [pipelines.data]);
 
   const stages = useMemo(() => {
     if (!pipelineId) return pipeList.flatMap((p) => p.stages);
@@ -95,7 +95,7 @@ export function DealsView() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          className="h-8 w-full max-w-xs text-[13px]"
+          className="h-10 w-full max-w-xs text-[13px]"
           placeholder="Поиск…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -110,7 +110,7 @@ export function DealsView() {
             pushFilters({ category_id: id, stage_id: "", page: 0 });
           }}
         >
-          <SelectTrigger className="h-8 w-[9.5rem] text-[13px]">
+          <SelectTrigger className="h-10 w-[9.5rem] text-[13px]">
             <SelectValue placeholder="Воронка" />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +130,7 @@ export function DealsView() {
             pushFilters({ stage_id: id, page: 0 });
           }}
         >
-          <SelectTrigger className="h-8 w-[9.5rem] text-[13px]">
+          <SelectTrigger className="h-10 w-[9.5rem] text-[13px]">
             <SelectValue placeholder="Этап" />
           </SelectTrigger>
           <SelectContent>
@@ -150,7 +150,7 @@ export function DealsView() {
             pushFilters({ manager_id: id, page: 0 });
           }}
         >
-          <SelectTrigger className="h-8 w-[9.5rem] text-[13px]">
+          <SelectTrigger className="h-10 w-[9.5rem] text-[13px]">
             <SelectValue placeholder="Менеджер" />
           </SelectTrigger>
           <SelectContent>
@@ -170,7 +170,7 @@ export function DealsView() {
             pushFilters({ closed, page: 0 });
           }}
         >
-          <SelectTrigger className="h-8 w-[8rem] text-[13px]">
+          <SelectTrigger className="h-10 w-[8rem] text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +188,7 @@ export function DealsView() {
             pushFilters({ sort_by: by, sort_dir: dir });
           }}
         >
-          <SelectTrigger className="h-8 w-[10rem] text-[13px]">
+          <SelectTrigger className="h-10 w-[10rem] text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -200,7 +200,7 @@ export function DealsView() {
         </Select>
         <Button
           size="sm"
-          className="h-8"
+          className="h-10"
           onClick={() =>
             pushFilters({
               search,

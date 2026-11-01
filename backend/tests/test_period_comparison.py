@@ -28,7 +28,7 @@ def test_previous_week_pair() -> None:
     rng = resolve_preset("current_week")
     prev = rng.previous()
     assert prev.end < rng.start or prev.end <= rng.start
-    assert (prev.end - prev.start).days == 6
+    assert (prev.end - prev.start).days == (rng.end - rng.start).days
 
 
 def test_last_7_days_previous_same_length() -> None:

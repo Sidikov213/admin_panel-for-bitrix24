@@ -116,22 +116,14 @@ def is_monitored_row(row: MonitoredManager | None) -> bool:
 
 async def list_monitored_managers(session: AsyncSession) -> list[CrmManager]:
     """Managers currently monitored for board + collector."""
-    await sync_monitored_roster(session)
-    rows = (
-        await session.execute(
-            select(CrmManager, MonitoredManager)
-            .join(MonitoredManager, MonitoredManager.manager_id == CrmManager.id)
-            .where(
-                MonitoredManager.manual_exclude.is_(False),
-                or_(
-                    MonitoredManager.manual_include.is_(True),
-                    MonitoredManager.auto_included.is_(True),
-                ),
-            )
-            .order_by(CrmManager.last_name.asc(), CrmManager.name.asc())
-        )
-    ).all()
-    return [m for m, _ in rows]
+    auto = await discover_auto_manager_ids(session)
+    rows = (await session.execute(
+        select(CrmManager, MonitoredManager)
+        .outerjoin(MonitoredManager, MonitoredManager.manager_id == CrmManager.id)
+        .order_by(CrmManager.last_name.asc(), CrmManager.name.asc(), CrmManager.id.asc())
+    )).all()
+    return [m for m, mon in rows if not (mon and mon.manual_exclude)
+            and (m.id in auto or (mon and mon.manual_include))]
 
 
 async def set_manual_monitor(
@@ -165,7 +157,7 @@ async def set_manual_monitor(
 
 
 async def list_roster_admin(session: AsyncSession) -> list[dict]:
-    await sync_monitored_roster(session)
+    auto = await discover_auto_manager_ids(session)
     rows = (
         await session.execute(
             select(CrmManager, MonitoredManager)
@@ -177,7 +169,11 @@ async def list_roster_admin(session: AsyncSession) -> list[dict]:
     out = []
     for mgr, mon in rows:
         if mon is None:
-            continue
+            if mgr.id not in auto:
+                continue
+            mon = MonitoredManager(manager_id=mgr.id, manual_include=False, manual_exclude=False)
+        # Read model only; never attach or change ORM rows on GET.
+        auto_included = mgr.id in auto
         out.append(
             {
                 "manager_id": mgr.id,
@@ -186,11 +182,11 @@ async def list_roster_admin(session: AsyncSession) -> list[dict]:
                 "last_name": mgr.last_name,
                 "display_name": f"{mgr.name} {mgr.last_name}".strip(),
                 "bitrix_user_active": mgr.is_active,
-                "auto_included": mon.auto_included,
+                "auto_included": auto_included,
                 "manual_include": mon.manual_include,
                 "manual_exclude": mon.manual_exclude,
-                "monitored": is_monitored_row(mon),
-                "auto_reason": mon.auto_reason,
+                "monitored": not mon.manual_exclude and bool(auto_included or mon.manual_include),
+                "auto_reason": auto.get(mgr.id),
                 "note": mon.note,
             }
         )

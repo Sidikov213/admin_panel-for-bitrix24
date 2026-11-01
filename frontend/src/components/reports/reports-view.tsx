@@ -8,7 +8,7 @@ import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/comm
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useReports } from "@/hooks/queries";
 import { formatMoney, formatNumber } from "@/lib/format";
-import { getDynamicsKeyLabel } from "@/lib/ui-labels";
+import { getDynamicsKeyLabel, getViolationLabel } from "@/lib/ui-labels";
 import type { MetricDelta, PlanFact } from "@/types/api";
 
 export function ReportsView() {
@@ -115,7 +115,7 @@ export function ReportsView() {
                 <ul className="divide-y divide-border rounded-md border border-border">
                   {reg.by_type!.map((t) => (
                     <li key={t.type} className="flex justify-between gap-3 px-3.5 py-2.5 text-[13px]">
-                      <span>{t.type}</span>
+                      <span>{getViolationLabel(t.type)}</span>
                       <span className="tabular-nums text-muted-foreground">{t.count}</span>
                     </li>
                   ))}

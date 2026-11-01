@@ -3,7 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -55,221 +55,130 @@ class SyncOrchestrator:
         self._sync_repo = SyncRepository(session)
         self._settings = get_settings()
 
-    async def run_dictionaries(self) -> None:
-        if not await self._sync_repo.try_advisory_lock(SyncType.dictionaries):
-            logger.info("sync_skip_lock", extra={"sync_type": "dictionaries"})
-            return
-        run = await self._sync_repo.start_run(SyncType.dictionaries)
-        processed = 0
-        errors = 0
+    async def _run_phase(self, sync_type, work) -> bool:
+        if not await self._sync_repo.try_advisory_lock(sync_type):
+            return False
         try:
-            users = await self._client.user_search()
-            for u in users:
-                bid = int(u.get("ID") or 0)
-                if not bid:
-                    continue
-                await self._upsert_manager(bid, u)
-                processed += 1
+            run = await self._sync_repo.start_run(sync_type)
+            try:
+                # An unexpected DB error rolls back phase data, leaving its run record usable.
+                async with self._session.begin_nested():
+                    processed, errors, info = await work(run.started_at)
+                await self._sync_repo.finish_run(
+                    run, status=SyncStatus.success if errors == 0 else SyncStatus.failed,
+                    items_processed=processed, errors_count=errors, cursor_info=info,
+                )
+            except Exception as exc:
+                errors = 1
+                await self._sync_repo.finish_run(
+                    run, status=SyncStatus.failed, items_processed=0, errors_count=1,
+                    error_message=type(exc).__name__, cursor_info={"cursor_advanced": False},
+                )
+                logger.warning("sync_phase_failed type=%s", type(exc).__name__)
+            await self._session.commit()
+            return errors == 0
+        finally:
+            await self._sync_repo.advisory_unlock(sync_type)
+
+    async def run_dictionaries(self) -> bool:
+        async def work(started):
+            processed = 0
+            for user in await self._client.user_search():
+                bid = int(user.get("ID") or 0)
+                if bid:
+                    await self._upsert_manager(bid, user)
+                    processed += 1
             wanted = set(self._settings.bitrix_category_ids)
-            categories = await self._client.crm_dealcategory_list()
-            for cat in categories:
-                cid = int(cat.get("ID") or 0)
-                # Category 0 is valid default pipeline in some portals; skip only missing ID
+            for cat in await self._client.crm_dealcategory_list():
                 if cat.get("ID") is None and cat.get("id") is None:
                     continue
-                # Only sync configured pipelines (Stage 1: BITRIX_CATEGORY_IDS)
+                cid = int(cat.get("ID", cat.get("id")))
                 if wanted and cid not in wanted:
                     continue
                 await self._upsert_pipeline(cid, cat)
                 processed += 1
-                # Prefer crm.status.list (live SEMANTICS). Fallback to dealcategory.stage.list.
                 stages = await self._client.crm_status_list(entity_id=status_entity_id_for_category(cid))
                 if not stages:
                     stages = await self._client.crm_dealcategory_stage_list(cid)
-                for st in stages:
-                    await self._upsert_stage(cid, st)
+                for stage in stages:
+                    await self._upsert_stage(cid, stage)
                     processed += 1
-            await self._sync_repo.set_state(
-                "last_dictionaries_sync",
-                {"at": utc_now().isoformat()},
-            )
-            await self._sync_repo.finish_run(run, status=SyncStatus.success, items_processed=processed, errors_count=errors)
-            await self._session.commit()
-        except Exception as e:
-            errors += 1
-            await self._sync_repo.finish_run(
-                run,
-                status=SyncStatus.failed,
-                items_processed=processed,
-                errors_count=errors,
-                error_message=str(e),
-            )
-            await self._session.commit()
-            logger.exception("sync_dictionaries_failed")
-        finally:
-            await self._sync_repo.advisory_unlock(SyncType.dictionaries)
+            await self._sync_repo.set_state("last_dictionaries_sync", {"at": started.isoformat()})
+            return processed, 0, {"cursor_advanced": True}
+        return await self._run_phase(SyncType.dictionaries, work)
 
-    async def run_deals(self, *, full: bool = False) -> None:
-        sync_type = SyncType.full_reconcile if full else SyncType.deals
-        if not await self._sync_repo.try_advisory_lock(sync_type):
-            logger.info("sync_skip_lock", extra={"sync_type": sync_type.value})
-            return
-        run = await self._sync_repo.start_run(sync_type)
-        processed = 0
-        errors = 0
-        seen_bitrix_ids: set[int] = set()
-        try:
-            filters: dict[str, Any] = {}
-            if not full:
-                state = await self._sync_repo.get_state("last_deals_sync") or {}
-                last_at = state.get("at")
-                if last_at:
-                    from datetime import datetime
+    async def _delta_filters(self, state_key: str, field: str) -> dict:
+        from datetime import datetime
+        state = await self._sync_repo.get_state(state_key) or {}
+        if not state.get("at"):
+            return {}
+        since = datetime.fromisoformat(state["at"]) - timedelta(minutes=self._settings.SYNC_OVERLAP_MINUTES)
+        return {f">={field}": since.isoformat()}
 
-                    dt = datetime.fromisoformat(last_at)
-                    overlap = self._settings.SYNC_OVERLAP_MINUTES
-                    since = dt - timedelta(minutes=overlap)
-                    filters[">=DATE_MODIFY"] = since.strftime("%Y-%m-%dT%H:%M:%S")
+    async def run_deals(self, *, full: bool = False) -> bool:
+        async def work(started):
+            processed = errors = 0
+            seen = set()
+            filters = {} if full else await self._delta_filters("last_deals_sync", "DATE_MODIFY")
             for cat_id in self._settings.bitrix_category_ids:
-                f = {**filters, "CATEGORY_ID": cat_id}
-                deals = await self._client.crm_deal_list(**f)
-                for raw in deals:
+                for raw in await self._client.crm_deal_list(**{**filters, "CATEGORY_ID": cat_id}):
                     try:
-                        deal = await self._upsert_deal(raw)
+                        async with self._session.begin_nested():
+                            deal = await self._upsert_deal(raw)
+                            seen.add(deal.bitrix_id)
                         processed += 1
-                        if deal is not None and deal.bitrix_id:
-                            seen_bitrix_ids.add(deal.bitrix_id)
-                    except Exception:
+                    except Exception as exc:
                         errors += 1
-                        logger.exception("deal_upsert_error", extra={"sync_type": "deals"})
-            missing_marked = 0
-            if full and errors == 0:
-                missing_marked = await self._mark_missing_deals(seen_bitrix_ids)
-            # Advance cursor only on full success — failed upserts must not skip a window
-            if errors == 0:
-                await self._sync_repo.set_state("last_deals_sync", {"at": utc_now().isoformat()})
-            await self._sync_repo.finish_run(
-                run,
-                status=SyncStatus.success if errors == 0 else SyncStatus.failed,
-                items_processed=processed,
-                errors_count=errors,
-                cursor_info={
-                    "full": full,
-                    "cursor_advanced": errors == 0,
-                    "missing_marked": missing_marked,
-                    "seen": len(seen_bitrix_ids),
-                },
-            )
-            await self._session.commit()
-        except BitrixClientError as e:
-            # Do not advance last_deals_sync on Bitrix failure
-            await self._sync_repo.finish_run(
-                run,
-                status=SyncStatus.failed,
-                items_processed=processed,
-                errors_count=errors + 1,
-                error_message=str(e),
-                cursor_info={"full": full, "cursor_advanced": False},
-            )
-            await self._session.commit()
-        finally:
-            await self._sync_repo.advisory_unlock(sync_type)
+                        logger.warning("deal_upsert_error type=%s", type(exc).__name__)
+            missing = await self._mark_missing_deals(seen) if full and not errors else 0
+            if not errors:
+                # Start watermark prevents changes during a slow pull falling into a gap.
+                await self._sync_repo.set_state("last_deals_sync", {"at": started.isoformat()})
+            return processed, errors, {"full": full, "cursor_advanced": not errors, "missing_marked": missing, "seen": len(seen)}
+        return await self._run_phase(SyncType.full_reconcile if full else SyncType.deals, work)
 
-    async def run_activities(self, *, full: bool = False) -> None:
-        if not await self._sync_repo.try_advisory_lock(SyncType.activities):
-            return
-        run = await self._sync_repo.start_run(SyncType.activities)
-        processed = 0
-        errors = 0
-        try:
-            # OWNER_TYPE_ID 2 = deal in Bitrix
-            filters: dict[str, Any] = {"OWNER_TYPE_ID": 2}
-            allowed_owners: set[int] | None = None
-            if full:
-                # Controlled full sync: only activities for deals in configured categories
-                cats = self._settings.bitrix_category_ids
-                allowed_owners = set(
-                    (
-                        await self._session.execute(
-                            select(CrmDeal.bitrix_id).where(CrmDeal.category_id.in_(cats))
-                        )
-                    ).scalars().all()
-                )
-            else:
-                state = await self._sync_repo.get_state("last_activities_sync") or {}
-                last_at = state.get("at")
-                if last_at:
-                    from datetime import datetime
-
-                    dt = datetime.fromisoformat(last_at)
-                    overlap = self._settings.SYNC_OVERLAP_MINUTES
-                    since = dt - timedelta(minutes=overlap)
-                    # Live Bitrix: activities expose LAST_UPDATED, not DATE_MODIFY.
-                    # DATE_MODIFY filters are ignored (field absent) → unsafe full-ish pulls.
-                    filters[">=LAST_UPDATED"] = since.strftime("%Y-%m-%dT%H:%M:%S")
-            activities = await self._client.crm_activity_list(**filters)
-            deal_activity_map: dict[int, list[CrmActivity]] = {}
-            skipped_other_category = 0
-            for raw in activities:
+    async def run_activities(self, *, full: bool = False) -> bool:
+        async def work(started):
+            processed = errors = skipped = 0
+            deals = list((await self._session.execute(select(CrmDeal).where(
+                CrmDeal.category_id.in_(self._settings.bitrix_category_ids),
+                CrmDeal.missing_from_bitrix.is_(False),
+            ))).scalars().all())
+            owners = {deal.bitrix_id for deal in deals}
+            filters = {} if full else await self._delta_filters("last_activities_sync", "LAST_UPDATED")
+            seen = set()
+            for raw in await self._client.crm_activity_list(**{"OWNER_TYPE_ID": 2, **filters}):
                 try:
-                    owner = int(raw.get("OWNER_ID") or 0)
-                    if allowed_owners is not None and owner not in allowed_owners:
-                        skipped_other_category += 1
+                    if int(raw.get("OWNER_ID") or 0) not in owners:
+                        skipped += 1
                         continue
-                    act = await self._upsert_activity(raw)
+                    async with self._session.begin_nested():
+                        activity = await self._upsert_activity(raw)
+                        seen.add(activity.bitrix_id)
                     processed += 1
-                    if act.owner_id:
-                        deal_activity_map.setdefault(act.owner_id, []).append(act)
-                except Exception:
+                except Exception as exc:
                     errors += 1
-            # Batch-load deals once instead of N+1 get_by_bitrix
-            if deal_activity_map:
-                deals = (
-                    await self._session.execute(
-                        select(CrmDeal).where(CrmDeal.bitrix_id.in_(list(deal_activity_map.keys())))
-                    )
-                ).scalars().all()
-                by_bid = {d.bitrix_id: d for d in deals}
-                for bitrix_deal_id, acts in deal_activity_map.items():
-                    deal = by_bid.get(bitrix_deal_id)
-                    if deal:
-                        # Merge with existing open activities for correct future/overdue flags
-                        existing = (
-                            await self._session.execute(
-                                select(CrmActivity).where(
-                                    CrmActivity.owner_id == bitrix_deal_id,
-                                    CrmActivity.owner_type_id == 2,
-                                )
-                            )
-                        ).scalars().all()
-                        await self._refresh_deal_activity_flags(deal, list(existing))
-            if errors == 0:
-                await self._sync_repo.set_state("last_activities_sync", {"at": utc_now().isoformat()})
-            await self._sync_repo.finish_run(
-                run,
-                status=SyncStatus.success if errors == 0 else SyncStatus.failed,
-                items_processed=processed,
-                errors_count=errors,
-                cursor_info={
-                    "full": full,
-                    "cursor_advanced": errors == 0,
-                    "skipped_other_category": skipped_other_category,
-                    "allowed_owners": len(allowed_owners) if allowed_owners is not None else None,
-                },
-            )
-            await self._session.commit()
-        except Exception as e:
-            await self._sync_repo.finish_run(
-                run,
-                status=SyncStatus.failed,
-                items_processed=processed,
-                errors_count=errors + 1,
-                error_message=str(e),
-                cursor_info={"full": full, "cursor_advanced": False},
-            )
-            await self._session.commit()
-        finally:
-            await self._sync_repo.advisory_unlock(SyncType.activities)
+                    logger.warning("activity_upsert_error type=%s", type(exc).__name__)
+            if full and not errors:
+                # Remove only the scoped local cache after a complete successful read.
+                await self._session.execute(delete(CrmActivity).where(
+                    CrmActivity.owner_type_id == 2,
+                    CrmActivity.owner_id.in_(owners),
+                    CrmActivity.bitrix_id.not_in(seen),
+                ))
+            activities = (await self._session.execute(select(CrmActivity).where(
+                CrmActivity.owner_type_id == 2, CrmActivity.owner_id.in_(owners),
+            ))).scalars().all()
+            by_owner = {}
+            for activity in activities:
+                by_owner.setdefault(activity.owner_id, []).append(activity)
+            # Refresh even on empty deltas: deadlines advance with wall-clock time.
+            for deal in deals:
+                await self._refresh_deal_activity_flags(deal, by_owner.get(deal.bitrix_id, []))
+            if not errors:
+                await self._sync_repo.set_state("last_activities_sync", {"at": started.isoformat()})
+            return processed, errors, {"full": full, "cursor_advanced": not errors, "skipped_other_category": skipped, "allowed_owners": len(owners)}
+        return await self._run_phase(SyncType.activities, work)
 
     async def _mark_missing_deals(self, seen_bitrix_ids: set[int]) -> int:
         """Soft-mark local deals in synced categories that Bitrix no longer returned."""
@@ -395,6 +304,7 @@ class SyncOrchestrator:
         content_hash = compute_deal_content_hash(raw)
         stmt = select(CrmDeal).where(CrmDeal.bitrix_id == bitrix_id)
         deal = (await self._session.execute(stmt)).scalar_one_or_none()
+        existed = deal is not None
         previous_hash = deal.content_hash if deal else None
         old_snapshot = {
             "title": deal.title if deal else None,
@@ -453,7 +363,7 @@ class SyncOrchestrator:
         if deal.id:
             for field, new_val in new_values.items():
                 old_val = old_snapshot.get(field)
-                if deal.id and old_val is not None and old_val != new_val:
+                if existed and old_val != new_val:
                     self._session.add(
                         DealChangeEvent(
                             deal_id=deal.id,
@@ -465,27 +375,17 @@ class SyncOrchestrator:
                         )
                     )
             if previous_hash != content_hash:
-                prev = await self._session.execute(
-                    select(DealSnapshot).where(
-                        DealSnapshot.deal_id == deal.id,
-                        DealSnapshot.content_hash == content_hash,
-                    )
-                )
-                if prev.scalar_one_or_none() is None:
-                    self._session.add(
-                        DealSnapshot(
-                            deal_id=deal.id,
-                            observed_at=observed,
-                            payload=raw,
-                            content_hash=content_hash,
-                        )
-                    )
+                self._session.add(DealSnapshot(
+                    deal_id=deal.id, observed_at=observed, payload=raw, content_hash=content_hash,
+                ))
 
         await self._session.flush()
         return deal
 
     async def _upsert_activity(self, raw: dict[str, Any]) -> CrmActivity:
         bitrix_id = int(raw.get("ID") or 0)
+        if not bitrix_id:
+            raise ValueError("activity missing ID")
         stmt = select(CrmActivity).where(CrmActivity.bitrix_id == bitrix_id)
         row = (await self._session.execute(stmt)).scalar_one_or_none()
         if not row:
@@ -507,13 +407,13 @@ class SyncOrchestrator:
         now = utc_now()
         open_acts = [a for a in activities if not a.completed]
         deal.open_activities_count = len(open_acts)
-        future = [a for a in open_acts if a.deadline and a.deadline > now]
+        from app.analytics.freshness import _parse_ts
+        future = [a for a in open_acts if a.deadline and _parse_ts(a.deadline) > now]
         deal.has_future_activity = len(future) > 0
-        deadlines = [a.deadline for a in open_acts if a.deadline]
+        deadlines = [_parse_ts(a.deadline) for a in future]
         deal.next_deadline_at = min(deadlines) if deadlines else None
-        completed_times = [a.completed_at or a.created for a in activities if a.completed_at or a.created]
-        if completed_times:
-            deal.last_observed_activity_at = max(t for t in completed_times if t)
+        completed_times = [_parse_ts(a.completed_at or a.created) for a in activities if a.completed_at or a.created]
+        deal.last_observed_activity_at = max(completed_times) if completed_times else None
         await self._session.flush()
 
     async def import_smoke_sample(

@@ -152,6 +152,14 @@ async def resolve_schedule_for_manager(
         if sch and sch.enabled:
             return sch
 
+    if department_key is None:
+        from app.models.crm import CrmManager
+        manager = await session.get(CrmManager, manager_id)
+        departments = (manager.raw or {}).get("UF_DEPARTMENT", []) if manager else []
+        if not isinstance(departments, list):
+            departments = [departments]
+        # Bitrix primary department is first; manager override still has priority.
+        department_key = str(departments[0]) if departments else None
     if department_key:
         dept_asg = (
             await session.execute(
@@ -177,12 +185,13 @@ async def resolve_schedule_for_manager(
     return default
 
 
-async def get_or_create_policy(session: AsyncSession) -> ManagerControlPolicy:
+async def get_or_create_policy(session: AsyncSession, *, create: bool = False) -> ManagerControlPolicy:
     row = await session.get(ManagerControlPolicy, 1)
     if row is None:
         row = ManagerControlPolicy(id=1)
-        session.add(row)
-        await session.flush()
+        if create:
+            session.add(row)
+            await session.flush()
     return row
 
 
@@ -246,3 +255,41 @@ async def resolve_day_plan_for_manager(
         absence_kind=absence,
     )
     return sch, plan
+
+
+class ReportPlans:
+    """Request-local schedule data; a report does not query per manager per day."""
+
+    @classmethod
+    async def load(cls, session: AsyncSession, start: date, end: date):
+        from app.models.crm import CrmManager
+        obj = cls()
+        obj.schedules = {r.id: r for r in await list_schedules(session) if r.enabled}
+        obj.assignments = (await session.execute(select(ScheduleAssignment).order_by(ScheduleAssignment.id))).scalars().all()
+        obj.managers = {r.id: r for r in (await session.execute(select(CrmManager))).scalars().all()}
+        obj.overrides = (await session.execute(select(CalendarDayOverride).where(
+            CalendarDayOverride.day_date.between(start, end)
+        ).order_by(CalendarDayOverride.id))).scalars().all()
+        obj.absences = (await session.execute(select(ManagerAbsence).where(
+            ManagerAbsence.date_from <= end, ManagerAbsence.date_to >= start
+        ).order_by(ManagerAbsence.id))).scalars().all()
+        return obj
+
+    def resolve(self, manager_id: int, day: date):
+        manager = self.managers.get(manager_id)
+        departments = (manager.raw or {}).get("UF_DEPARTMENT", []) if manager else []
+        if not isinstance(departments, list):
+            departments = [departments]
+        department = str(departments[0]) if departments else None
+        personal = [a for a in self.assignments if a.manager_id == manager_id]
+        group = [a for a in self.assignments if a.manager_id is None and department and a.department_key == department]
+        sch = next((self.schedules[a.schedule_id] for a in personal + group if a.schedule_id in self.schedules), None)
+        if sch is None:
+            sch = next((s for s in self.schedules.values() if s.is_default), None)
+        if sch is None:
+            return None, None
+        overrides = {r.manager_id: {k: getattr(r, k) for k in ("kind", "start_time", "end_time", "required_minutes", "label")}
+                     for r in self.overrides if r.day_date == day}
+        absence = next((a.kind for a in self.absences if a.manager_id == manager_id and a.date_from <= day <= a.date_to), None)
+        return sch, build_day_plan(schedule_to_spec(sch), day=day,
+            global_override=overrides.get(None), manager_override=overrides.get(manager_id), absence_kind=absence)

@@ -138,7 +138,7 @@ export default function ManagerControlDetailPage() {
                 )}
               </ul>
             </div>
-            <div className="panel panel-pad">
+            <div className="rounded-[18px] border border-border bg-[var(--surface-muted)] p-4">
               <h3 className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Закрытые</h3>
               <ul className="mt-2 space-y-2">
                 {violations.resolved.length === 0 ? (
@@ -188,7 +188,7 @@ export default function ManagerControlDetailPage() {
             {weekQ.data?.totals ? (
               <p className="mb-3 text-[12px] text-muted-foreground">
                 {weekQ.data.period.start} — {weekQ.data.period.end} · факт {weekQ.data.totals.fact_display} · Δ{" "}
-                {weekQ.data.totals.delta_minutes} мин · нарушений {weekQ.data.totals.open_violations}
+                {weekQ.data.totals.delta_minutes ?? "Нет данных"} мин · нарушений {weekQ.data.totals.open_violations}
               </p>
             ) : null}
             <div className="panel overflow-x-auto">

@@ -25,7 +25,8 @@ class SystemService:
         recent_runs = await self._sync_repo.recent_runs(limit=10)
         bitrix_ok = await self._cached_bitrix_ping()
 
-        data_may_be_stale = (not bitrix_ok) or (not settings.BITRIX_WEBHOOK_URL)
+        freshness = await self._sync_repo.crm_freshness()
+        data_may_be_stale = freshness["is_stale"] or (not bitrix_ok) or (not settings.BITRIX_WEBHOOK_URL)
         if latest and latest.status.value == "failed":
             data_may_be_stale = True
 
@@ -83,7 +84,7 @@ def _run_dict(run) -> dict:
         "finished_at": run.finished_at.isoformat() if run.finished_at else None,
         "items_processed": run.items_processed,
         "errors_count": run.errors_count,
-        "error_message": run.error_message,
+        "error_message": "Ошибка синхронизации; обратитесь к администратору" if run.error_message else None,
         "duration_seconds": (
             (run.finished_at - run.started_at).total_seconds()
             if run.finished_at

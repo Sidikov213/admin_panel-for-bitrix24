@@ -22,6 +22,6 @@ class StalledRule(TimestampMixin, Base):
     deal_status: Mapped[str] = mapped_column(String(32), default="open", nullable=False)
     # Use business calendar when evaluating durations (not implemented until rules enabled)
     use_business_calendar: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     note: Mapped[str | None] = mapped_column(String(512), nullable=True)

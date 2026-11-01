@@ -10,12 +10,7 @@ COMPARISON_KEYS = (
     "won_count",
     "lost_count",
     "sum_won_opportunity",
-    "overdue_activities_unique",
-    "deals_without_future_activity_count",
-    "active_deals_count",
-    "sum_active_opportunity",
-    "money_requiring_attention",
-    "deals_requiring_attention_count",
+
 )
 
 

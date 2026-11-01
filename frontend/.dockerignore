@@ -6,4 +6,9 @@ coverage
 .git
 *.log
 .env*.local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
 README.md

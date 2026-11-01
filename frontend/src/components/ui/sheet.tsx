@@ -11,7 +11,13 @@ interface SheetProps {
   side?: "left" | "right";
 }
 
-export function Sheet({ open, onOpenChange, children, side = "left" }: SheetProps) {
+export function Sheet({
+  open,
+  onOpenChange,
+  children,
+  side = "left",
+  className,
+}: SheetProps & { className?: string }) {
   React.useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -34,6 +40,7 @@ export function Sheet({ open, onOpenChange, children, side = "left" }: SheetProp
         className={cn(
           "absolute top-0 h-full w-[min(100%,18rem)] border-border bg-background shadow-xl",
           side === "left" ? "left-0 border-r" : "right-0 border-l",
+          className,
         )}
       >
         {children}
@@ -48,7 +55,7 @@ export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDi
 
 export function SheetClose({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="rounded-md p-1 hover:bg-muted" aria-label="Закрыть">
+    <button type="button" onClick={onClick} className="rounded-md p-1 text-current hover:bg-white/10" aria-label="Закрыть">
       <X className="h-5 w-5" />
     </button>
   );

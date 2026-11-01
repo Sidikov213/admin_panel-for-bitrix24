@@ -23,17 +23,20 @@ class TargetsService:
         period_end: date,
         *,
         manager_id: int | None = None,
+        pipeline_id: int | None = None,
     ) -> dict[str, Any]:
         """
-        Company target: manager_id IS NULL overlapping the range.
+        Company target: manager_id IS NULL with exactly the requested range.
         Manager target: specific manager_id.
-        Fact = sum_won_opportunity for the same range.
+        Fact = sum_won_opportunity for the same range. Ambiguous targets and
+        pipeline-scoped requests are not assigned an arbitrary company plan.
         """
         kpis = await compute_period_kpis(
             self._session,
             period_start,
             period_end,
             manager_id=manager_id,
+            pipeline_id=pipeline_id,
             include_series=False,
         )
         fact = float(kpis.get("sum_won_opportunity") or 0)
@@ -41,19 +44,21 @@ class TargetsService:
         targets = (
             await self._session.execute(
                 select(SalesTarget).where(
-                    SalesTarget.period_start <= period_end,
-                    SalesTarget.period_end >= period_start,
+                    SalesTarget.period_start == period_start,
+                    SalesTarget.period_end == period_end,
                 )
             )
         ).scalars().all()
 
         if manager_id is None:
             company = [t for t in targets if t.manager_id is None]
-            plan_row = company[0] if company else None
+            plan_row = company[0] if len(company) == 1 else None
         else:
             mgr = [t for t in targets if t.manager_id == manager_id]
-            plan_row = mgr[0] if mgr else None
+            plan_row = mgr[0] if len(mgr) == 1 else None
 
+        if pipeline_id is not None:
+            plan_row = None  # The target model has no pipeline dimension.
         if plan_row is None:
             return {
                 "plan_set": False,
@@ -90,8 +95,8 @@ class TargetsService:
         targets = (
             await self._session.execute(
                 select(SalesTarget).where(
-                    SalesTarget.period_start <= period_end,
-                    SalesTarget.period_end >= period_start,
+                    SalesTarget.period_start == period_start,
+                    SalesTarget.period_end == period_end,
                     SalesTarget.manager_id.isnot(None),
                 )
             )

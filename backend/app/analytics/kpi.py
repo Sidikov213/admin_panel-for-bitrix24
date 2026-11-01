@@ -129,20 +129,12 @@ async def compute_period_kpis(
     ).scalar_one()
     insufficient_stage_semantics = stages_with_semantics == 0
 
-    overdue_q = select(CrmActivity.bitrix_id).where(
-        CrmActivity.completed.is_(False),
-        CrmActivity.deadline.isnot(None),
-        CrmActivity.deadline < now,
+    overdue_q = select(CrmActivity.bitrix_id).join(
+        CrmDeal, CrmDeal.bitrix_id == CrmActivity.owner_id
+    ).where(
+        CrmActivity.owner_type_id == 2, CrmActivity.completed.is_(False),
+        CrmActivity.deadline.isnot(None), CrmActivity.deadline < now, *deal_filters,
     )
-    if manager_id is not None or pipeline_id is not None:
-        overdue_q = (
-            overdue_q.join(CrmDeal, CrmDeal.bitrix_id == CrmActivity.owner_id)
-            .where(CrmDeal.missing_from_bitrix.is_(False))
-        )
-        if manager_id is not None:
-            overdue_q = overdue_q.where(CrmDeal.assigned_by_id == manager_id)
-        if pipeline_id is not None:
-            overdue_q = overdue_q.where(CrmDeal.category_id == pipeline_id)
     overdue_ids = (await session.execute(overdue_q)).scalars().all()
     open_overdue_count = len(set(overdue_ids))
 
@@ -156,7 +148,9 @@ async def compute_period_kpis(
         await session.execute(
             select(func.count())
             .select_from(DealChangeEvent)
+            .join(CrmDeal, CrmDeal.id == DealChangeEvent.deal_id)
             .where(
+                *deal_filters,
                 DealChangeEvent.field_name == "stage_id",
                 DealChangeEvent.observed_at >= start_utc,
                 DealChangeEvent.observed_at <= end_utc,

@@ -27,16 +27,16 @@ type Tab = "schedules" | "assignments" | "calendar" | "policy" | "preview";
 const emptySchedule: McWorkSchedule = {
   name: "",
   timezone: "Europe/Moscow",
-  weekdays: [1, 2, 3, 4, 5],
-  start_time: "09:00",
-  end_time: "18:00",
-  required_minutes: 480,
-  late_grace_minutes: 10,
-  early_finish_grace_minutes: 10,
-  max_break_minutes: 60,
-  not_started_threshold_minutes: 30,
-  not_closed_grace_minutes: 15,
-  enabled: true,
+  weekdays: [],
+  start_time: "",
+  end_time: "",
+  required_minutes: null,
+  late_grace_minutes: null,
+  early_finish_grace_minutes: null,
+  max_break_minutes: null,
+  not_started_threshold_minutes: null,
+  not_closed_grace_minutes: null,
+  enabled: false,
   is_default: false,
 };
 
@@ -86,6 +86,9 @@ export default function ManagerControlAdminPage() {
     manager_id: "",
     label: "",
     note: "",
+    start_time: "",
+    end_time: "",
+    required_minutes: "",
   });
   const [policyForm, setPolicyForm] = useState<McControlPolicy>({});
   const [previewParams, setPreviewParams] = useState({ schedule_id: "", manager_id: "", days: "7" });
@@ -141,6 +144,9 @@ export default function ManagerControlAdminPage() {
         manager_id: calForm.manager_id ? Number(calForm.manager_id) : null,
         label: calForm.label || null,
         note: calForm.note || null,
+        start_time: calForm.start_time || null,
+        end_time: calForm.end_time || null,
+        required_minutes: calForm.required_minutes === "" ? null : Number(calForm.required_minutes),
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["mc-admin", "calendar"] });
@@ -315,7 +321,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">График</Label>
               <select
-                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={assignForm.schedule_id || ""}
                 onChange={(e) => setAssignForm((f) => ({ ...f, schedule_id: Number(e.target.value) }))}
               >
@@ -330,7 +336,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">ID менеджера</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 value={assignForm.manager_id}
                 onChange={(e) => setAssignForm((f) => ({ ...f, manager_id: e.target.value }))}
                 placeholder="ID менеджера"
@@ -339,7 +345,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">Ключ отдела</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 value={assignForm.department_key}
                 onChange={(e) => setAssignForm((f) => ({ ...f, department_key: e.target.value }))}
                 placeholder="Опционально"
@@ -366,7 +372,7 @@ export default function ManagerControlAdminPage() {
               <Label className="text-[12px]">Дата</Label>
               <Input
                 type="date"
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 value={calForm.day_date}
                 onChange={(e) => setCalForm((f) => ({ ...f, day_date: e.target.value }))}
               />
@@ -374,26 +380,26 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">Тип дня</Label>
               <select
-                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={calForm.kind}
                 onChange={(e) => setCalForm((f) => ({ ...f, kind: e.target.value }))}
               >
                 <option value="holiday">{getCalendarKindLabel("holiday")}</option>
-                <option value="short_day">{getCalendarKindLabel("short_day")}</option>
-                <option value="working_override">{getCalendarKindLabel("working_override")}</option>
+                <option value="shortened">{getCalendarKindLabel("shortened")}</option>
+                <option value="working">{getCalendarKindLabel("working")}</option>
               </select>
             </div>
             <div>
               <Label className="text-[12px]">ID менеджера (опц.)</Label>
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 value={calForm.manager_id}
                 onChange={(e) => setCalForm((f) => ({ ...f, manager_id: e.target.value }))}
               />
             </div>
             <div>
               <Label className="text-[12px]">Подпись</Label>
-              <Input className="mt-1 h-8" value={calForm.label} onChange={(e) => setCalForm((f) => ({ ...f, label: e.target.value }))} />
+              <Input className="mt-1 h-10" value={calForm.label} onChange={(e) => setCalForm((f) => ({ ...f, label: e.target.value }))} />
             </div>
             <div className="flex items-end">
               <Button type="button" size="sm" onClick={() => saveCalendar.mutate()} disabled={!calForm.day_date}>
@@ -401,6 +407,13 @@ export default function ManagerControlAdminPage() {
               </Button>
             </div>
           </div>
+          {calForm.kind === "shortened" || calForm.kind === "working" ? (
+            <div className="panel panel-pad grid gap-3 sm:grid-cols-3">
+              <div><Label>Начало</Label><Input type="time" value={calForm.start_time} onChange={(e) => setCalForm((f) => ({ ...f, start_time: e.target.value }))} /></div>
+              <div><Label>Конец</Label><Input type="time" value={calForm.end_time} onChange={(e) => setCalForm((f) => ({ ...f, end_time: e.target.value }))} /></div>
+              <div><Label>Норма, мин</Label><Input type="number" min={0} max={1440} value={calForm.required_minutes} onChange={(e) => setCalForm((f) => ({ ...f, required_minutes: e.target.value }))} /></div>
+            </div>
+          ) : null}
           <CalendarTable items={calendar.data?.items ?? []} onDelete={(id) => deleteCalendar.mutate(id)} />
         </div>
       ) : null}
@@ -419,7 +432,7 @@ export default function ManagerControlAdminPage() {
                 </p>
                 <Input
                   type="date"
-                  className="mt-1 h-8"
+                  className="mt-1 h-10"
                   value={(policyForm.enforcement_start_date ?? policyLoaded.enforcement_start_date) || ""}
                   onChange={(e) =>
                     setPolicyForm((f) => ({
@@ -437,7 +450,7 @@ export default function ManagerControlAdminPage() {
                     <div key={t} className="flex items-center gap-2 text-[13px]">
                       <span className="min-w-0 flex-1 leading-snug text-muted-foreground">{getViolationLabel(t)}</span>
                       <select
-                        className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-[13px]"
+                        className="h-10 flex-1 rounded-md border border-input bg-background px-2 text-[13px]"
                         value={
                           (policyForm.severity_by_type ?? policy.data?.severity_by_type ?? {})[t] ?? "medium"
                         }
@@ -465,7 +478,7 @@ export default function ManagerControlAdminPage() {
               <div>
                 <Label className="text-[12px]">Заметка</Label>
                 <Input
-                  className="mt-1 h-8"
+                  className="mt-1 h-10"
                   value={policyForm.note ?? policy.data?.note ?? ""}
                   onChange={(e) =>
                     setPolicyForm((f) => ({
@@ -491,7 +504,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">График</Label>
               <select
-                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={previewParams.schedule_id}
                 onChange={(e) => setPreviewParams((p) => ({ ...p, schedule_id: e.target.value }))}
               >
@@ -506,7 +519,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">Менеджер</Label>
               <select
-                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-[13px]"
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-2 text-[13px]"
                 value={previewParams.manager_id}
                 onChange={(e) => setPreviewParams((p) => ({ ...p, manager_id: e.target.value }))}
               >
@@ -521,7 +534,7 @@ export default function ManagerControlAdminPage() {
             <div>
               <Label className="text-[12px]">Дней истории</Label>
               <Input
-                className="mt-1 h-8 w-24"
+                className="mt-1 h-10 w-24"
                 type="number"
                 min={1}
                 max={31}
@@ -579,16 +592,16 @@ function ScheduleFields({
     <>
       <div>
         <Label className="text-[12px]">Название</Label>
-        <Input className="mt-1 h-8" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        <Input className="mt-1 h-10" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-[12px]">{SCHEDULE_FIELD_META.start_time.label}</Label>
-          <Input className="mt-1 h-8" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} />
+          <Input className="mt-1 h-10" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} />
         </div>
         <div>
           <Label className="text-[12px]">{SCHEDULE_FIELD_META.end_time.label}</Label>
-          <Input className="mt-1 h-8" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} />
+          <Input className="mt-1 h-10" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} />
         </div>
       </div>
       <div>
@@ -617,7 +630,7 @@ function ScheduleFields({
               <Label className="text-[12px] leading-snug">{meta.label}</Label>
               {meta.helper ? <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{meta.helper}</p> : null}
               <Input
-                className="mt-1 h-8"
+                className="mt-1 h-10"
                 type="number"
                 value={form[key] ?? ""}
                 onChange={(e) =>

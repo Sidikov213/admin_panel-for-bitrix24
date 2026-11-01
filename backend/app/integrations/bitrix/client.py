@@ -188,11 +188,8 @@ class BitrixClient:
             page_params = {**base, "start": start}
             data = await self.call(method, page_params)
             batch = data.get(result_key)
-            if batch is None:
-                break
             if not isinstance(batch, list):
-                items.append(batch)
-                break
+                raise BitrixClientError("Invalid list response", kind="invalid_response")
             items.extend(batch)
             next_start = data.get("next")
             if next_start is None:
@@ -200,6 +197,8 @@ class BitrixClient:
                     break
                 start += len(batch)
             else:
+                if int(next_start) <= start:
+                    raise BitrixClientError("Non-advancing pagination", kind="invalid_response")
                 start = int(next_start)
             if not batch:
                 break
@@ -217,14 +216,14 @@ class BitrixClient:
         return await self.call(method, page_params)
 
     async def crm_deal_list(self, **filters: Any) -> list[dict[str, Any]]:
-        return await self.call_paginated("crm.deal.list", {"filter": filters, "select": ["*"]})
+        return await self.call_paginated("crm.deal.list", {"filter": filters, "select": ["*"], "order": {"ID": "ASC"}})
 
     async def crm_deal_get(self, deal_id: int) -> dict[str, Any]:
         data = await self.call("crm.deal.get", {"id": deal_id})
         return data.get("result") or {}
 
     async def crm_activity_list(self, **filters: Any) -> list[dict[str, Any]]:
-        return await self.call_paginated("crm.activity.list", {"filter": filters, "select": ["*"]})
+        return await self.call_paginated("crm.activity.list", {"filter": filters, "select": ["*"], "order": {"ID": "ASC"}})
 
     async def user_get(self, user_id: int) -> dict[str, Any]:
         data = await self.call("user.get", {"ID": user_id})

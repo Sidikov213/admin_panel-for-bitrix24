@@ -46,14 +46,16 @@ class DateRange:
             d = self.start - timedelta(days=1)
             return DateRange(d, d, "custom")
         if self.preset == "current_week":
-            return resolve_preset("previous_week")
+            return DateRange(self.start - timedelta(days=7), self.end - timedelta(days=7), "custom")
         if self.preset == "previous_week":
             # week before previous
             start = self.start - timedelta(days=7)
             end = self.end - timedelta(days=7)
             return DateRange(start, end, "custom")
         if self.preset == "current_month":
-            return resolve_preset("previous_month")
+            prev_end = self.start - timedelta(days=1)
+            prev_start = prev_end.replace(day=1)
+            return DateRange(prev_start, min(prev_end, prev_start + (self.end - self.start)), "custom")
         if self.preset == "previous_month":
             # month before previous
             first = self.start.replace(day=1)
