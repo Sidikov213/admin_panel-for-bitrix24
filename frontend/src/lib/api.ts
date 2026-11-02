@@ -5,6 +5,7 @@ import type {
   DealListResponse,
   DigestPreview,
   DigestSendResult,
+  FunnelResponse,
   ManagerBrief,
   ManagerDetail,
   ManagerListItem,
@@ -130,6 +131,9 @@ export const api = {
     request<ManagerDetail>(`/managers/${id}`, { params: { period_start, period_end } }),
 
   pipelines: () => request<Pipeline[]>("/pipelines"),
+
+  funnel: (params: { category_id?: number; period_start?: string; period_end?: string; manager_id?: number }) =>
+    request<FunnelResponse>("/funnel", { params }),
 
   overdue: () => request<OverdueResponse>("/overdue"),
 

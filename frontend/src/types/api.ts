@@ -385,3 +385,51 @@ export interface TargetProgressResponse {
   items: TargetProgress[];
   note: string;
 }
+
+export interface DurationStats {
+  median_days: number | null;
+  avg_days: number | null;
+  count: number;
+}
+
+export interface FunnelResponse {
+  pipeline: { category_id: number; name: string };
+  period_start: string;
+  period_end: string;
+  manager_id: number | null;
+  funnel: Array<{
+    stage_id: string;
+    name: string;
+    reached: number;
+    conversion_from_prev: number | null;
+    conversion_from_start: number | null;
+    kind?: "won";
+  }>;
+  stage_time: Array<
+    DurationStats & { stage_id: string; name: string; current_count: number; current_median_days: number | null }
+  >;
+  summary: {
+    created: number;
+    won: number;
+    lost: number;
+    win_rate: number | null;
+    won_amount: number;
+    avg_won_amount: number | null;
+    cycle_won: DurationStats;
+    cycle_lost: DurationStats;
+  };
+  losses: Array<{ stage_id: string; name: string; count: number; share: number }>;
+  managers: Array<{
+    manager_id: number;
+    name: string;
+    created: number;
+    won: number;
+    lost: number;
+    win_rate: number | null;
+    won_amount: number;
+    cycle_won_median_days: number | null;
+  }>;
+  data_quality: { source: "bitrix" | "mixed" | "observed" | "none"; history_coverage: number | null; note: string | null };
+  definitions: Record<string, string>;
+  computed_at: string;
+}

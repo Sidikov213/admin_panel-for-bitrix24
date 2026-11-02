@@ -57,6 +57,8 @@ class BitrixClient:
             # Live Stage 1.5: dealcategory.stage.list returns SEMANTICS=null;
             # crm.status.list provides S/F/P for DEAL_STAGE_{category}.
             "crm.status.list",
+            # Stage transition history with Bitrix timestamps (read-only)
+            "crm.stagehistory.list",
         }
     )
 
@@ -247,6 +249,31 @@ class BitrixClient:
             "crm.status.list",
             {"filter": {"ENTITY_ID": entity_id}, "order": {"SORT": "ASC"}},
         )
+
+    async def crm_stagehistory_list(self, *, filters: dict[str, Any], max_pages: int | None = None) -> list[dict[str, Any]]:
+        """Deal stage history (entityTypeId=2), oldest first.
+
+        Unlike other list methods the page lives in result.items, not result.
+        """
+        items: list[dict[str, Any]] = []
+        start = 0
+        pages = 0
+        while True:
+            data = await self.call(
+                "crm.stagehistory.list",
+                {"entityTypeId": 2, "filter": filters, "order": {"ID": "ASC"}, "start": start},
+            )
+            result = data.get("result")
+            batch = result.get("items") if isinstance(result, dict) else result
+            if not isinstance(batch, list) or not batch:
+                break
+            items.extend(batch)
+            pages += 1
+            next_start = data.get("next")
+            if next_start is None or (max_pages is not None and pages >= max_pages):
+                break
+            start = int(next_start)
+        return items
 
     async def ping(self) -> bool:
         try:

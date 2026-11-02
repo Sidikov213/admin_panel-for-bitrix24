@@ -157,3 +157,27 @@ class DealChangeEvent(Base):
     deal: Mapped[CrmDeal] = relationship(back_populates="change_events")
 
     __table_args__ = (Index("ix_deal_change_events_deal_observed", "deal_id", "observed_at"),)
+
+
+class DealStageHistory(Base):
+    """Stage transitions from Bitrix crm.stagehistory.list (exact Bitrix timestamps).
+
+    Keyed by Bitrix deal id, not FK: history may arrive before the deal row itself.
+    """
+
+    __tablename__ = "deal_stage_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    bitrix_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    deal_bitrix_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # Bitrix TYPE_ID: 1 = deal created, 2 = moved to intermediate stage, 3 = moved to final stage
+    type_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stage_bitrix_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    category_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    semantics: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_deal_stage_history_deal_time", "deal_bitrix_id", "created_time"),
+        Index("ix_deal_stage_history_category", "category_id"),
+    )

@@ -4,6 +4,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { SalesTargetInput } from "@/types/api";
 
+export function useFunnel(params: { category_id?: number; period_start: string; period_end: string; manager_id?: number }) {
+  return useQuery({
+    queryKey: ["funnel", params],
+    queryFn: () => api.funnel(params),
+    enabled: !!params.period_start && !!params.period_end,
+    placeholderData: (prev) => prev,
+  });
+}
+
 export function useTargetsProgress(activeOnly = true, managerId?: number) {
   return useQuery({
     queryKey: ["targets", "progress", activeOnly, managerId ?? null],

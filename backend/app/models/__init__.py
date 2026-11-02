@@ -8,6 +8,7 @@ from app.models.crm import (
     CrmStage,
     DealChangeEvent,
     DealSnapshot,
+    DealStageHistory,
 )
 from app.models.sync import SalesTarget, SyncRun, SyncState, SyncStatus, SyncType
 from app.models.targets import PeriodType
@@ -24,6 +25,7 @@ __all__ = [
     "CrmActivity",
     "DealSnapshot",
     "DealChangeEvent",
+    "DealStageHistory",
     "SyncRun",
     "SyncType",
     "SyncStatus",
