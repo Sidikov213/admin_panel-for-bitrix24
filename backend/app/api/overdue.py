@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from sqlalchemy import select
 
+from app.analytics.kpi import overdue_activities_query
 from app.auth.deps import CurrentUser, DbSession
 from app.core.timezone import utc_now
 from app.models.crm import CrmActivity
@@ -11,11 +11,7 @@ router = APIRouter()
 @router.get("")
 async def list_overdue(_user: CurrentUser, db: DbSession) -> dict:
     now = utc_now()
-    stmt = select(CrmActivity).where(
-        CrmActivity.completed.is_(False),
-        CrmActivity.deadline.isnot(None),
-        CrmActivity.deadline < now,
-    )
+    stmt = overdue_activities_query(now, CrmActivity)
     rows = (await db.execute(stmt)).scalars().unique().all()
     seen: set[int] = set()
     items = []

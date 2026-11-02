@@ -1,6 +1,6 @@
 """Regression: missing deals marked on full reconcile; activities use LAST_UPDATED cursor."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -53,7 +53,8 @@ LIVE_ACTIVITY_FIXTURE = [
         "OWNER_TYPE_ID": "2",
         "OWNER_ID": "8581",
         "CREATED": "2026-10-05T10:00:00+03:00",
-        "DEADLINE": "2026-10-12T12:00:00+03:00",
+        # Relative to now: a fixed date turns into "overdue" and breaks the test over time
+        "DEADLINE": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         "COMPLETED": "N",
         "LAST_UPDATED": "2026-10-05T15:45:09+03:00",
     },

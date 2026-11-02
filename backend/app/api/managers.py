@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import case, func, select
 
-from app.analytics.kpi import compute_manager_stats
+from app.analytics.kpi import compute_manager_stats, overdue_activities_query
 from app.auth.deps import CurrentUser, DbSession
 from app.core.timezone import local_day_bounds, utc_now
 from app.models.crm import CrmActivity, CrmDeal, CrmManager, CrmStage
@@ -103,14 +103,8 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
 
     overdue_rows = (
         await db.execute(
-            select(CrmDeal.assigned_by_id, CrmActivity.bitrix_id)
-            .join(CrmDeal, CrmDeal.bitrix_id == CrmActivity.owner_id)
-            .where(
-                CrmActivity.completed.is_(False),
-                CrmActivity.deadline.isnot(None),
-                CrmActivity.deadline < now,
-                CrmDeal.missing_from_bitrix.is_(False),
-                CrmDeal.assigned_by_id.isnot(None),
+            overdue_activities_query(now, CrmDeal.assigned_by_id, CrmActivity.bitrix_id).where(
+                CrmDeal.assigned_by_id.isnot(None)
             )
         )
     ).all()

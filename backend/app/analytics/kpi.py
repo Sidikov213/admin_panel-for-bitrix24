@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +24,28 @@ def _as_utc(ts: datetime | None) -> datetime | None:
     if ts.tzinfo is None:
         return ts.replace(tzinfo=timezone.utc)
     return ts.astimezone(timezone.utc)
+
+
+def overdue_activities_query(now: datetime, *columns: Any) -> Select:
+    """Open overdue activities of synced deals — single definition for every screen.
+
+    Joins on the deal (owner_type 2) so activities of leads/contacts, of deals outside
+    the synced pipelines and of deals missing from Bitrix are never counted.
+    """
+    return (
+        select(*columns)
+        .select_from(CrmActivity)
+        .join(
+            CrmDeal,
+            (CrmDeal.bitrix_id == CrmActivity.owner_id) & (CrmActivity.owner_type_id == 2),
+        )
+        .where(
+            CrmActivity.completed.is_(False),
+            CrmActivity.deadline.isnot(None),
+            CrmActivity.deadline < now,
+            CrmDeal.missing_from_bitrix.is_(False),
+        )
+    )
 
 
 KPI_DEFINITIONS: dict[str, dict[str, str]] = {
@@ -129,20 +151,11 @@ async def compute_period_kpis(
     ).scalar_one()
     insufficient_stage_semantics = stages_with_semantics == 0
 
-    overdue_q = select(CrmActivity.bitrix_id).where(
-        CrmActivity.completed.is_(False),
-        CrmActivity.deadline.isnot(None),
-        CrmActivity.deadline < now,
-    )
-    if manager_id is not None or pipeline_id is not None:
-        overdue_q = (
-            overdue_q.join(CrmDeal, CrmDeal.bitrix_id == CrmActivity.owner_id)
-            .where(CrmDeal.missing_from_bitrix.is_(False))
-        )
-        if manager_id is not None:
-            overdue_q = overdue_q.where(CrmDeal.assigned_by_id == manager_id)
-        if pipeline_id is not None:
-            overdue_q = overdue_q.where(CrmDeal.category_id == pipeline_id)
+    overdue_q = overdue_activities_query(now, CrmActivity.bitrix_id)
+    if manager_id is not None:
+        overdue_q = overdue_q.where(CrmDeal.assigned_by_id == manager_id)
+    if pipeline_id is not None:
+        overdue_q = overdue_q.where(CrmDeal.category_id == pipeline_id)
     overdue_ids = (await session.execute(overdue_q)).scalars().all()
     open_overdue_count = len(set(overdue_ids))
 
