@@ -124,6 +124,40 @@ export interface ManagerBrief {
   last_name: string;
   bitrix_id: number;
   is_active?: boolean;
+  telegram_chat_id?: string | null;
+}
+
+export interface NotificationStatus {
+  telegram_configured: boolean;
+  team_chat_configured: boolean;
+  enabled: boolean;
+  days: string;
+  time: string;
+  timezone: string;
+  stale_days: number;
+  managers_with_chat: number;
+  last_sent: {
+    date?: string;
+    at?: string;
+    team_sent?: boolean;
+    managers_sent?: number;
+    errors?: number;
+  } | null;
+}
+
+export interface DigestPreview {
+  date: string;
+  team: string;
+  managers: Array<{ manager_id: number; name: string; has_chat: boolean; text: string }>;
+}
+
+export interface DigestSendResult {
+  status: "sent" | "skipped" | "failed";
+  reason?: string;
+  date?: string;
+  team_sent?: boolean;
+  managers_sent?: number;
+  errors?: string[];
 }
 
 export interface ManagerListItem extends ManagerBrief {

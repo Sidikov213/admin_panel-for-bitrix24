@@ -6,6 +6,7 @@ from app.api import (
     deals,
     health,
     managers,
+    notifications,
     overdue,
     pipelines,
     reports,
@@ -26,3 +27,4 @@ api_router.include_router(stalled.router, prefix="/stalled", tags=["stalled"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(targets.router, prefix="/targets", tags=["targets"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])

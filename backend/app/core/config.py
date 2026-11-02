@@ -39,6 +39,32 @@ class Settings(BaseSettings):
     BITRIX_RETRY_MAX: int = 5
     BITRIX_REQUEST_TIMEOUT: float = 30.0
 
+    # Daily digest to Telegram. Empty token → digest disabled.
+    TELEGRAM_BOT_TOKEN: str = ""
+    # Team/head chat for the summary digest (numeric id or @channel)
+    TELEGRAM_CHAT_ID: str = ""
+    DIGEST_ENABLED: bool = True
+    # HH:MM in APP_TIMEZONE
+    DIGEST_TIME: str = "09:00"
+    # APScheduler cron day_of_week syntax
+    DIGEST_DAYS: str = "mon-fri"
+    # Open deal counts as "not moving" after this many days without observed movement
+    DIGEST_STALE_DAYS: int = 7
+    # Max deals listed per section
+    DIGEST_TOP_N: int = 5
+
+    @field_validator("DIGEST_TIME")
+    @classmethod
+    def validate_digest_time(cls, v: str) -> str:
+        hour, _, minute = v.partition(":")
+        if not (hour.isdigit() and minute.isdigit() and 0 <= int(hour) < 24 and 0 <= int(minute) < 60):
+            raise ValueError("DIGEST_TIME must be HH:MM")
+        return f"{int(hour):02d}:{int(minute):02d}"
+
+    @property
+    def telegram_configured(self) -> bool:
+        return bool(self.TELEGRAM_BOT_TOKEN.strip())
+
     @field_validator("BITRIX_CATEGORY_IDS", mode="before")
     @classmethod
     def normalize_category_ids(cls, v: object) -> str:

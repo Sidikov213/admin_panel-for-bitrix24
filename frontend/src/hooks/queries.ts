@@ -1,7 +1,39 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+
+export function useNotificationStatus() {
+  return useQuery({ queryKey: ["notifications", "status"], queryFn: () => api.notificationStatus() });
+}
+
+export function useDigestPreview(enabled: boolean) {
+  return useQuery({
+    queryKey: ["notifications", "preview"],
+    queryFn: () => api.digestPreview(),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+export function useSendDigest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.sendDigest(),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications", "status"] }),
+  });
+}
+
+export function useUpdateManagerChat(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (telegram_chat_id: string | null) => api.updateManager(id, { telegram_chat_id }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["managers", id] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
 
 export function useDashboard(period_start?: string, period_end?: string) {
   return useQuery({

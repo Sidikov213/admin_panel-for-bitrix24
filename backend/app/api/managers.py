@@ -1,13 +1,15 @@
 from datetime import date, timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Header, HTTPException, Query, Request, status
 from sqlalchemy import case, func, select
 
 from app.analytics.kpi import compute_manager_stats, overdue_activities_query
-from app.auth.deps import CurrentUser, DbSession
+from app.auth.csrf import validate_csrf
+from app.auth.deps import AdminUser, CurrentUser, DbSession
 from app.core.timezone import local_day_bounds, utc_now
 from app.models.crm import CrmActivity, CrmDeal, CrmManager, CrmStage
-from app.schemas.deals import ManagerBrief
+from app.schemas.deals import ManagerBrief, ManagerUpdate
 
 router = APIRouter()
 
@@ -150,3 +152,23 @@ async def get_manager(
         "manager": ManagerBrief.model_validate(row).model_dump(),
         **stats,
     }
+
+
+@router.patch("/{manager_id}", response_model=ManagerBrief)
+async def update_manager(
+    manager_id: int,
+    body: ManagerUpdate,
+    _admin: AdminUser,
+    db: DbSession,
+    request: Request,
+    csrf_header: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> ManagerBrief:
+    """Panel-only fields; Bitrix data of the manager stays read-only."""
+    validate_csrf(request, csrf_header)
+    row = await db.get(CrmManager, manager_id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager not found")
+    if "telegram_chat_id" in body.model_fields_set:
+        row.telegram_chat_id = body.telegram_chat_id
+    await db.flush()
+    return ManagerBrief.model_validate(row)

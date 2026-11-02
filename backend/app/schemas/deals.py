@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.common import ORMModel
 
@@ -19,6 +19,22 @@ class ManagerBrief(ORMModel):
     last_name: str
     bitrix_id: int
     is_active: bool = True
+    telegram_chat_id: str | None = None
+
+
+class ManagerUpdate(BaseModel):
+    # Numeric chat id (negative for groups) or @channel/@username; null clears it
+    telegram_chat_id: str | None = Field(
+        default=None, pattern=r"^(-?\d{1,20}|@[A-Za-z0-9_]{5,32})$"
+    )
+
+    @field_validator("telegram_chat_id", mode="before")
+    @classmethod
+    def blank_to_none(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
 
 
 class DealOut(ORMModel):

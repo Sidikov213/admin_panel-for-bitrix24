@@ -29,6 +29,8 @@ class CrmManager(TimestampMixin, Base):
     last_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     raw: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Set in the panel (not synced from Bitrix): personal daily digest destination
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     deals: Mapped[list["CrmDeal"]] = relationship(back_populates="assigned_manager")
 
