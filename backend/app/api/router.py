@@ -10,6 +10,7 @@ from app.api import (
     overdue,
     pipelines,
     reports,
+    sla,
     stalled,
     system,
     targets,
@@ -28,3 +29,4 @@ api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
 api_router.include_router(targets.router, prefix="/targets", tags=["targets"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(sla.router, prefix="/sla", tags=["sla"])

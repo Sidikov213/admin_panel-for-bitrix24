@@ -688,6 +688,7 @@ class SyncOrchestrator:
         bitrix_id = int(raw.get("ID") or 0)
         stmt = select(CrmActivity).where(CrmActivity.bitrix_id == bitrix_id)
         row = (await self._session.execute(stmt)).scalar_one_or_none()
+        was_completed = bool(row and row.completed)
         if not row:
             row = CrmActivity(bitrix_id=bitrix_id)
             self._session.add(row)
@@ -699,7 +700,13 @@ class SyncOrchestrator:
         row.created = parse_bitrix_datetime(raw.get("CREATED"))
         row.deadline = parse_bitrix_datetime(raw.get("DEADLINE"))
         row.completed = str(raw.get("COMPLETED") or "N") == "Y"
-        row.completed_at = parse_bitrix_datetime(raw.get("END_TIME"))
+        row.last_updated = parse_bitrix_datetime(raw.get("LAST_UPDATED"))
+        # END_TIME is the planned end, not when the activity was done. The completion moment
+        # is the last update at which it was first seen completed; later edits keep it.
+        if not row.completed:
+            row.completed_at = None
+        elif not was_completed or row.completed_at is None:
+            row.completed_at = row.last_updated or utc_now()
         await self._session.flush()
         return row
 

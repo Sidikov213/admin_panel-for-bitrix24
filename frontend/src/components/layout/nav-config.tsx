@@ -11,6 +11,7 @@ import {
   Sparkles,
   Store,
   Target,
+  Timer,
   Users,
   Wrench,
 } from "lucide-react";
@@ -29,7 +30,8 @@ export const mainNav: NavItem[] = [
   { href: "/managers", label: "Менеджеры", icon: Users },
   { href: "/pipelines", label: "Воронки", icon: GitBranch },
   { href: "/overdue", label: "Просроченные дела", icon: Clock },
-  { href: "/stalled", label: "Без следующего дела", icon: PauseCircle },
+  { href: "/stalled", label: "Зависшие сделки", icon: PauseCircle },
+  { href: "/reaction", label: "Скорость реакции", icon: Timer },
   { href: "/plan", label: "План / факт", icon: Target },
   { href: "/reports", label: "Отчёты", icon: BarChart3 },
   { href: "/system", label: "Система", icon: Wrench },

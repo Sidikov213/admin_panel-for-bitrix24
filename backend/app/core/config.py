@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     # Max deals listed per section
     DIGEST_TOP_N: int = 5
 
+    # Sales team working calendar (APP_TIMEZONE): stage deadlines in working hours skip
+    # nights, weekends and the company-wide vacation
+    WORK_DAYS: str = "mon-fri"
+    WORK_HOURS: str = "09:00-17:00"
+    # Yearly recurring MM-DD..MM-DD ranges, comma-separated (range may wrap the new year)
+    COMPANY_HOLIDAYS: str = "12-26..01-11"
+
     @field_validator("DIGEST_TIME")
     @classmethod
     def validate_digest_time(cls, v: str) -> str:
