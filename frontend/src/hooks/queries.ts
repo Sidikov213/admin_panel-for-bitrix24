@@ -4,6 +4,31 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ReportKind, SalesTargetInput, SlaUnit } from "@/types/api";
 
+export function useAiStatus() {
+  return useQuery({ queryKey: ["ai", "status"], queryFn: () => api.aiStatus() });
+}
+
+export function useAiAnalyses(kind?: ReportKind) {
+  return useQuery({ queryKey: ["ai", "list", kind ?? "all"], queryFn: () => api.aiAnalyses(kind) });
+}
+
+export function useAiAnalysis(id: number | null) {
+  return useQuery({ queryKey: ["ai", "detail", id], queryFn: () => api.aiAnalysis(id as number), enabled: id !== null });
+}
+
+export function useRunAiAnalysis() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.runAiAnalysis,
+    onSuccess: (row) => {
+      queryClient.setQueryData(["ai", "detail", row.id], row);
+      void queryClient.invalidateQueries({ queryKey: ["ai", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["ai", "status"] });
+    },
+    onError: () => void queryClient.invalidateQueries({ queryKey: ["ai"] }),
+  });
+}
+
 export function useAvitoStatus() {
   return useQuery({ queryKey: ["avito", "status"], queryFn: () => api.avitoStatus() });
 }

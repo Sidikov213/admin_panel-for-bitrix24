@@ -81,6 +81,35 @@ class Settings(BaseSettings):
     AVITO_REPLY_NORM_MINUTES: int = 30
     AVITO_RATE_LIMIT_RPS: float = 2.0
 
+    # AI conclusions (ТЗ §9–11) via the Claude API. Empty key → AI is off, nothing leaves the server.
+    ANTHROPIC_API_KEY: str = ""
+    AI_MODEL: str = "claude-opus-5-5"
+    # low | medium | high | xhigh | max — depth of the model's reasoning, and its cost
+    AI_EFFORT: str = "medium"
+    # By default only numbers go out: managers as «Менеджер-<id>», no clients, titles or links.
+    # true → also comment and Avito texts (phones, e-mails and links removed) — needs the
+    # company's consent to pass client correspondence to an external service.
+    AI_SEND_TEXTS: bool = False
+    # Add the AI conclusion to the scheduled daily / weekly report
+    AI_REPORTS: bool = True
+    # Cost guard: model calls per calendar day (manual runs and reports together)
+    AI_DAILY_LIMIT: int = 30
+    # Sales script / answer standards to check against (when the script is ready)
+    AI_SALES_SCRIPT: str = ""
+    AI_TIMEOUT_SECONDS: float = 180.0
+
+    @property
+    def ai_configured(self) -> bool:
+        return bool(self.ANTHROPIC_API_KEY.strip())
+
+    @field_validator("AI_EFFORT")
+    @classmethod
+    def validate_ai_effort(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ("low", "medium", "high", "xhigh", "max"):
+            raise ValueError("AI_EFFORT must be low, medium, high, xhigh or max")
+        return v
+
     @property
     def avito_accounts(self) -> list[dict]:
         """Validated accounts. Secrets stay in the environment, never in the database."""

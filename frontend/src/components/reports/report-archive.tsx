@@ -184,6 +184,32 @@ function ReportView({ id }: { id: number }) {
         </p>
       ) : null}
 
+      {data.ai_summary?.status === "ok" ? (
+        <div className="rounded-lg bg-muted/50 p-4 text-sm">
+          <h4 className="mb-1 font-medium">Вывод ИИ</h4>
+          <p>{data.ai_summary.headline}</p>
+          {data.ai_summary.points.length ? (
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {data.ai_summary.points.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          ) : null}
+          {data.ai_summary.recommendations.length ? (
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+              {data.ai_summary.recommendations.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ol>
+          ) : null}
+          <Link href="/ai" className="mt-2 inline-block text-primary hover:underline">
+            Полный анализ →
+          </Link>
+        </div>
+      ) : data.ai_summary?.status === "error" ? (
+        <p className="text-sm text-muted-foreground">Вывод ИИ для этого отчёта получить не удалось.</p>
+      ) : null}
+
       {data.managers.length ? (
         <div className="min-w-0">
           <h4 className="mb-2 font-medium">По менеджерам</h4>

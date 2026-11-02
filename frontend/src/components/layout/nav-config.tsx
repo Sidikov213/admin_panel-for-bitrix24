@@ -35,13 +35,13 @@ export const mainNav: NavItem[] = [
   { href: "/reaction", label: "Скорость реакции", icon: Timer },
   { href: "/quality", label: "Качество карточек", icon: ClipboardCheck },
   { href: "/avito", label: "Avito", icon: Store },
+  { href: "/ai", label: "ИИ-анализ", icon: Sparkles },
   { href: "/plan", label: "План / факт", icon: Target },
   { href: "/reports", label: "Отчёты", icon: BarChart3 },
   { href: "/system", label: "Система", icon: Wrench },
 ];
 
 export const placeholderNav: NavItem[] = [
-  { href: "#ai", label: "AI-анализ", icon: Sparkles, disabled: true, badge: "В разработке" },
   { href: "#settings", label: "Настройки", icon: Settings, disabled: true, badge: "В разработке" },
 ];
 

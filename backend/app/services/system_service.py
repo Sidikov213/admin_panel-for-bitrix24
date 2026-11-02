@@ -60,7 +60,11 @@ class SystemService:
                 },
                 "avito": {"status": "configured" if settings.AVITO_ACCOUNTS.strip() else "not_configured", "read_only": True},
                 "sla_adapter": {"status": "planned", "note": "Read-only adapter — этап 2"},
-                "ai": {"status": "planned", "note": "Интерфейсы подготовлены, без внешних вызовов"},
+                "ai": {
+                    "status": "configured" if settings.ai_configured else "not_configured",
+                    "model": settings.AI_MODEL,
+                    "texts_sent": settings.AI_SEND_TEXTS,
+                },
             },
         }
 

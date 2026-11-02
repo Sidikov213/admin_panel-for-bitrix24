@@ -346,6 +346,14 @@ def render_report(data: dict[str, Any]) -> str:
         lines += ["", "<b>Проблемные этапы</b>"]
         for s in data["problem_stages"]:
             lines.append(f"{_e(s['name'])} — зависло {s['stuck']} из {s['open']} · просрочек {s['overdue']}")
+
+    ai = data.get("ai_summary")
+    if ai and ai.get("status") == "ok" and ai.get("headline"):
+        lines += ["", "<b>Вывод ИИ</b>", _e(ai["headline"])]
+        lines += [f"• {_e(p)}" for p in ai.get("points", [])]
+        if ai.get("recommendations"):
+            lines.append("<i>Что сделать:</i>")
+            lines += [f"{i}. {_e(r)}" for i, r in enumerate(ai["recommendations"], 1)]
     return "\n".join(lines)
 
 
