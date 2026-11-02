@@ -12,6 +12,11 @@ import type {
   NotificationStatus,
   OverdueReport,
   ReactionResponse,
+  ReportArchive,
+  ReportBrief,
+  ReportDetail,
+  ReportKind,
+  ReportSendResult,
   SlaRule,
   SlaRulesResponse,
   SlaUnit,
@@ -142,6 +147,15 @@ export const api = {
 
   overdue: (params: Record<string, string | number | boolean | undefined>) =>
     request<OverdueReport>("/overdue", { params }),
+
+  reportArchive: (kind?: ReportKind) => request<ReportArchive>("/reports/archive", { params: { kind } }),
+
+  reportDetail: (id: number) => request<ReportDetail>(`/reports/archive/${id}`),
+
+  generateReport: (kind: ReportKind, day?: string) =>
+    request<ReportBrief>("/reports/archive/generate", { method: "POST", body: { kind, day } }),
+
+  sendReport: (id: number) => request<ReportSendResult>(`/reports/archive/${id}/send`, { method: "POST" }),
 
   slaRules: () => request<SlaRulesResponse>("/sla/rules"),
 

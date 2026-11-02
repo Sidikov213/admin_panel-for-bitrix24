@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Date, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,4 +20,27 @@ class AnalyticsDaily(TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("date", "pipeline_id", "manager_id", name="uq_analytics_daily_dims"),
         Index("ix_analytics_daily_date", "date"),
+    )
+
+
+class SalesReport(TimestampMixin, Base):
+    """Archived daily / weekly / monthly report (ТЗ §11–12): what was sent and what the panel shows."""
+
+    __tablename__ = "sales_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    # daily | weekly | monthly
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Telegram HTML as sent
+    text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_to: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    send_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("kind", "period_start", "period_end", name="uq_sales_reports_period"),
+        Index("ix_sales_reports_kind_start", "kind", "period_start"),
     )
