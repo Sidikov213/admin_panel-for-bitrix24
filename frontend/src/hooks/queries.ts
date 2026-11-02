@@ -65,10 +65,17 @@ export function useUpdateManagerChat(id: number) {
   });
 }
 
-export function useDashboard(period_start?: string, period_end?: string) {
+export function useDashboard(params: {
+  period_start?: string;
+  period_end?: string;
+  pipeline_id?: number;
+  manager_id?: number;
+}) {
   return useQuery({
-    queryKey: ["dashboard", period_start, period_end],
-    queryFn: () => api.dashboard({ period_start, period_end }),
+    queryKey: ["dashboard", params],
+    queryFn: () => api.dashboard(params),
+    // Keep the previous numbers on screen while a new filter loads
+    placeholderData: (prev) => prev,
   });
 }
 

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatNumber, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { MetricDelta } from "@/types/api";
 
 type KpiCardProps = {
   title: string;
@@ -14,9 +16,45 @@ type KpiCardProps = {
   formula?: string;
   freshness?: string;
   className?: string;
+  /** Change vs the previous period of the same length */
+  delta?: MetricDelta | null;
+  /** Whether growth is good news (won) or bad news (lost) */
+  higherIsBetter?: boolean;
+  formatPrevious?: (v: number) => string;
 };
 
-export function KpiCard({ title, value, href, hint, source, formula, freshness, className }: KpiCardProps) {
+function DeltaLine({ delta, higherIsBetter = true, formatPrevious }: { delta: MetricDelta; higherIsBetter?: boolean; formatPrevious?: (v: number) => string }) {
+  const prev = formatPrevious ? formatPrevious(delta.previous) : formatNumber(delta.previous);
+  if (delta.delta === 0) {
+    return <p className="mt-1 text-xs text-muted-foreground">Как в прошлом периоде ({prev})</p>;
+  }
+  const up = delta.delta > 0;
+  const good = up === higherIsBetter;
+  const Icon = up ? ArrowUpRight : ArrowDownRight;
+  return (
+    <p className={cn("mt-1 flex items-center gap-1 text-xs", good ? "text-emerald-700" : "text-red-700")}>
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      <span>
+        {delta.delta_pct !== null ? `${up ? "+" : ""}${formatPercent(delta.delta_pct)}` : up ? "рост" : "снижение"}
+        <span className="text-muted-foreground"> · было {prev}</span>
+      </span>
+    </p>
+  );
+}
+
+export function KpiCard({
+  title,
+  value,
+  href,
+  hint,
+  source,
+  formula,
+  freshness,
+  className,
+  delta,
+  higherIsBetter,
+  formatPrevious,
+}: KpiCardProps) {
   const meta = [
     source && `Источник: ${source}`,
     formula && `Формула: ${formula}`,
@@ -47,6 +85,7 @@ export function KpiCard({ title, value, href, hint, source, formula, freshness, 
       </CardHeader>
       <CardContent className="pl-7">
         <p className="font-serif text-3xl font-semibold tracking-tight">{value}</p>
+        {delta ? <DeltaLine delta={delta} higherIsBetter={higherIsBetter} formatPrevious={formatPrevious} /> : null}
       </CardContent>
     </Card>
   );

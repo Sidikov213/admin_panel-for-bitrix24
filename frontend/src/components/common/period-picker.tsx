@@ -12,22 +12,22 @@ export type PeriodValue = {
   to: string;
 };
 
-function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+/** Local calendar date. toISOString() is UTC and shifts the day after midnight in Moscow. */
+export function isoDate(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export function defaultPeriod(): PeriodValue {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(to.getDate() - 30);
-  return { preset: "month", from: isoDate(from), to: isoDate(to) };
+  return { preset: "month", ...periodFromPreset("month") };
 }
 
 export function periodFromPreset(preset: PeriodPreset): Pick<PeriodValue, "from" | "to"> {
   const to = new Date();
-  const from = new Date();
-  if (preset === "week") from.setDate(to.getDate() - 7);
-  else if (preset === "month") from.setDate(to.getDate() - 30);
+  const from = new Date(to);
+  // Inclusive ranges: "30 дней" = today and the 29 days before it
+  if (preset === "week") from.setDate(to.getDate() - 6);
+  else if (preset === "month") from.setDate(to.getDate() - 29);
   return { from: isoDate(from), to: isoDate(to) };
 }
 

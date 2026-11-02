@@ -165,19 +165,28 @@ async def compute_period_kpis(
         )
     ).scalars().all()
 
+    # Same pipeline/manager scope as the other KPIs
     stage_changes = (
         await session.execute(
             select(func.count())
             .select_from(DealChangeEvent)
+            .join(CrmDeal, CrmDeal.id == DealChangeEvent.deal_id)
             .where(
                 DealChangeEvent.field_name == "stage_id",
                 DealChangeEvent.observed_at >= start_utc,
                 DealChangeEvent.observed_at <= end_utc,
+                *deal_filters,
             )
         )
     ).scalar_one()
 
-    last_change = (await session.execute(select(func.max(DealChangeEvent.observed_at)))).scalar_one()
+    last_change = (
+        await session.execute(
+            select(func.max(DealChangeEvent.observed_at))
+            .join(CrmDeal, CrmDeal.id == DealChangeEvent.deal_id)
+            .where(*deal_filters)
+        )
+    ).scalar_one()
 
     # Enrich stage/manager breakdown with names when available
     stage_ids = {d.stage_id for d in active_deals if d.stage_id}
@@ -192,7 +201,7 @@ async def compute_period_kpis(
         rows = (
             await session.execute(select(CrmManager).where(CrmManager.id.in_(manager_ids)))
         ).scalars().all()
-        managers_map = {m.id: f"{m.name} {m.last_name}".strip() for m in rows}
+        managers_map = {m.id: f"{m.last_name} {m.name}".strip() for m in rows}
 
     deals_by_stage: dict[str, int] = {}
     deals_by_stage_named: list[dict[str, Any]] = []
