@@ -721,3 +721,68 @@ export interface QualityRulesResponse {
   checks: Record<string, string>;
   fields: Array<{ code: string; label: string }>;
 }
+
+export interface AvitoStatus {
+  configured: boolean;
+  config_error: string | null;
+  accounts: Array<{ id: number; name: string; last_sync_at: string | null; last_error: string | null }>;
+  last_run: { status: string; started_at: string; error: string | null } | null;
+  reply_norm_minutes: number;
+}
+
+export interface AvitoChatRow {
+  chat_id: string;
+  account_id: number;
+  account: string;
+  client_name: string | null;
+  item_id: number | null;
+  item_title: string | null;
+  item_url: string | null;
+  first_in_at: string | null;
+  first_reply_at: string | null;
+  last_message_at: string | null;
+  last_direction: string | null;
+  messages_count: number;
+  reply_seconds: number | null;
+  waiting_seconds: number | null;
+  late: boolean;
+  chat_url: string;
+  deal: { deal_id: number; bitrix_id: number; title: string; stage: string | null; won: boolean; lost: boolean; bitrix_url: string | null } | null;
+}
+
+export interface AvitoStats {
+  new: number;
+  replied: number;
+  reply_median_seconds: number | null;
+  reply_avg_seconds: number | null;
+  late: number;
+  late_share: number | null;
+  no_reply: number;
+  linked: number;
+  linked_share: number | null;
+  won: number;
+  lost: number;
+}
+
+export interface AvitoSummary {
+  period_start: string;
+  period_end: string;
+  norm_seconds: number;
+  summary: AvitoStats & { unanswered_now: number; unanswered_late: number };
+  by_account: Array<AvitoStats & { account_id: number; name: string; unanswered_now: number }>;
+  by_item: Array<AvitoStats & { item_id: number | null; title: string; url: string | null; account: string }>;
+  unanswered: AvitoChatRow[];
+  slowest: AvitoChatRow[];
+  definitions: Record<string, string>;
+}
+
+export interface AvitoConversation {
+  chat_id: string;
+  account: string;
+  client_name: string | null;
+  item_title: string | null;
+  item_url: string | null;
+  chat_url: string;
+  deal_bitrix_id: number | null;
+  messages: Array<{ id: string; direction: "in" | "out"; created: string; text: string; is_system: boolean }>;
+}

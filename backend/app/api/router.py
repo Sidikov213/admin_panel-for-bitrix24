@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api import (
     analytics,
     auth,
+    avito,
     deals,
     health,
     managers,
@@ -32,3 +33,4 @@ api_router.include_router(targets.router, prefix="/targets", tags=["targets"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(sla.router, prefix="/sla", tags=["sla"])
 api_router.include_router(quality.router, prefix="/quality", tags=["quality"])
+api_router.include_router(avito.router, prefix="/avito", tags=["avito"])
