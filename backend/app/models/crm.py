@@ -90,6 +90,8 @@ class CrmDeal(TimestampMixin, Base):
     # Set during full reconcile when Bitrix no longer returns the deal in synced categories
     missing_from_bitrix: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     missing_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Last Bitrix payload incl. UF_* fields: card-quality checks read required fields from it
+    raw: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     stage: Mapped[CrmStage | None] = relationship(back_populates="deals")
     assigned_manager: Mapped[CrmManager | None] = relationship(back_populates="deals")
@@ -199,3 +201,29 @@ class DealStageHistory(Base):
         Index("ix_deal_stage_history_deal_time", "deal_bitrix_id", "created_time"),
         Index("ix_deal_stage_history_category", "category_id"),
     )
+
+
+class DealComment(Base):
+    """Timeline comment of a deal (crm.timeline.comment.list) — «комментарий справа»."""
+
+    __tablename__ = "deal_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    bitrix_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    deal_bitrix_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    author_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    __table_args__ = (Index("ix_deal_comments_deal_created", "deal_bitrix_id", "created"),)
+
+
+class CardQualityRule(TimestampMixin, Base):
+    """Admin override of the checks applied to deals on a stage (defaults come from stage names)."""
+
+    __tablename__ = "card_quality_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    stage_bitrix_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    # e.g. ["next_activity", "comment_form", "title_template", "field:OPPORTUNITY"]
+    checks: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

@@ -11,6 +11,9 @@ import type {
   ManagerListItem,
   NotificationStatus,
   OverdueReport,
+  QualityResponse,
+  QualityRule,
+  QualityRulesResponse,
   ReactionResponse,
   ReportArchive,
   ReportBrief,
@@ -156,6 +159,17 @@ export const api = {
     request<ReportBrief>("/reports/archive/generate", { method: "POST", body: { kind, day } }),
 
   sendReport: (id: number) => request<ReportSendResult>(`/reports/archive/${id}/send`, { method: "POST" }),
+
+  quality: (params: { category_id?: number; manager_id?: number; check?: string }) =>
+    request<QualityResponse>("/quality", { params }),
+
+  qualityRules: () => request<QualityRulesResponse>("/quality/rules"),
+
+  putQualityRule: (stageId: string, checks: string[]) =>
+    request<QualityRule>(`/quality/rules/${encodeURIComponent(stageId)}`, { method: "PUT", body: { checks } }),
+
+  resetQualityRule: (stageId: string) =>
+    request<QualityRule>(`/quality/rules/${encodeURIComponent(stageId)}`, { method: "DELETE" }),
 
   slaRules: () => request<SlaRulesResponse>("/sla/rules"),
 

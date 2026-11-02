@@ -136,6 +136,23 @@ export function useReportMutations() {
   };
 }
 
+export function useQuality(params: { category_id?: number; manager_id?: number; check?: string }) {
+  return useQuery({ queryKey: ["quality", params], queryFn: () => api.quality(params), placeholderData: (prev) => prev });
+}
+
+export function useQualityRules() {
+  return useQuery({ queryKey: ["quality", "rules"], queryFn: () => api.qualityRules() });
+}
+
+export function useQualityRuleMutations() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => void queryClient.invalidateQueries({ queryKey: ["quality"] });
+  return {
+    save: useMutation({ mutationFn: ({ stageId, checks }: { stageId: string; checks: string[] }) => api.putQualityRule(stageId, checks), onSuccess }),
+    reset: useMutation({ mutationFn: (stageId: string) => api.resetQualityRule(stageId), onSuccess }),
+  };
+}
+
 export function useSlaRules() {
   return useQuery({ queryKey: ["sla", "rules"], queryFn: () => api.slaRules() });
 }

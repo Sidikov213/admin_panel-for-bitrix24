@@ -659,7 +659,14 @@ export interface ReportDetail extends ReportBrief {
       plan_percent: number | null;
     }>;
     problem_deals: Array<{ deal_id: number; bitrix_id: number; title: string; manager: string | null; stage: string; rule: string; in_stage_seconds: number; unit: SlaUnit; bitrix_url: string | null }>;
-    card_quality: { no_next_activity: number; deals: Array<{ deal_id: number; bitrix_id: number; title: string; opportunity: number | null; bitrix_url: string | null }> };
+    card_quality: {
+      no_next_activity: number;
+      checked?: number;
+      with_issues?: number;
+      share?: number | null;
+      by_check?: Array<{ code: string; label: string; count: number }>;
+      deals: Array<{ deal_id: number; bitrix_id: number; title: string; opportunity: number | null; bitrix_url: string | null }>;
+    };
     problem_stages: Array<{ name: string; pipeline: string; rule: string; open: number; stuck: number; overdue: number }>;
     data_warning: string | null;
   };
@@ -670,4 +677,47 @@ export interface ReportSendResult {
   reason?: string;
   sent_to?: number;
   errors?: string[];
+}
+
+export interface QualityIssue {
+  code: string;
+  label: string;
+}
+
+export interface QualityResponse {
+  checked: number;
+  with_issues: number;
+  share: number | null;
+  by_check: Array<QualityIssue & { count: number }>;
+  by_manager: Array<{ manager_id: number; name: string | null; checked: number; with_issues: number; issues: number; share: number | null }>;
+  items: Array<{
+    deal_id: number;
+    bitrix_id: number;
+    title: string;
+    manager: string | null;
+    stage: string;
+    pipeline: string;
+    opportunity: number | null;
+    issues: QualityIssue[];
+    last_comment: { at: string; text: string } | null;
+    bitrix_url: string | null;
+  }>;
+  total: number;
+  notes: string[];
+}
+
+export interface QualityRule {
+  stage_bitrix_id: string;
+  stage_name: string;
+  pipeline_name: string;
+  category_id: number;
+  checks: string[];
+  check_labels: Record<string, string>;
+  source: "default" | "custom";
+}
+
+export interface QualityRulesResponse {
+  items: QualityRule[];
+  checks: Record<string, string>;
+  fields: Array<{ code: string; label: string }>;
 }

@@ -1,4 +1,6 @@
+import html
 import logging
+import re
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any
@@ -21,6 +23,7 @@ from app.models.crm import (
     CrmPipeline,
     CrmStage,
     DealChangeEvent,
+    DealComment,
     DealSnapshot,
     DealStageHistory,
 )
@@ -34,6 +37,16 @@ logger = logging.getLogger(__name__)
 _DELETE_CHUNK = 1000
 
 STAGE_HISTORY_STATE = "last_stage_history_sync"
+COMMENTS_STATE = "last_comments_sync"
+DEAL_FIELDS_STATE = "deal_fields"
+_BBCODE_RE = re.compile(r"\[/?[a-zA-Z*]+(?:=[^\]]*)?\]")
+_HTML_RE = re.compile(r"<[^>]+>")
+
+
+def comment_text(raw: object) -> str:
+    """Bitrix comment body without BB-codes / HTML, for pattern checks and display."""
+    text = html.unescape(_HTML_RE.sub(" ", _BBCODE_RE.sub("", str(raw or ""))))
+    return re.sub(r"[ 	]+", " ", text).strip()
 
 
 def _parse_stage_history(raw: dict[str, Any]) -> DealStageHistory | None:
@@ -120,6 +133,7 @@ class SyncOrchestrator:
                 for st in stages:
                     await self._upsert_stage(cid, st)
                     processed += 1
+            await self._sync_deal_fields()
             await self._sync_repo.set_state(
                 "last_dictionaries_sync",
                 {"at": utc_now().isoformat()},
@@ -324,6 +338,99 @@ class SyncOrchestrator:
                 logger.exception("refresh_open_deal_flags_failed")
         finally:
             await self._sync_repo.advisory_unlock(SyncType.activities)
+
+    async def _sync_deal_fields(self) -> None:
+        """Labels of deal fields (incl. UF_*) so required-field checks can be configured by name."""
+        try:
+            fields = await self._client.crm_deal_fields()
+        except Exception as e:  # optional enrichment: never fail the dictionaries run
+            logger.warning("deal_fields_unavailable err=%s", type(e).__name__)
+            return
+        if not fields:
+            return
+        compact = {
+            code: {
+                "label": str(meta.get("listLabel") or meta.get("formLabel") or meta.get("title") or code),
+                "type": str(meta.get("type") or ""),
+            }
+            for code, meta in fields.items()
+            if isinstance(meta, dict)
+        }
+        await self._sync_repo.set_state(DEAL_FIELDS_STATE, compact)
+
+    async def run_comments(self) -> None:
+        """Refresh timeline comments of every open deal in the synced pipelines.
+
+        Batched by 50 deals per request, so even 2000 open deals cost ~40 calls a cycle.
+        Only the newest page per deal is kept fresh: quality checks look at the latest comments.
+        """
+        if not await self._sync_repo.try_advisory_lock(SyncType.comments):
+            return
+        run = await self._start_run(SyncType.comments)
+        run_id = run.id
+        upserted = 0
+        try:
+            deal_ids = list(
+                (
+                    await self._session.execute(
+                        select(CrmDeal.bitrix_id).where(
+                            CrmDeal.closed.is_(False),
+                            CrmDeal.missing_from_bitrix.is_(False),
+                            CrmDeal.category_id.in_(self._settings.bitrix_category_ids),
+                        )
+                    )
+                ).scalars()
+            )
+            by_deal = await self._client.crm_timeline_comments(deal_ids)
+            parsed: dict[int, DealComment] = {}
+            for deal_id, rows in by_deal.items():
+                for raw in rows:
+                    created = parse_bitrix_datetime(raw.get("CREATED"))
+                    try:
+                        cid = int(raw.get("ID") or 0)
+                    except (TypeError, ValueError):
+                        continue
+                    if not cid or created is None:
+                        continue
+                    author = raw.get("AUTHOR_ID")
+                    parsed[cid] = DealComment(
+                        bitrix_id=cid,
+                        deal_bitrix_id=deal_id,
+                        author_id=int(author) if str(author or "").isdigit() else None,
+                        created=created,
+                        text=comment_text(raw.get("COMMENT"))[:20000],
+                    )
+            ids = sorted(parsed)
+            existing: dict[int, DealComment] = {}
+            for i in range(0, len(ids), _DELETE_CHUNK):
+                rows = (
+                    await self._session.execute(select(DealComment).where(DealComment.bitrix_id.in_(ids[i : i + _DELETE_CHUNK])))
+                ).scalars()
+                existing.update({r.bitrix_id: r for r in rows})
+            for cid, new in parsed.items():
+                old = existing.get(cid)
+                if old is None:
+                    self._session.add(new)
+                elif old.text != new.text:
+                    old.text = new.text  # comments can be edited
+                else:
+                    continue
+                upserted += 1
+            await self._sync_repo.set_state(COMMENTS_STATE, {"at": utc_now().isoformat(), "deals": len(deal_ids)})
+            await self._sync_repo.finish_run(
+                run,
+                status=SyncStatus.success,
+                items_processed=upserted,
+                errors_count=0,
+                cursor_info={"deals": len(deal_ids), "deals_answered": len(by_deal), "comments": len(parsed)},
+            )
+            await self._session.commit()
+        except Exception as e:
+            if not isinstance(e, BitrixClientError):
+                logger.exception("sync_comments_failed")
+            await self._fail_run(run_id, items_processed=upserted, errors_count=1, error_message=str(e))
+        finally:
+            await self._sync_repo.advisory_unlock(SyncType.comments)
 
     async def run_stage_history(self) -> None:
         """Pull new deal stage transitions (crm.stagehistory.list) after the last seen ID.
@@ -636,6 +743,7 @@ class SyncOrchestrator:
         deal.closed = str(raw.get("CLOSED") or "N") == "Y"
         deal.observed_at = observed
         deal.content_hash = content_hash
+        deal.raw = raw
         # Reappeared in Bitrix feed — clear soft-missing marker
         deal.missing_from_bitrix = False
         deal.missing_observed_at = None

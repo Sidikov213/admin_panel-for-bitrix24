@@ -8,6 +8,8 @@ from app.models.crm import (
     CrmStage,
     DealChangeEvent,
     DealSnapshot,
+    CardQualityRule,
+    DealComment,
     DealStageHistory,
     StageSlaRule,
 )
@@ -28,6 +30,8 @@ __all__ = [
     "DealChangeEvent",
     "DealStageHistory",
     "StageSlaRule",
+    "DealComment",
+    "CardQualityRule",
     "SyncRun",
     "SyncType",
     "SyncStatus",
