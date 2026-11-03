@@ -118,12 +118,30 @@ class CrmActivity(TimestampMixin, Base):
     created: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    # Bitrix has no completion timestamp: END_TIME is the *planned* end. Taken from
+    # LAST_UPDATED when the activity is first seen completed (close enough in practice).
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_updated: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_crm_activities_owner_completed", "owner_id", "completed"),
         Index("ix_crm_activities_open_deadline", "completed", "deadline"),
     )
+
+
+class StageSlaRule(TimestampMixin, Base):
+    """Admin override of how long a deal may stay on a stage (defaults come from stage names)."""
+
+    __tablename__ = "stage_sla_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    stage_bitrix_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    # None = stage is not tracked
+    threshold: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    # work_hours | work_days | calendar_days
+    unit: Mapped[str] = mapped_column(String(16), nullable=False, default="calendar_days")
+    # Stage counts toward "reaction time" (new lead → first contact)
+    reaction_stage: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class DealSnapshot(TimestampMixin, Base):

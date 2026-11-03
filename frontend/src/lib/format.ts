@@ -55,3 +55,23 @@ export function syncStateAt(value: string | { at?: string } | null | undefined):
   if (typeof value === "string") return value;
   return value.at ?? null;
 }
+
+/** 12000 → "3 ч 20 мин", 700000 → "8 дн. 2 ч". `work` marks working time. */
+export function formatDuration(seconds: number | null | undefined, opts: { work?: boolean } = {}): string {
+  if (seconds === null || seconds === undefined) return "—";
+  const s = Math.max(0, Math.round(seconds));
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  let text: string;
+  if (opts.work) {
+    // Working time is shown in hours: "a working day" is ambiguous, hours are not
+    const h = Math.floor(s / 3600);
+    text = h ? `${h} ч${minutes ? ` ${minutes} мин` : ""}` : `${minutes} мин`;
+    return `${text} раб.`;
+  }
+  if (days) text = `${days} дн.${hours ? ` ${hours} ч` : ""}`;
+  else if (hours) text = `${hours} ч${minutes ? ` ${minutes} мин` : ""}`;
+  else text = `${minutes} мин`;
+  return text;
+}

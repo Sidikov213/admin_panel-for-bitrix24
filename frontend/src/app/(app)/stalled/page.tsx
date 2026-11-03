@@ -1,5 +1,5 @@
-import { StalledView } from "@/components/stalled/stalled-view";
+import { StuckView } from "@/components/sla/stuck-view";
 
 export default function StalledPage() {
-  return <StalledView />;
+  return <StuckView />;
 }

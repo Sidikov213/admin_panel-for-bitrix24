@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { SalesTargetInput } from "@/types/api";
+import type { SalesTargetInput, SlaUnit } from "@/types/api";
 
 export function useFunnel(params: { category_id?: number; period_start: string; period_end: string; manager_id?: number }) {
   return useQuery({
@@ -103,8 +103,37 @@ export function useDeal(id: number) {
   return useQuery({ queryKey: ["deals", id], queryFn: () => api.deal(id), enabled: id > 0 });
 }
 
-export function useOverdue() {
-  return useQuery({ queryKey: ["overdue"], queryFn: () => api.overdue() });
+export function useOverdue(params: Record<string, string | number | boolean | undefined>) {
+  return useQuery({ queryKey: ["overdue", params], queryFn: () => api.overdue(params), placeholderData: (prev) => prev });
+}
+
+export function useStuck(params: { category_id?: number; manager_id?: number; only_stuck?: boolean }) {
+  return useQuery({ queryKey: ["sla", "stuck", params], queryFn: () => api.stuck(params), placeholderData: (prev) => prev });
+}
+
+export function useReaction(params: { period_start?: string; period_end?: string; category_id?: number; manager_id?: number }) {
+  return useQuery({
+    queryKey: ["sla", "reaction", params],
+    queryFn: () => api.reaction(params),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useSlaRules() {
+  return useQuery({ queryKey: ["sla", "rules"], queryFn: () => api.slaRules() });
+}
+
+export function useSlaRuleMutations() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => void queryClient.invalidateQueries({ queryKey: ["sla"] });
+  return {
+    save: useMutation({
+      mutationFn: ({ stageId, body }: { stageId: string; body: { threshold: number | null; unit: SlaUnit; reaction_stage: boolean } }) =>
+        api.putSlaRule(stageId, body),
+      onSuccess,
+    }),
+    reset: useMutation({ mutationFn: (stageId: string) => api.resetSlaRule(stageId), onSuccess }),
+  };
 }
 
 export function useStalled(mode: "no_future" | "rules" = "no_future") {

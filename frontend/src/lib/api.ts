@@ -10,7 +10,12 @@ import type {
   ManagerDetail,
   ManagerListItem,
   NotificationStatus,
-  OverdueResponse,
+  OverdueReport,
+  ReactionResponse,
+  SlaRule,
+  SlaRulesResponse,
+  SlaUnit,
+  StuckResponse,
   Pipeline,
   ReportsResponse,
   SalesTarget,
@@ -135,7 +140,21 @@ export const api = {
   funnel: (params: { category_id?: number; period_start?: string; period_end?: string; manager_id?: number }) =>
     request<FunnelResponse>("/funnel", { params }),
 
-  overdue: () => request<OverdueResponse>("/overdue"),
+  overdue: (params: Record<string, string | number | boolean | undefined>) =>
+    request<OverdueReport>("/overdue", { params }),
+
+  slaRules: () => request<SlaRulesResponse>("/sla/rules"),
+
+  putSlaRule: (stageId: string, body: { threshold: number | null; unit: SlaUnit; reaction_stage: boolean }) =>
+    request<SlaRule>(`/sla/rules/${encodeURIComponent(stageId)}`, { method: "PUT", body }),
+
+  resetSlaRule: (stageId: string) => request<SlaRule>(`/sla/rules/${encodeURIComponent(stageId)}`, { method: "DELETE" }),
+
+  stuck: (params: { category_id?: number; manager_id?: number; only_stuck?: boolean }) =>
+    request<StuckResponse>("/sla/stuck", { params }),
+
+  reaction: (params: { period_start?: string; period_end?: string; category_id?: number; manager_id?: number }) =>
+    request<ReactionResponse>("/sla/reaction", { params }),
 
   stalled: (mode: "no_future" | "rules" = "no_future") =>
     request<StalledResponse>("/stalled", { params: { mode } }),

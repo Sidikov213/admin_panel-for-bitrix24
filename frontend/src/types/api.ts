@@ -453,3 +453,148 @@ export interface FunnelResponse {
   definitions: Record<string, string>;
   computed_at: string;
 }
+
+export type SlaUnit = "work_hours" | "work_days" | "calendar_days";
+
+export interface SlaRule {
+  stage_bitrix_id: string;
+  stage_name: string;
+  category_id: number;
+  pipeline_name: string;
+  sort: number;
+  threshold: number | null;
+  unit: SlaUnit;
+  reaction_stage: boolean;
+  source: "default" | "custom" | "none";
+  label: string;
+  tracked: boolean;
+}
+
+export interface SlaRulesResponse {
+  items: SlaRule[];
+  units: Record<SlaUnit, string>;
+  work_calendar: { hours: string; workdays: number[]; holidays: string[] };
+}
+
+export interface StuckDeal {
+  deal_id: number;
+  bitrix_id: number;
+  title: string;
+  opportunity: number | null;
+  manager_id: number | null;
+  manager: string | null;
+  stage_id: string;
+  stage: string;
+  pipeline: string;
+  rule: string;
+  unit: SlaUnit;
+  in_stage_seconds: number;
+  limit_seconds: number | null;
+  over_seconds: number;
+  over_ratio: number | null;
+  stuck: boolean;
+  in_stage_since: string;
+  in_stage_since_source: "bitrix" | "observed" | "created";
+  last_movement_at: string;
+  last_activity: { type: string; subject: string | null; at: string; completed: boolean } | null;
+  has_future_activity: boolean;
+  next_deadline_at: string | null;
+  bitrix_url: string | null;
+}
+
+export interface StuckResponse {
+  items: StuckDeal[];
+  total: number;
+  stuck_total: number;
+  open_total: number;
+  by_stage: Array<{
+    stage_id: string;
+    name: string;
+    pipeline: string;
+    category_id: number;
+    sort: number;
+    rule: string;
+    tracked: boolean;
+    open: number;
+    stuck: number;
+  }>;
+  by_manager: Array<{ manager_id: number; name: string | null; open: number; stuck: number; share: number | null }>;
+  work_calendar: { hours: string; workdays: number[] };
+  computed_at: string;
+}
+
+export interface SecondsStats {
+  median_seconds: number | null;
+  avg_seconds: number | null;
+  count: number;
+}
+
+export interface ReactionGroup {
+  deals: number;
+  take: SecondsStats;
+  contact: SecondsStats;
+  late: number;
+  late_share: number | null;
+  waiting: number;
+  waiting_late: number;
+}
+
+export interface ReactionResponse {
+  period_start: string;
+  period_end: string;
+  summary: ReactionGroup;
+  managers: Array<ReactionGroup & { manager_id: number; name: string | null }>;
+  worst: Array<{
+    deal_id: number;
+    bitrix_id: number;
+    title: string;
+    manager: string | null;
+    created_at: string;
+    take_seconds: number | null;
+    contact_seconds: number | null;
+    waiting_seconds: number | null;
+    contact_norm_seconds: number | null;
+    late: boolean;
+    stage: string | null;
+    bitrix_url: string | null;
+  }>;
+  norms: Record<string, { take: number; contact: number; stages: string[] }>;
+  skipped_without_history: number;
+  definitions: Record<string, string>;
+}
+
+export interface OverdueItem {
+  activity_id: number;
+  bitrix_id: number;
+  type: string;
+  subject: string | null;
+  deadline: string;
+  is_open: boolean;
+  completed_at: string | null;
+  overdue_seconds: number;
+  deal_id: number;
+  deal_bitrix_id: number;
+  deal_title: string;
+  manager_id: number | null;
+  manager: string | null;
+  pipeline: string | null;
+  stage: string | null;
+  bitrix_url: string | null;
+}
+
+export interface OverdueReport {
+  date_from: string;
+  date_to: string;
+  summary: {
+    total: number;
+    open: number;
+    closed_late: number;
+    close_delay_median_seconds: number | null;
+    close_delay_avg_seconds: number | null;
+    unknown_completion: number;
+  };
+  items: OverdueItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
