@@ -4,6 +4,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ReportKind, SalesTargetInput, SlaUnit } from "@/types/api";
 
+export function useAvitoStatus() {
+  return useQuery({ queryKey: ["avito", "status"], queryFn: () => api.avitoStatus() });
+}
+
+export function useAvitoSummary(params: { period_start?: string; period_end?: string; account_id?: number }) {
+  return useQuery({ queryKey: ["avito", "summary", params], queryFn: () => api.avitoSummary(params), placeholderData: (prev) => prev });
+}
+
+export function useAvitoChat(chatId: string | null) {
+  return useQuery({ queryKey: ["avito", "chat", chatId], queryFn: () => api.avitoChat(chatId as string), enabled: chatId !== null });
+}
+
 export function useFunnel(params: { category_id?: number; period_start: string; period_end: string; manager_id?: number }) {
   return useQuery({
     queryKey: ["funnel", params],

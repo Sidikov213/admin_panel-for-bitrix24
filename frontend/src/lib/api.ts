@@ -1,5 +1,8 @@
 import { getCookie } from "@/lib/utils";
 import type {
+  AvitoConversation,
+  AvitoStatus,
+  AvitoSummary,
   DashboardResponse,
   DealDetail,
   DealListResponse,
@@ -170,6 +173,13 @@ export const api = {
 
   resetQualityRule: (stageId: string) =>
     request<QualityRule>(`/quality/rules/${encodeURIComponent(stageId)}`, { method: "DELETE" }),
+
+  avitoStatus: () => request<AvitoStatus>("/avito/status"),
+
+  avitoSummary: (params: { period_start?: string; period_end?: string; account_id?: number }) =>
+    request<AvitoSummary>("/avito/summary", { params }),
+
+  avitoChat: (chatId: string) => request<AvitoConversation>(`/avito/chats/${encodeURIComponent(chatId)}`),
 
   slaRules: () => request<SlaRulesResponse>("/sla/rules"),
 

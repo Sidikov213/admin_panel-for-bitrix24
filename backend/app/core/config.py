@@ -71,6 +71,41 @@ class Settings(BaseSettings):
     TELEGRAM_REPORT_CHAT_IDS: str = ""
     REPORT_TOP_N: int = 7
 
+    # Avito (read-only): JSON list of {"id": <Avito user id>, "name": "...", "client_id": "...",
+    # "client_secret": "..."} — one pair per account from «Для профессионалов → API»
+    AVITO_ACCOUNTS: str = ""
+    AVITO_SYNC_INTERVAL_MINUTES: int = 5
+    # First sync looks back this many days; later syncs are incremental by chat update time
+    AVITO_INITIAL_DAYS: int = 30
+    # First-reply norm in working minutes (regulations: a new lead is taken within 30 min)
+    AVITO_REPLY_NORM_MINUTES: int = 30
+    AVITO_RATE_LIMIT_RPS: float = 2.0
+
+    @property
+    def avito_accounts(self) -> list[dict]:
+        """Validated accounts. Secrets stay in the environment, never in the database."""
+        import json
+
+        if not self.AVITO_ACCOUNTS.strip():
+            return []
+        try:
+            raw = json.loads(self.AVITO_ACCOUNTS)
+        except json.JSONDecodeError as e:
+            raise ValueError("AVITO_ACCOUNTS must be a JSON list") from e
+        out = []
+        for a in raw if isinstance(raw, list) else []:
+            if not all(str(a.get(k, "")).strip() for k in ("id", "client_id", "client_secret")):
+                raise ValueError("each AVITO_ACCOUNTS entry needs id, client_id, client_secret")
+            out.append(
+                {
+                    "id": int(a["id"]),
+                    "name": str(a.get("name") or a["id"]),
+                    "client_id": str(a["client_id"]),
+                    "client_secret": str(a["client_secret"]),
+                }
+            )
+        return out
+
     @field_validator("REPORT_DAILY_TIME", "REPORT_WEEKLY_TIME")
     @classmethod
     def validate_report_time(cls, v: str) -> str:

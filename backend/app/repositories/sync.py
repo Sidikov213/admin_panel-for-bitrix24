@@ -16,6 +16,7 @@ _LOCK_KEYS: dict[SyncType, int] = {
     SyncType.activities: zlib.crc32(b"focus:sync:activities") & 0x7FFFFFFF,
     SyncType.stage_history: zlib.crc32(b"focus:sync:stage_history") & 0x7FFFFFFF,
     SyncType.comments: zlib.crc32(b"focus:sync:comments") & 0x7FFFFFFF,
+    SyncType.avito: zlib.crc32(b"focus:sync:avito") & 0x7FFFFFFF,
 }
 
 

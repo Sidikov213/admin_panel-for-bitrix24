@@ -1,5 +1,6 @@
 from app.models.analytics import AnalyticsDaily, SalesReport
 from app.models.auth import LoginAttempt, Session, User, UserRole
+from app.models.avito import AvitoChat, AvitoMessage
 from app.models.crm import (
     CrmActivity,
     CrmDeal,

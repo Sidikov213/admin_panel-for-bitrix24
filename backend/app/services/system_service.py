@@ -58,7 +58,7 @@ class SystemService:
                     ),
                     "read_only": True,
                 },
-                "avito": {"status": "planned", "note": "В разработке"},
+                "avito": {"status": "configured" if settings.AVITO_ACCOUNTS.strip() else "not_configured", "read_only": True},
                 "sla_adapter": {"status": "planned", "note": "Read-only adapter — этап 2"},
                 "ai": {"status": "planned", "note": "Интерфейсы подготовлены, без внешних вызовов"},
             },

@@ -12,6 +12,7 @@ from app.core.timezone import app_tz
 from app.db.session import async_session_factory
 from app.models.sync import SyncRun, SyncStatus, SyncType
 from app.notifications.service import send_daily_digest
+from app.integrations.avito.sync import run_avito_sync
 from app.reports.service import run_scheduled_report
 from app.repositories.sync import SyncRepository
 from app.services.sync_service import SyncOrchestrator
@@ -90,6 +91,15 @@ async def digest_job() -> None:
         logger.exception("digest_job_failed")
 
 
+async def avito_job() -> None:
+    # Independent of Bitrix: Avito dialogs are useful even before the webhook is set
+    try:
+        async with async_session_factory() as session:
+            await run_avito_sync(session)
+    except Exception:
+        logger.exception("avito_job_failed")
+
+
 def digest_trigger() -> CronTrigger:
     settings = get_settings()
     hour, minute = (int(x) for x in settings.DIGEST_TIME.split(":"))
@@ -141,6 +151,22 @@ def main() -> None:
         logger.info("digest_scheduled days=%s time=%s", settings.DIGEST_DAYS, settings.DIGEST_TIME)
     else:
         logger.info("digest_disabled")
+    try:
+        avito_accounts = settings.avito_accounts
+    except ValueError:
+        logger.exception("avito_config_invalid")
+        avito_accounts = []
+    if avito_accounts:
+        scheduler.add_job(
+            avito_job,
+            "interval",
+            minutes=settings.AVITO_SYNC_INTERVAL_MINUTES,
+            id="avito_sync",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now(timezone.utc),
+        )
+        logger.info("avito_scheduled accounts=%s", len(avito_accounts))
     if settings.REPORTS_ENABLED:
         # Reports are archived in the panel even without Telegram; sending is skipped then
         for kind, trigger in report_triggers().items():
