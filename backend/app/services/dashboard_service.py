@@ -1,11 +1,15 @@
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.analytics.kpi import compute_period_kpis
+from app.analytics.avito import avito_summary
+from app.analytics.kpi import compute_period_kpis, overdue_activities_query
+from app.analytics.sla import stuck_deals
 from app.core.timezone import app_tz, utc_now
+from app.models.analytics import AIAnalysis
+from app.models.avito import AvitoChat
 from app.models.crm import CrmDeal, CrmManager, CrmStage, DealChangeEvent
 from app.repositories.sync import SyncRepository
 from app.services.stalled_rules import RULES_ENABLED, StalledRulesConfig, is_stalled
@@ -101,6 +105,47 @@ class DashboardService:
             for c in changes
         ]
 
+    async def _attention(
+        self, *, period_start: date, period_end: date, pipeline_id: int | None, manager_id: int | None,
+        deal_filters: list, no_next: int,
+    ) -> dict:
+        """What needs a decision now: the same numbers as on the control pages, plus the latest AI conclusion."""
+        stuck = await stuck_deals(self._session, category_id=pipeline_id, manager_id=manager_id)
+        overdue_deals = (
+            await self._session.execute(
+                overdue_activities_query(utc_now(), func.count(func.distinct(CrmDeal.id)))
+                .where(CrmDeal.closed.is_(False), *deal_filters)
+            )
+        ).scalar_one()
+        out: dict = {
+            "stuck": stuck["stuck_total"],
+            "stuck_top": [
+                {k: i[k] for k in ("deal_id", "bitrix_id", "title", "stage", "manager", "rule", "in_stage_seconds", "unit")}
+                for i in stuck["items"][:3]
+                if i["stuck"]
+            ],
+            "overdue_deals": overdue_deals,
+            "no_next_activity": no_next,
+            "avito": None,
+            "ai": None,
+        }
+        # Avito dialogs belong to accounts, not to managers or pipelines
+        if pipeline_id is None and manager_id is None:
+            if (await self._session.execute(select(AvitoChat.id).limit(1))).first() is not None:
+                av = await avito_summary(self._session, period_start=period_start, period_end=period_end)
+                out["avito"] = {"unanswered": av["summary"]["unanswered_now"], "late": av["summary"]["unanswered_late"]}
+            row = (
+                await self._session.execute(
+                    select(AIAnalysis).where(AIAnalysis.status == "ok").order_by(AIAnalysis.id.desc()).limit(1)
+                )
+            ).scalar_one_or_none()
+            if row is not None:
+                from app.ai.service import present
+
+                shown = await present(self._session, row)
+                out["ai"] = {k: shown[k] for k in ("id", "kind", "period_start", "period_end", "headline")}
+        return out
+
     async def get_dashboard(
         self,
         *,
@@ -192,6 +237,10 @@ class DashboardService:
                 }
             )
 
+        attention = await self._attention(
+            period_start=period_start, period_end=period_end, pipeline_id=pipeline_id, manager_id=manager_id,
+            deal_filters=deal_filters, no_next=kpis["deals_without_future_activity_count"],
+        )
         last_deals = await self._sync_repo.get_state("last_deals_sync")
         latest = await self._sync_repo.latest_run()
 
@@ -206,6 +255,7 @@ class DashboardService:
             },
             "recent_changes": await self._readable_changes(recent_changes),
             "problem_deals": problem_deals,
+            "attention": attention,
             "sync": {
                 "last_deals_sync": last_deals,
                 "latest_run_status": latest.status.value if latest else None,

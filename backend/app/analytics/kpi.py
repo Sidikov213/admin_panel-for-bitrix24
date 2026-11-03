@@ -233,8 +233,10 @@ async def compute_period_kpis(
 
     # Pipeline distribution for active deals
     pipeline_counts: dict[int | None, int] = {}
+    pipeline_sums: dict[int | None, float] = {}
     for d in active_deals:
         pipeline_counts[d.category_id] = pipeline_counts.get(d.category_id, 0) + 1
+        pipeline_sums[d.category_id] = pipeline_sums.get(d.category_id, 0.0) + float(d.opportunity or 0)
     cat_ids = {c for c in pipeline_counts if c is not None}
     pipes_map: dict[int, str] = {}
     if cat_ids:
@@ -248,6 +250,7 @@ async def compute_period_kpis(
             "category_id": cid,
             "name": pipes_map.get(cid, f"Воронка {cid}") if cid is not None else "Без воронки",
             "count": cnt,
+            "sum": pipeline_sums.get(cid, 0.0),
         }
         for cid, cnt in pipeline_counts.items()
     ]
@@ -278,7 +281,7 @@ async def compute_period_kpis(
         "observed_stage_changes": stage_changes,
         "last_observed_deal_change": last_change.isoformat() if isinstance(last_change, datetime) else None,
         "deals_without_future_activity_count": len(no_future),
-        "deals_without_future_activity_label": "нет следующего запланированного дела",
+        "deals_without_future_activity_label": "Без следующего дела",
         "series_daily": series,
         "definitions": KPI_DEFINITIONS,
         "data_quality": {

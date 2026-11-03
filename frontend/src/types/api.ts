@@ -55,6 +55,7 @@ export interface PipelineCount {
   category_id: number | null;
   name: string;
   count: number;
+  sum?: number;
 }
 
 export interface DailySeriesPoint {
@@ -73,6 +74,14 @@ export interface DashboardResponse {
   };
   recent_changes: DealChangeEvent[];
   problem_deals: ProblemDeal[];
+  attention?: {
+    stuck: number;
+    stuck_top: Array<{ deal_id: number; bitrix_id: number; title: string; stage: string; manager: string | null; rule: string; in_stage_seconds: number; unit: SlaUnit }>;
+    overdue_deals: number;
+    no_next_activity: number;
+    avito: { unanswered: number; late: number } | null;
+    ai: { id: number; kind: ReportKind; period_start: string; period_end: string; headline: string | null } | null;
+  };
   comparison?: {
     period_start: string;
     period_end: string;

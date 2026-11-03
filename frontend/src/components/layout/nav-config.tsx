@@ -8,7 +8,6 @@ import {
   GitBranch,
   LayoutDashboard,
   PauseCircle,
-  Settings,
   Sparkles,
   Store,
   Target,
@@ -21,28 +20,39 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  disabled?: boolean;
-  badge?: string;
 };
 
-export const mainNav: NavItem[] = [
-  { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { href: "/deals", label: "Сделки", icon: Briefcase },
-  { href: "/managers", label: "Менеджеры", icon: Users },
-  { href: "/pipelines", label: "Воронки", icon: GitBranch },
-  { href: "/overdue", label: "Просроченные дела", icon: Clock },
-  { href: "/stalled", label: "Зависшие сделки", icon: PauseCircle },
-  { href: "/reaction", label: "Скорость реакции", icon: Timer },
-  { href: "/quality", label: "Качество карточек", icon: ClipboardCheck },
-  { href: "/avito", label: "Avito", icon: Store },
-  { href: "/ai", label: "ИИ-анализ", icon: Sparkles },
-  { href: "/plan", label: "План / факт", icon: Target },
-  { href: "/reports", label: "Отчёты", icon: BarChart3 },
-  { href: "/system", label: "Система", icon: Wrench },
-];
+export type NavGroup = { title: string; items: NavItem[] };
 
-export const placeholderNav: NavItem[] = [
-  { href: "#settings", label: "Настройки", icon: Settings, disabled: true, badge: "В разработке" },
+export const navGroups: NavGroup[] = [
+  {
+    title: "Обзор",
+    items: [
+      { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
+      { href: "/reports", label: "Отчёты", icon: BarChart3 },
+      { href: "/ai", label: "ИИ-анализ", icon: Sparkles },
+      { href: "/plan", label: "План / факт", icon: Target },
+    ],
+  },
+  {
+    title: "Контроль",
+    items: [
+      { href: "/overdue", label: "Просроченные дела", icon: Clock },
+      { href: "/stalled", label: "Зависшие сделки", icon: PauseCircle },
+      { href: "/reaction", label: "Скорость реакции", icon: Timer },
+      { href: "/quality", label: "Качество карточек", icon: ClipboardCheck },
+    ],
+  },
+  {
+    title: "Данные",
+    items: [
+      { href: "/deals", label: "Сделки", icon: Briefcase },
+      { href: "/managers", label: "Менеджеры", icon: Users },
+      { href: "/pipelines", label: "Воронки", icon: GitBranch },
+      { href: "/avito", label: "Avito", icon: Store },
+    ],
+  },
+  { title: "Служебное", items: [{ href: "/system", label: "Система", icon: Wrench }] },
 ];
 
 export const problemNavIcon = AlertTriangle;

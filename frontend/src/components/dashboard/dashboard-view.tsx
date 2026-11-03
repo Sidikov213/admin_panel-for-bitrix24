@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
@@ -7,12 +8,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -34,10 +30,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDashboard, useManagers, usePipelines, useSystem, useTargetsProgress } from "@/hooks/queries";
-import { formatDate, formatDateTime, formatMoney, formatNumber, managerName } from "@/lib/format";
-import type { NamedCount, PipelineCount } from "@/types/api";
+import { formatDate, formatDateTime, formatDuration, formatMoney, formatNumber, formatPercent, managerName } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import type { DashboardResponse, NamedCount, PipelineCount, SystemStatus } from "@/types/api";
 
-const CHART_COLORS = ["#0f766e", "#0369a1", "#b45309", "#be123c", "#4d7c0f", "#0e7490"];
+const NEW_COLOR = "#0f766e";
+const WON_COLOR = "#d97706";
+const shortDate = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
+
+function dayLabel(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? iso : shortDate.format(d).replace(".", "");
+}
+
+/** Share of won among deals closed in the period. */
+function conversion(won: number, lost: number): number | null {
+  return won + lost ? Math.round((won / (won + lost)) * 1000) / 10 : null;
+}
 
 function asNamedList(value: NamedCount[] | Record<string, number> | null | undefined): NamedCount[] {
   if (!value) return [];
@@ -91,7 +100,149 @@ function dealsHref(scope: { pipelineId?: number; managerId?: number }, params: R
 }
 
 const filterSelectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex h-10 w-full appearance-none rounded-lg border border-input bg-background py-2 pl-3 pr-9 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** Native select that looks like the period picker next to it. */
+function FilterSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div className="relative">
+      <select {...props} className={filterSelectClass} />
+      <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 opacity-50" aria-hidden />
+    </div>
+  );
+}
+
+/** One line instead of three contradicting badges. */
+function DataStatus({ system, lastSync, computedAt }: { system?: SystemStatus; lastSync: string | null; computedAt?: string }) {
+  if (!system) return null;
+  if (!system.bitrix_configured) {
+    return (
+      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+        Bitrix24 не подключён — показаны сохранённые в панели данные, а не живые.
+        {system.demo_mode ? " Включён демо-режим." : ""}
+      </p>
+    );
+  }
+  const stale = system.data_may_be_stale || !system.bitrix_reachable;
+  return (
+    <p className={cn("text-sm", stale ? "text-amber-800" : "text-muted-foreground")}>
+      {stale ? "Bitrix24 сейчас недоступен — данные на " : "Данные из Bitrix24 на "}
+      <strong className="font-medium text-foreground">{formatDateTime(lastSync || computedAt)}</strong>
+      {stale ? ", цифры могут быть устаревшими." : ""}
+    </p>
+  );
+}
+
+type Tone = "bad" | "warn" | "ok";
+
+function AttentionTile({ label, value, href, note, tone }: { label: string; value: string; href: string; note?: string; tone: Tone }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group block rounded-xl border p-4 transition-shadow hover:shadow-md",
+        tone === "bad" && "border-red-200 bg-red-50/70",
+        tone === "warn" && "border-amber-200 bg-amber-50/70",
+        tone === "ok" && "border-emerald-200 bg-emerald-50/60",
+      )}
+    >
+      <p className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+        {label}
+        <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+          →
+        </span>
+      </p>
+      <p
+        className={cn(
+          "font-serif text-3xl font-semibold",
+          tone === "bad" && "text-red-800",
+          tone === "warn" && "text-amber-800",
+          tone === "ok" && "text-emerald-800",
+        )}
+      >
+        {value}
+      </p>
+      {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
+    </Link>
+  );
+}
+
+function AttentionBlock({
+  a,
+  overdueActivities,
+  href,
+}: {
+  a: NonNullable<DashboardResponse["attention"]>;
+  overdueActivities?: number;
+  href: (p: Record<string, string | boolean>) => string;
+}) {
+  // A few deals without a next activity is a warning; any overdue or stuck deal is a problem
+  const tone = (n: number, badFrom = 1): Tone => (n === 0 ? "ok" : n >= badFrom ? "bad" : "warn");
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>Требует внимания</CardTitle>
+        <CardDescription>Состояние на сейчас. Нажмите на плитку, чтобы открыть список.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <AttentionTile
+            label="Сделки с просрочкой"
+            value={formatNumber(a.overdue_deals)}
+            href={href({ overdue: true })}
+            note={overdueActivities ? `просроченных дел: ${formatNumber(overdueActivities)}` : undefined}
+            tone={tone(a.overdue_deals)}
+          />
+          <AttentionTile label="Зависшие сделки" value={formatNumber(a.stuck)} href="/stalled" note="дольше срока стадии" tone={tone(a.stuck)} />
+          <AttentionTile
+            label="Без следующего дела"
+            value={formatNumber(a.no_next_activity)}
+            href={href({ closed: false, has_future_activity: false, sort_by: "opportunity", sort_dir: "desc" })}
+            note="по регламенту дело обязательно"
+            tone={tone(a.no_next_activity, 5)}
+          />
+          {a.avito ? (
+            <AttentionTile
+              label="Avito без ответа"
+              value={formatNumber(a.avito.unanswered)}
+              href="/avito"
+              note={a.avito.late ? `из них дольше нормы: ${a.avito.late}` : "все в пределах нормы"}
+              tone={a.avito.late ? "bad" : a.avito.unanswered ? "warn" : "ok"}
+            />
+          ) : null}
+        </div>
+        {a.stuck_top.length ? (
+          <div>
+            <p className="mb-1.5 text-sm font-medium">Дольше всех стоят</p>
+            <ul className="space-y-1.5 text-sm">
+              {a.stuck_top.map((d) => (
+                <li key={d.deal_id} className="min-w-0">
+                  <Link href={`/deals/${d.deal_id}`} className="text-primary hover:underline">
+                    №{d.bitrix_id} {d.title}
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {d.stage}, {formatDuration(d.in_stage_seconds, { work: d.unit !== "calendar_days" })} при сроке {d.rule}
+                    {d.manager ? ` · ${d.manager}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {a.ai?.headline ? (
+          <Link href="/ai" className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-sm hover:bg-muted">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              <span className="font-medium">Вывод ИИ: </span>
+              {a.ai.headline} <span className="text-primary">Подробнее →</span>
+            </span>
+          </Link>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function DashboardView() {
   const filters = useDashboardFilters();
@@ -113,12 +264,15 @@ export function DashboardView() {
 
   const kpis = dash.data?.kpis;
   const charts = dash.data?.charts;
+  const conv = kpis ? conversion(kpis.won_count, kpis.lost_count) : null;
+  const prevConv = cmp ? conversion(cmp.won_count.previous, cmp.lost_count.previous) : null;
+  const conversionDelta = conv !== null && prevConv !== null ? { previous: prevConv, delta: conv - prevConv, delta_pct: null } : null;
 
-  const pipelineData = useMemo(() => {
-    const named = charts?.deals_by_pipeline as PipelineCount[] | undefined;
-    if (named?.length) return named.map((p) => ({ name: p.name, value: p.count }));
-    return asNamedList(charts?.deals_by_stage).map((s) => ({ name: s.name, value: s.count }));
-  }, [charts]);
+  const pipelineData = useMemo(
+    () => ((charts?.deals_by_pipeline as PipelineCount[] | undefined) ?? []).slice().sort((a, b) => b.count - a.count),
+    [charts],
+  );
+  const pipelineTotal = pipelineData.reduce((n, p) => n + p.count, 0);
 
   const managerData = useMemo(
     () =>
@@ -133,7 +287,6 @@ export function DashboardView() {
   if (dash.isLoading && !kpis) return <PageLoading rows={6} />;
   if (dash.isError) return <ErrorState message="Не удалось загрузить дашборд." onRetry={() => void dash.refetch()} />;
 
-  const syncStale = Boolean(system.data?.data_may_be_stale || (system.data && !system.data.bitrix_reachable));
   const lastSync =
     dash.data?.sync?.latest_run_finished_at ||
     (typeof system.data?.last_deals_sync === "object" && system.data?.last_deals_sync?.at) ||
@@ -160,9 +313,8 @@ export function DashboardView() {
             <Label htmlFor="dash-pipeline" className="block text-xs text-muted-foreground">
               Воронка
             </Label>
-            <select
+            <FilterSelect
               id="dash-pipeline"
-              className={filterSelectClass}
               value={pipelineId ?? ""}
               onChange={(e) => filters.setPipeline(e.target.value ? Number(e.target.value) : undefined)}
             >
@@ -172,15 +324,14 @@ export function DashboardView() {
                   {p.name}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
           </div>
           <div className="w-full space-y-1.5 sm:w-52">
             <Label htmlFor="dash-manager" className="block text-xs text-muted-foreground">
               Менеджер
             </Label>
-            <select
+            <FilterSelect
               id="dash-manager"
-              className={filterSelectClass}
               value={managerId ?? ""}
               onChange={(e) => filters.setManager(e.target.value ? Number(e.target.value) : undefined)}
             >
@@ -190,7 +341,7 @@ export function DashboardView() {
                   {managerName(m)}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
           </div>
           {filtered ? (
             <Button variant="ghost" size="sm" className="h-10" onClick={filters.reset}>
@@ -201,26 +352,16 @@ export function DashboardView() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          Обновление данных:{" "}
-          <strong className="font-medium text-foreground">{formatDateTime(lastSync || kpis?.computed_at)}</strong>
-        </span>
-        {system.data?.latest_sync_run ? (
-          <Badge variant={syncStale ? "warning" : "secondary"}>
-            Синхронизация: {system.data.latest_sync_run.status}
-          </Badge>
-        ) : (
-          <Badge variant="secondary">Синхронизация ещё не выполнялась</Badge>
-        )}
-        {syncStale ? <Badge variant="warning">Данные могут быть устаревшими</Badge> : null}
-        {system.data?.demo_mode ? <Badge variant="outline">DEMO</Badge> : null}
-      </div>
+      <DataStatus system={system.data} lastSync={lastSync || null} computedAt={kpis?.computed_at} />
 
       {kpis?.data_quality?.note ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {kpis.data_quality.note}
         </p>
+      ) : null}
+
+      {dash.data?.attention ? (
+        <AttentionBlock a={dash.data.attention} overdueActivities={kpis?.overdue_activities_unique} href={(p) => dealsHref(scope, p)} />
       ) : null}
 
       {shownPlan ? (
@@ -295,52 +436,50 @@ export function DashboardView() {
               freshness={kpis.computed_at}
             />
             <KpiCard
-              title="Просроченные дела"
-              value={formatNumber(kpis.overdue_activities_unique)}
-              href={dealsHref(scope, { overdue: true })}
-              hint="по клику — сделки, у которых есть просроченные дела"
-              source={kpis.definitions?.overdue_activities_unique?.source}
-              formula={kpis.definitions?.overdue_activities_unique?.formula}
+              title="Конверсия в успех"
+              value={formatPercent(conversion(kpis.won_count, kpis.lost_count))}
+              href={dealsHref(scope, { outcome: "won", closed_from: period.from, closed_to: period.to })}
+              hint="выиграно ÷ (выиграно + проиграно) среди закрытых за период"
+              delta={conversionDelta}
+              formatPrevious={(v) => formatPercent(v)}
               freshness={kpis.computed_at}
             />
             <KpiCard
-              title={kpis.deals_without_future_activity_label ?? "Без следующего дела"}
-              value={formatNumber(kpis.deals_without_future_activity_count)}
-              href={dealsHref(scope, { closed: false, has_future_activity: false, sort_by: "opportunity", sort_dir: "desc" })}
-              source={kpis.definitions?.deals_without_future_activity_count?.source}
-              formula={kpis.definitions?.deals_without_future_activity_count?.formula}
+              title="Средний чек"
+              value={kpis.won_count ? formatMoney(kpis.sum_won_opportunity / kpis.won_count) : "—"}
+              href={dealsHref(scope, { outcome: "won", closed_from: period.from, closed_to: period.to, sort_by: "opportunity", sort_dir: "desc" })}
+              hint="сумма выигранных ÷ число выигранных за период"
               freshness={kpis.computed_at}
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Нажмите на карточку, чтобы открыть список этих сделок. Сравнение — с предыдущим периодом такой же длины;
-            «Активные», «Сумма в работе» и просрочки — состояние на сейчас, без сравнения.
+            Сравнение — с предыдущим периодом такой же длины. «Активные» и «Сумма в работе» — на сейчас.
           </p>
         </div>
       ) : (
         <EmptyState title="Нет KPI" description="API не вернул метрики за период." />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader>
             <CardTitle>Новые и успешно закрытые</CardTitle>
-            <CardDescription>Динамика по дням (Europe/Moscow)</CardDescription>
+            <CardDescription>По дням, московское время</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
             {!series.length || series.every((d) => d.new === 0 && d.won === 0) ? (
               <EmptyState title="Нет данных для графика" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series}>
+                <BarChart data={series} barGap={1} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={24} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="new" name="Новые" stroke="#0f766e" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="won" name="Закрыто" stroke="#0369a1" strokeWidth={2} dot={false} />
-                </LineChart>
+                  <XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fontSize: 11 }} minTickGap={16} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={28} />
+                  <Tooltip labelFormatter={(v) => formatDate(String(v))} cursor={{ fill: "var(--muted)", opacity: 0.5 }} />
+                  <Legend verticalAlign="top" height={28} iconType="square" />
+                  <Bar dataKey="new" name="Новые" fill={NEW_COLOR} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="won" name="Успешно закрыто" fill={WON_COLOR} radius={[3, 3, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
@@ -348,23 +487,34 @@ export function DashboardView() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Распределение по воронкам</CardTitle>
-            <CardDescription>Активные сделки</CardDescription>
+            <CardTitle>Активные сделки по воронкам</CardTitle>
+            <CardDescription>Количество и сумма в работе</CardDescription>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent>
             {pipelineData.length === 0 ? (
               <EmptyState title="Нет активных сделок" />
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pipelineData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                    {pipelineData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <ul className="space-y-5">
+                {pipelineData.map((p) => (
+                  <li key={p.category_id ?? p.name}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+                      <Link
+                        href={dealsHref({ ...scope, pipelineId: p.category_id ?? undefined }, { closed: false })}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {p.name}
+                      </Link>
+                      <span>
+                        <strong className="font-semibold">{formatNumber(p.count)}</strong> сделок
+                        {p.sum !== undefined ? <span className="text-muted-foreground"> · {formatMoney(p.sum)}</span> : null}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: `${(p.count / Math.max(1, pipelineTotal)) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
@@ -392,7 +542,7 @@ export function DashboardView() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
             <div className="space-y-1.5">
@@ -432,7 +582,7 @@ export function DashboardView() {
                       <TableCell className="whitespace-nowrap">{formatMoney(d.opportunity)}</TableCell>
                       <TableCell className="space-x-1">
                         {d.no_future_activity ? <Badge variant="warning">Нет следующего дела</Badge> : null}
-                        {d.stalled ? <Badge variant="destructive">Наблюдаемый застой</Badge> : null}
+                        {d.stalled ? <Badge variant="destructive">Застой</Badge> : null}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -445,7 +595,7 @@ export function DashboardView() {
         <Card>
           <CardHeader>
             <CardTitle>Последние изменения</CardTitle>
-            <CardDescription>Наблюдаемая история (время обнаружения при polling)</CardDescription>
+            <CardDescription>Что изменилось в сделках — по данным синхронизации с Bitrix</CardDescription>
           </CardHeader>
           <CardContent>
             {(dash.data?.recent_changes ?? []).length === 0 ? (
