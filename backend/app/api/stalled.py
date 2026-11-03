@@ -84,7 +84,7 @@ async def list_stalled(
                 "hours_without_observed_movement": hours,
                 "stage": d.stage.name if d.stage else None,
                 "manager": (
-                    f"{d.assigned_manager.name} {d.assigned_manager.last_name}".strip()
+                    f"{d.assigned_manager.last_name} {d.assigned_manager.name}".strip()
                     if d.assigned_manager
                     else None
                 ),

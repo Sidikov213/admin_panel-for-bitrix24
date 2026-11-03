@@ -73,6 +73,11 @@ export interface DashboardResponse {
   };
   recent_changes: DealChangeEvent[];
   problem_deals: ProblemDeal[];
+  comparison?: {
+    period_start: string;
+    period_end: string;
+    metrics: Record<ComparedMetric, MetricDelta>;
+  };
   sync?: {
     last_deals_sync: { at?: string } | null;
     latest_run_status: string | null;
@@ -83,16 +88,30 @@ export interface DashboardResponse {
   meta?: {
     period_start: string;
     period_end: string;
+    pipeline_id?: number | null;
+    manager_id?: number | null;
     computed_at?: string;
   };
+}
+
+export type ComparedMetric = "new_deals_count" | "won_count" | "lost_count" | "sum_won_opportunity";
+
+export interface MetricDelta {
+  previous: number;
+  delta: number;
+  delta_pct: number | null;
 }
 
 export interface DealChangeEvent {
   id?: number;
   deal_id: number;
+  deal_title?: string | null;
   field_name: string;
+  field_label?: string;
   old_value: string | null;
   new_value: string | null;
+  old_label?: string | null;
+  new_label?: string | null;
   observed_at: string;
   bitrix_event_at: string | null;
   note?: string | null;
@@ -102,6 +121,7 @@ export interface ProblemDeal {
   deal_id: number;
   bitrix_id?: number;
   title: string;
+  opportunity?: number | null;
   stalled: boolean;
   reason: string | null;
   no_future_activity: boolean;
