@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
+import { DigestCard } from "@/components/notifications/digest-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSystem } from "@/hooks/queries";
@@ -77,6 +78,8 @@ export default function SystemPage() {
           </CardContent>
         </Card>
       </div>
+
+      <DigestCard />
 
       {data.integrations ? (
         <Card>

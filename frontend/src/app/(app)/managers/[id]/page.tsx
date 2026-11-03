@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
+import { ManagerTelegramCard } from "@/components/notifications/manager-telegram-card";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +15,7 @@ export default function ManagerDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const manager = useManager(id);
+  const { user } = useAuth();
 
   if (manager.isLoading) return <PageLoading />;
   if (manager.isError || !manager.data) {
@@ -56,6 +59,10 @@ export default function ManagerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {user?.role === "admin" ? (
+        <ManagerTelegramCard managerId={m.id} chatId={m.telegram_chat_id} />
+      ) : null}
 
       <div>
         <h2 className="mb-3 font-serif text-xl font-semibold">Сделки менеджера</h2>

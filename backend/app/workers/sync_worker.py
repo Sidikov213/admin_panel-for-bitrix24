@@ -3,12 +3,15 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.logging import setup_logging
+from app.core.timezone import app_tz
 from app.db.session import async_session_factory
 from app.models.sync import SyncRun, SyncStatus, SyncType
+from app.notifications.service import send_daily_digest
 from app.repositories.sync import SyncRepository
 from app.services.sync_service import SyncOrchestrator
 
@@ -73,6 +76,20 @@ async def scheduled_job() -> None:
         await mark_full_reconcile()
 
 
+async def digest_job() -> None:
+    try:
+        async with async_session_factory() as session:
+            await send_daily_digest(session)
+    except Exception:
+        logger.exception("digest_job_failed")
+
+
+def digest_trigger() -> CronTrigger:
+    settings = get_settings()
+    hour, minute = (int(x) for x in settings.DIGEST_TIME.split(":"))
+    return CronTrigger(day_of_week=settings.DIGEST_DAYS, hour=hour, minute=minute, timezone=app_tz())
+
+
 def main() -> None:
     setup_logging()
     settings = get_settings()
@@ -86,6 +103,19 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
     )
+    if settings.DIGEST_ENABLED and settings.telegram_configured:
+        scheduler.add_job(
+            digest_job,
+            digest_trigger(),
+            id="daily_digest",
+            max_instances=1,
+            coalesce=True,
+            # Worker restarted shortly after the scheduled time → still send today's digest
+            misfire_grace_time=3 * 3600,
+        )
+        logger.info("digest_scheduled days=%s time=%s", settings.DIGEST_DAYS, settings.DIGEST_TIME)
+    else:
+        logger.info("digest_disabled")
 
     async def bootstrap() -> None:
         logger.info("sync_worker_start")

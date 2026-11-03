@@ -3,8 +3,12 @@ import type {
   DashboardResponse,
   DealDetail,
   DealListResponse,
+  DigestPreview,
+  DigestSendResult,
+  ManagerBrief,
   ManagerDetail,
   ManagerListItem,
+  NotificationStatus,
   OverdueResponse,
   Pipeline,
   ReportsResponse,
@@ -133,4 +137,13 @@ export const api = {
   system: () => request<SystemStatus>("/system"),
 
   targets: () => request<SalesTarget[]>("/targets"),
+
+  updateManager: (id: number, body: { telegram_chat_id: string | null }) =>
+    request<ManagerBrief>(`/managers/${id}`, { method: "PATCH", body }),
+
+  notificationStatus: () => request<NotificationStatus>("/notifications/status"),
+
+  digestPreview: () => request<DigestPreview>("/notifications/digest/preview"),
+
+  sendDigest: () => request<DigestSendResult>("/notifications/digest/send", { method: "POST" }),
 };
