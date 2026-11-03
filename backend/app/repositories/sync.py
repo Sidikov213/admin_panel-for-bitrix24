@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from app.models.sync import SyncRun, SyncState, SyncStatus, SyncType
 
@@ -24,18 +24,44 @@ def advisory_lock_key(sync_type: SyncType) -> int:
 class SyncRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+        # Session-level advisory locks belong to one backend connection. The ORM session
+        # returns its connection to the pool on every commit, so lock/unlock must run on
+        # a dedicated connection held for the whole sync run.
+        self._lock_conns: dict[SyncType, AsyncConnection] = {}
 
     async def try_advisory_lock(self, sync_type: SyncType) -> bool:
+        if sync_type in self._lock_conns:
+            return False
         key = advisory_lock_key(sync_type)
-        result = await self._session.execute(
-            text("SELECT pg_try_advisory_lock(:k)"),
-            {"k": key},
-        )
-        return bool(result.scalar())
+        conn = await self._session.bind.connect()
+        try:
+            result = await conn.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": key})
+            acquired = bool(result.scalar())
+            # Autocommit-style: end the implicit transaction, keep the connection
+            await conn.commit()
+        except Exception:
+            await conn.close()
+            raise
+        if not acquired:
+            await conn.close()
+            return False
+        self._lock_conns[sync_type] = conn
+        return True
 
     async def advisory_unlock(self, sync_type: SyncType) -> None:
+        conn = self._lock_conns.pop(sync_type, None)
+        if conn is None:
+            return
         key = advisory_lock_key(sync_type)
-        await self._session.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": key})
+        try:
+            await conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": key})
+            await conn.commit()
+        except Exception:
+            # Drop the backend session instead of pooling it, so the lock dies with it
+            await conn.invalidate()
+            raise
+        finally:
+            await conn.close()
 
     async def start_run(self, sync_type: SyncType) -> SyncRun:
         from app.core.timezone import utc_now
