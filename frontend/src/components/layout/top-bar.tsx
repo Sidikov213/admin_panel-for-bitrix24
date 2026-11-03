@@ -21,10 +21,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
         <Menu className="h-5 w-5" />
       </Button>
       <div className="flex flex-1 items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate font-serif text-base font-semibold tracking-tight">Focus Analytics</p>
-          <p className="hidden text-xs text-muted-foreground sm:block">Корпоративная аналитика продаж</p>
-        </div>
+        <p className="min-w-0 truncate font-serif text-base font-semibold tracking-tight md:invisible">Focus Analytics</p>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">

@@ -164,3 +164,24 @@ async def test_csv_export(client: AsyncClient, db_session: AsyncSession) -> None
     titles = [row[1] for row in rows[1:]]
     assert "'=HYPERLINK(\"x\")" in titles  # formula neutralised
     assert (await client.get("/api/v1/deals/export.csv", params={"outcome": "nope"})).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_attention_block_and_pipeline_sums(client: AsyncClient, db_session: AsyncSession) -> None:
+    seeded = await _seed(db_session)
+    await _login(client)
+    body = (await client.get("/api/v1/dashboard", params=PERIOD)).json()
+    a = body["attention"]
+    k = body["kpis"]
+    # Same numbers as the KPI and the deal list behind it
+    assert a["no_next_activity"] == k["deals_without_future_activity_count"] == 2
+    assert a["overdue_deals"] == await _total(client, closed=False, overdue=True)
+    assert a["stuck"] >= 0 and len(a["stuck_top"]) <= 3
+    assert a["avito"] is None and a["ai"] is None  # no dialogs, no AI conclusions yet
+    pipes = {p["name"]: p for p in body["charts"]["deals_by_pipeline"]}
+    assert (pipes["Сваи"]["count"], pipes["Сваи"]["sum"]) == (2, 200000.0)
+    assert pipes["Отложенный"]["sum"] == 100000.0
+
+    # The AI line and Avito are department-wide: hidden under a manager filter
+    scoped = (await client.get("/api/v1/dashboard", params={**PERIOD, "manager_id": seeded["ivan"].id})).json()
+    assert scoped["attention"]["no_next_activity"] == 2 and scoped["attention"]["ai"] is None

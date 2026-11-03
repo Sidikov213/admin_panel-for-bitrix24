@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Info } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronRight, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -29,13 +29,15 @@ function DeltaLine({ delta, higherIsBetter = true, formatPrevious }: { delta: Me
     return <p className="mt-1 text-xs text-muted-foreground">Как в прошлом периоде ({prev})</p>;
   }
   const up = delta.delta > 0;
+  // From a small base a percentage only scares: 6 → 30 is "+400 %". Show the old value instead.
+  const pct = delta.delta_pct !== null && Math.abs(delta.previous) >= 10 ? delta.delta_pct : null;
   const good = up === higherIsBetter;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
     <p className={cn("mt-1 flex items-center gap-1 text-xs", good ? "text-emerald-700" : "text-red-700")}>
       <Icon className="h-3.5 w-3.5" aria-hidden />
       <span>
-        {delta.delta_pct !== null ? `${up ? "+" : ""}${formatPercent(delta.delta_pct)}` : up ? "рост" : "снижение"}
+        {pct !== null ? `${up ? "+" : ""}${formatPercent(pct)}` : up ? "рост" : "снижение"}
         <span className="text-muted-foreground"> · было {prev}</span>
       </span>
     </p>
@@ -75,12 +77,15 @@ export function KpiCard({
       <div className="absolute inset-y-0 left-0 w-1 bg-accent" />
       <CardHeader className="pb-2 pl-7">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          {meta ? (
-            <span title={meta} className="text-muted-foreground">
-              <Info className="h-3.5 w-3.5" />
-            </span>
-          ) : null}
+          <CardTitle className="font-sans text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
+            {meta ? (
+              <span title={meta}>
+                <Info className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+            {href ? <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden /> : null}
+          </span>
         </div>
       </CardHeader>
       <CardContent className="pl-7">
@@ -90,6 +95,11 @@ export function KpiCard({
     </Card>
   );
 
-  if (href) return <Link href={href}>{inner}</Link>;
+  if (href)
+    return (
+      <Link href={href} className="group block" title="Открыть список сделок">
+        {inner}
+      </Link>
+    );
   return inner;
 }
