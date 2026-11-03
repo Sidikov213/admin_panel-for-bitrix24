@@ -2,7 +2,7 @@ import asyncio
 import logging
 import time
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 import httpx
 
@@ -10,6 +10,24 @@ from app.core.config import get_settings
 from app.integrations.bitrix.sanitize import sanitize_bitrix_text, sanitize_bitrix_url
 
 logger = logging.getLogger(__name__)
+
+
+def _bitrix_query(params: dict[str, Any], prefix: str = "") -> list[tuple[str, str]]:
+    """Nested params → Bitrix query pairs: {"filter": {"ID": 1}} → [("filter[ID]", "1")]."""
+    pairs: list[tuple[str, str]] = []
+    for key, value in params.items():
+        name = f"{prefix}[{key}]" if prefix else str(key)
+        if isinstance(value, dict):
+            pairs += _bitrix_query(value, name)
+        elif isinstance(value, (list, tuple)):
+            for i, item in enumerate(value):
+                if isinstance(item, dict):
+                    pairs += _bitrix_query(item, f"{name}[{i}]")
+                else:
+                    pairs.append((f"{name}[{i}]", str(item)))
+        elif value is not None:
+            pairs.append((name, str(value)))
+    return pairs
 
 
 class BitrixClientError(Exception):
@@ -59,8 +77,14 @@ class BitrixClient:
             "crm.status.list",
             # Stage transition history with Bitrix timestamps (read-only)
             "crm.stagehistory.list",
+            # Card quality: field dictionary (labels of UF_* fields) and timeline comments
+            "crm.deal.fields",
+            "crm.timeline.comment.list",
         }
     )
+    # `batch` only bundles calls; every inner command must itself be in ALLOWED_METHODS
+    BATCH_METHOD = "batch"
+    BATCH_LIMIT = 50
 
     def __init__(
         self,
@@ -111,10 +135,14 @@ class BitrixClient:
         return "bitrix_error"
 
     async def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        if not self._base:
-            raise BitrixClientError("BITRIX_WEBHOOK_URL is not configured", kind="not_configured")
         if method not in self.ALLOWED_METHODS:
             raise BitrixClientError(f"Method not allowed by read-only client: {method}", kind="forbidden_method")
+        return await self._call_unchecked(method, params)
+
+    async def _call_unchecked(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Transport only. Callers enforce the allow-list (call_batch checks every inner command)."""
+        if not self._base:
+            raise BitrixClientError("BITRIX_WEBHOOK_URL is not configured", kind="not_configured")
         url = self._method_url(method)
         payload = params or {}
         last_exc: Exception | None = None
@@ -215,7 +243,54 @@ class BitrixClient:
         return await self.call(method, page_params)
 
     async def crm_deal_list(self, **filters: Any) -> list[dict[str, Any]]:
-        return await self.call_paginated("crm.deal.list", {"filter": filters, "select": ["*"]})
+        # "*" does not include user fields; card-quality checks need UF_* (прибыль, дата монтажа…)
+        return await self.call_paginated("crm.deal.list", {"filter": filters, "select": ["*", "UF_*"]})
+
+    async def call_batch(self, commands: dict[str, tuple[str, dict[str, Any]]]) -> dict[str, Any]:
+        """Up to 50 read-only calls in one request. Returns {key: result}; failed keys are absent."""
+        if len(commands) > self.BATCH_LIMIT:
+            raise BitrixClientError(f"batch accepts at most {self.BATCH_LIMIT} commands", kind="bitrix_error")
+        cmd: dict[str, str] = {}
+        for key, (method, params) in commands.items():
+            if method not in self.ALLOWED_METHODS:
+                raise BitrixClientError(f"Method not allowed by read-only client: {method}", kind="forbidden_method")
+            cmd[key] = f"{method}?{urlencode(_bitrix_query(params))}"
+        data = await self._call_unchecked(self.BATCH_METHOD, {"halt": 0, "cmd": cmd})
+        result = data.get("result") or {}
+        errors = result.get("result_error") or {}
+        if errors:
+            logger.warning("bitrix_batch_partial_errors count=%s", len(errors))
+        out = result.get("result") or {}
+        return out if isinstance(out, dict) else {}
+
+    async def crm_timeline_comments(self, deal_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+        """Latest timeline comments (first page, newest first) for each deal, batched."""
+        out: dict[int, list[dict[str, Any]]] = {}
+        for i in range(0, len(deal_ids), self.BATCH_LIMIT):
+            chunk = deal_ids[i : i + self.BATCH_LIMIT]
+            res = await self.call_batch(
+                {
+                    f"d{d}": (
+                        "crm.timeline.comment.list",
+                        {
+                            "filter": {"ENTITY_ID": d, "ENTITY_TYPE": "deal"},
+                            "select": ["ID", "CREATED", "ENTITY_ID", "AUTHOR_ID", "COMMENT"],
+                            "order": {"ID": "DESC"},
+                        },
+                    )
+                    for d in chunk
+                }
+            )
+            for d in chunk:
+                rows = res.get(f"d{d}")
+                if isinstance(rows, list):
+                    out[d] = rows
+        return out
+
+    async def crm_deal_fields(self) -> dict[str, Any]:
+        data = await self.call("crm.deal.fields", {})
+        result = data.get("result")
+        return result if isinstance(result, dict) else {}
 
     async def crm_deal_get(self, deal_id: int) -> dict[str, Any]:
         data = await self.call("crm.deal.get", {"id": deal_id})

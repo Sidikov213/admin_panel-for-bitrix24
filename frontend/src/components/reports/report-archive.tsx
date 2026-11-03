@@ -249,6 +249,24 @@ function ReportView({ id }: { id: number }) {
         {data.card_quality.no_next_activity ? (
           <div className="min-w-0">
             <h4 className="mb-2 font-medium">Качество карточек: без следующего дела — {data.card_quality.no_next_activity}</h4>
+            {data.card_quality.checked ? (
+              <p className="mb-2 text-sm text-muted-foreground">
+                С нарушениями регламента: {data.card_quality.with_issues} из {data.card_quality.checked} (
+                {formatPercent(data.card_quality.share ?? null)}).{" "}
+                <Link href="/quality" className="text-primary hover:underline">
+                  Подробнее →
+                </Link>
+              </p>
+            ) : null}
+            {data.card_quality.by_check?.length ? (
+              <ul className="mb-2 space-y-1 text-sm">
+                {data.card_quality.by_check.map((b) => (
+                  <li key={b.code}>
+                    {b.label}: {b.count}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <ul className="space-y-2 text-sm">
               {data.card_quality.deals.map((d) => (
                 <li key={d.deal_id}>

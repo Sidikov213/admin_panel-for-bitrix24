@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_sync_cycle(*, full_reconcile: bool = False) -> bool:
-    """Run dictionaries → deals → activities → stage history. Returns True if deal phase succeeded."""
+    """Run dictionaries → deals → activities → stage history → comments. Returns True if deal phase succeeded."""
     settings = get_settings()
     if not settings.BITRIX_WEBHOOK_URL:
         logger.info("sync_skip_bitrix_not_configured")
@@ -39,6 +39,8 @@ async def run_sync_cycle(*, full_reconcile: bool = False) -> bool:
     async with async_session_factory() as session:
         # ID cursor: always incremental, the first run backfills history
         await SyncOrchestrator(session).run_stage_history()
+    async with async_session_factory() as session:
+        await SyncOrchestrator(session).run_comments()
 
     async with async_session_factory() as session:
         sync_type = SyncType.full_reconcile if full_reconcile else SyncType.deals

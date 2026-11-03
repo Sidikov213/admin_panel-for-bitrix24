@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.analytics.card_quality import card_quality
 from app.analytics.kpi import compute_period_kpis, overdue_activities_query
 from app.analytics.overdue import overdue_report
 from app.analytics.plan import targets_progress
@@ -189,6 +190,7 @@ async def build_report(session: AsyncSession, kind: str, start: date, end: date)
             .order_by(CrmDeal.opportunity.desc().nullslast(), CrmDeal.id)
         )
     ).scalars().all()
+    quality = await card_quality(session)
     stage_overdue: dict[str, int] = {}
     for item in overdue["items"]:
         if item["stage"]:
@@ -238,6 +240,10 @@ async def build_report(session: AsyncSession, kind: str, start: date, end: date)
         ],
         "card_quality": {
             "no_next_activity": len(no_next),
+            "checked": quality["checked"],
+            "with_issues": quality["with_issues"],
+            "share": quality["share"],
+            "by_check": quality["by_check"][:top_n],
             "deals": [
                 {"deal_id": d.id, "bitrix_id": d.bitrix_id, "title": d.title,
                  "opportunity": float(d.opportunity) if d.opportunity is not None else None,
@@ -325,8 +331,13 @@ def render_report(data: dict[str, Any]) -> str:
             )
 
     cq = data["card_quality"]
-    if cq["no_next_activity"]:
-        lines += ["", "<b>Качество карточек</b>", f"Без следующего дела: {cq['no_next_activity']}"]
+    if cq["no_next_activity"] or cq.get("with_issues"):
+        lines += ["", "<b>Качество карточек</b>"]
+        if cq.get("checked"):
+            lines.append(f"С нарушениями регламента: {cq['with_issues']} из {cq['checked']} ({pct(cq['share'] or 0)})")
+        for b in cq.get("by_check", []):
+            lines.append(f"— {_e(b['label'])}: {b['count']}")
+        lines.append(f"Без следующего дела: {cq['no_next_activity']}")
         for d in cq["deals"]:
             lines.append(f"• {_link(f'№{d['bitrix_id']} {d['title']}', d['bitrix_url'])}"
                          + (f" — {format_money(d['opportunity'])}" if d["opportunity"] else ""))

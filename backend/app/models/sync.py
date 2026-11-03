@@ -17,6 +17,7 @@ class SyncType(str, enum.Enum):
     activities = "activities"
     full_reconcile = "full_reconcile"
     stage_history = "stage_history"
+    comments = "comments"
 
 
 class SyncStatus(str, enum.Enum):
