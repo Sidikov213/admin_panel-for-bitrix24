@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.timezone import parse_bitrix_datetime, utc_now
 from app.integrations.bitrix.client import BitrixClient, BitrixClientError
 from app.integrations.bitrix.stage_semantics import (
+    map_bitrix_semantics,
     resolve_stage_semantics,
     status_entity_id_for_category,
 )
@@ -21,6 +22,7 @@ from app.models.crm import (
     CrmStage,
     DealChangeEvent,
     DealSnapshot,
+    DealStageHistory,
 )
 from app.models.sync import SyncRun, SyncStatus, SyncType
 from app.repositories.sync import SyncRepository
@@ -30,6 +32,31 @@ logger = logging.getLogger(__name__)
 
 # Keep IN-lists well below asyncpg's 32767 bind-parameter limit
 _DELETE_CHUNK = 1000
+
+STAGE_HISTORY_STATE = "last_stage_history_sync"
+
+
+def _parse_stage_history(raw: dict[str, Any]) -> DealStageHistory | None:
+    try:
+        bitrix_id = int(raw.get("ID") or 0)
+        owner = int(raw.get("OWNER_ID") or 0)
+    except (TypeError, ValueError):
+        return None
+    stage = str(raw.get("STAGE_ID") or "").strip()
+    created = parse_bitrix_datetime(raw.get("CREATED_TIME"))
+    if not bitrix_id or not owner or not stage or created is None:
+        return None
+    category = raw.get("CATEGORY_ID")
+    type_id = raw.get("TYPE_ID")
+    return DealStageHistory(
+        bitrix_id=bitrix_id,
+        deal_bitrix_id=owner,
+        type_id=int(type_id) if type_id not in (None, "") else None,
+        stage_bitrix_id=stage,
+        category_id=int(category) if category not in (None, "") else None,
+        semantics=map_bitrix_semantics(raw.get("STAGE_SEMANTIC_ID")),
+        created_time=created,
+    )
 
 TRACKED_DEAL_FIELDS = (
     "title",
@@ -297,6 +324,73 @@ class SyncOrchestrator:
                 logger.exception("refresh_open_deal_flags_failed")
         finally:
             await self._sync_repo.advisory_unlock(SyncType.activities)
+
+    async def run_stage_history(self) -> None:
+        """Pull new deal stage transitions (crm.stagehistory.list) after the last seen ID.
+
+        History rows are immutable in Bitrix, so an ID cursor is exact: no overlap window,
+        no re-fetching. The first run backfills the whole history of synced pipelines.
+        """
+        if not await self._sync_repo.try_advisory_lock(SyncType.stage_history):
+            return
+        run = await self._start_run(SyncType.stage_history)
+        run_id = run.id
+        fetched = 0
+        inserted = 0
+        try:
+            state = await self._sync_repo.get_state(STAGE_HISTORY_STATE) or {}
+            max_id = int(state.get("max_id") or 0)
+            parsed: dict[int, DealStageHistory] = {}
+            for cat_id in self._settings.bitrix_category_ids:
+                filters: dict[str, Any] = {"CATEGORY_ID": cat_id}
+                if max_id:
+                    filters[">ID"] = max_id
+                rows = await self._client.crm_stagehistory_list(filters=filters)
+                fetched += len(rows)
+                for raw in rows:
+                    row = _parse_stage_history(raw)
+                    if row is not None:
+                        parsed[row.bitrix_id] = row
+
+            new_ids = sorted(parsed)
+            existing: set[int] = set()
+            for i in range(0, len(new_ids), _DELETE_CHUNK):
+                chunk = new_ids[i : i + _DELETE_CHUNK]
+                existing.update(
+                    (
+                        await self._session.execute(
+                            select(DealStageHistory.bitrix_id).where(DealStageHistory.bitrix_id.in_(chunk))
+                        )
+                    ).scalars()
+                )
+            for bid in new_ids:
+                if bid not in existing:
+                    self._session.add(parsed[bid])
+                    inserted += 1
+            new_max = max([max_id, *new_ids])
+            await self._sync_repo.set_state(STAGE_HISTORY_STATE, {"max_id": new_max, "at": utc_now().isoformat()})
+            await self._sync_repo.finish_run(
+                run,
+                status=SyncStatus.success,
+                items_processed=inserted,
+                errors_count=0,
+                cursor_info={"fetched": fetched, "inserted": inserted, "max_id": new_max},
+            )
+            await self._session.commit()
+        except Exception as e:
+            # A portal without this method (old Bitrix, no scope) must not break the cycle;
+            # funnel analytics then falls back to stage changes observed by polling.
+            if not isinstance(e, BitrixClientError):
+                logger.exception("sync_stage_history_failed")
+            await self._fail_run(
+                run_id,
+                items_processed=inserted,
+                errors_count=1,
+                error_message=str(e),
+                cursor_info={"fetched": fetched, "cursor_advanced": False},
+            )
+        finally:
+            await self._sync_repo.advisory_unlock(SyncType.stage_history)
 
     async def _start_run(self, sync_type: SyncType) -> SyncRun:
         """Persist the run row up front so a later rollback cannot erase it."""
