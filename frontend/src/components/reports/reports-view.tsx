@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
 import { PLAN_STATUS } from "@/components/plan/plan-progress-card";
+import { ReportArchive } from "@/components/reports/report-archive";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +39,8 @@ export function ReportsView() {
         </div>
         <PeriodPicker value={period} onChange={setPeriod} />
       </div>
+
+      <ReportArchive />
 
       {!report ? (
         <EmptyState title="Нет данных отчёта" />

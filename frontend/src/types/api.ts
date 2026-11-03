@@ -598,3 +598,76 @@ export interface OverdueReport {
   offset: number;
   limit: number;
 }
+
+export type ReportKind = "daily" | "weekly" | "monthly";
+
+export interface ReportBrief {
+  id: number;
+  kind: ReportKind;
+  title: string | null;
+  period_start: string;
+  period_end: string;
+  generated_at: string | null;
+  sent_at: string | null;
+  sent_to: number;
+  send_error: string | null;
+  headline: { new?: number; won?: number; lost?: number; overdue?: number; stuck_now?: number };
+}
+
+export interface ReportArchive {
+  items: ReportBrief[];
+  schedule: {
+    enabled: boolean;
+    daily_time: string;
+    weekly_day: string;
+    weekly_time: string;
+    telegram_configured: boolean;
+    recipients: number;
+  };
+}
+
+interface ReportMetrics {
+  new: number;
+  won: number;
+  won_sum: number;
+  lost: number;
+  overdue: number;
+  reaction_median_seconds: number | null;
+  reaction_late_share: number | null;
+}
+
+export interface ReportDetail extends ReportBrief {
+  text: string;
+  data: {
+    title: string;
+    metrics: ReportMetrics & { overdue_open_now: number; overdue_closed_late: number; stuck_now: number; open_now: number; no_next_activity_now: number };
+    previous: ReportMetrics & { period_start: string; period_end: string };
+    plan: TargetProgress | null;
+    managers: Array<{
+      manager_id: number;
+      name: string;
+      new: number;
+      won: number;
+      lost: number;
+      active: number;
+      overdue: number;
+      overdue_open: number;
+      overdue_share: number | null;
+      stuck: number;
+      stuck_share: number | null;
+      reaction_median_seconds: number | null;
+      plan_percent: number | null;
+    }>;
+    problem_deals: Array<{ deal_id: number; bitrix_id: number; title: string; manager: string | null; stage: string; rule: string; in_stage_seconds: number; unit: SlaUnit; bitrix_url: string | null }>;
+    card_quality: { no_next_activity: number; deals: Array<{ deal_id: number; bitrix_id: number; title: string; opportunity: number | null; bitrix_url: string | null }> };
+    problem_stages: Array<{ name: string; pipeline: string; rule: string; open: number; stuck: number; overdue: number }>;
+    data_warning: string | null;
+  };
+}
+
+export interface ReportSendResult {
+  status: "sent" | "failed" | "skipped";
+  reason?: string;
+  sent_to?: number;
+  errors?: string[];
+}

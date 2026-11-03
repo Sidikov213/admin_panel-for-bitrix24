@@ -1,4 +1,4 @@
-from app.models.analytics import AnalyticsDaily
+from app.models.analytics import AnalyticsDaily, SalesReport
 from app.models.auth import LoginAttempt, Session, User, UserRole
 from app.models.crm import (
     CrmActivity,
@@ -34,5 +34,6 @@ __all__ = [
     "SyncState",
     "SalesTarget",
     "AnalyticsDaily",
+    "SalesReport",
     "PeriodType",
 ]

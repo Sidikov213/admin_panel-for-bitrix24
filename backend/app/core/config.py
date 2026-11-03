@@ -60,6 +60,30 @@ class Settings(BaseSettings):
     # Yearly recurring MM-DD..MM-DD ranges, comma-separated (range may wrap the new year)
     COMPANY_HOLIDAYS: str = "12-26..01-11"
 
+    # Daily / weekly report (ТЗ §11–12): stored in the panel archive, sent to Telegram
+    REPORTS_ENABLED: bool = True
+    # Working days only (WORK_DAYS minus COMPANY_HOLIDAYS), HH:MM in APP_TIMEZONE
+    REPORT_DAILY_TIME: str = "20:00"
+    # Weekly report about the previous Mon–Sun week
+    REPORT_WEEKLY_DAY: str = "mon"
+    REPORT_WEEKLY_TIME: str = "09:00"
+    # Personal chats of the recipients (Максим, Андрей), comma-separated; empty → TELEGRAM_CHAT_ID
+    TELEGRAM_REPORT_CHAT_IDS: str = ""
+    REPORT_TOP_N: int = 7
+
+    @field_validator("REPORT_DAILY_TIME", "REPORT_WEEKLY_TIME")
+    @classmethod
+    def validate_report_time(cls, v: str) -> str:
+        hour, _, minute = v.partition(":")
+        if not (hour.isdigit() and minute.isdigit() and 0 <= int(hour) < 24 and 0 <= int(minute) < 60):
+            raise ValueError("report time must be HH:MM")
+        return f"{int(hour):02d}:{int(minute):02d}"
+
+    @property
+    def report_chat_ids(self) -> list[str]:
+        ids = [x.strip() for x in self.TELEGRAM_REPORT_CHAT_IDS.split(",") if x.strip()]
+        return ids or ([self.TELEGRAM_CHAT_ID.strip()] if self.TELEGRAM_CHAT_ID.strip() else [])
+
     @field_validator("DIGEST_TIME")
     @classmethod
     def validate_digest_time(cls, v: str) -> str:

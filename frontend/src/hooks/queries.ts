@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { SalesTargetInput, SlaUnit } from "@/types/api";
+import type { ReportKind, SalesTargetInput, SlaUnit } from "@/types/api";
 
 export function useFunnel(params: { category_id?: number; period_start: string; period_end: string; manager_id?: number }) {
   return useQuery({
@@ -117,6 +117,23 @@ export function useReaction(params: { period_start?: string; period_end?: string
     queryFn: () => api.reaction(params),
     placeholderData: (prev) => prev,
   });
+}
+
+export function useReportArchive(kind?: ReportKind) {
+  return useQuery({ queryKey: ["reportArchive", kind ?? "all"], queryFn: () => api.reportArchive(kind) });
+}
+
+export function useReportDetail(id: number | null) {
+  return useQuery({ queryKey: ["reportArchive", "detail", id], queryFn: () => api.reportDetail(id as number), enabled: id !== null });
+}
+
+export function useReportMutations() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => void queryClient.invalidateQueries({ queryKey: ["reportArchive"] });
+  return {
+    generate: useMutation({ mutationFn: ({ kind, day }: { kind: ReportKind; day?: string }) => api.generateReport(kind, day), onSuccess }),
+    send: useMutation({ mutationFn: (id: number) => api.sendReport(id), onSuccess }),
+  };
 }
 
 export function useSlaRules() {
