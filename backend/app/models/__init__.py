@@ -1,4 +1,4 @@
-from app.models.analytics import AnalyticsDaily, SalesReport
+from app.models.analytics import AIAnalysis, AnalyticsDaily, SalesReport
 from app.models.auth import LoginAttempt, Session, User, UserRole
 from app.models.avito import AvitoChat, AvitoMessage
 from app.models.crm import (
@@ -40,5 +40,6 @@ __all__ = [
     "SalesTarget",
     "AnalyticsDaily",
     "SalesReport",
+    "AIAnalysis",
     "PeriodType",
 ]

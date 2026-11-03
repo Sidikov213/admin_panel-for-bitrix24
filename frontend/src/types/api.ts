@@ -669,8 +669,13 @@ export interface ReportDetail extends ReportBrief {
     };
     problem_stages: Array<{ name: string; pipeline: string; rule: string; open: number; stuck: number; overdue: number }>;
     data_warning: string | null;
+    ai_summary?: ReportAiSummary | null;
   };
 }
+
+export type ReportAiSummary =
+  | { status: "ok"; analysis_id: number; headline: string; points: string[]; recommendations: string[] }
+  | { status: "error"; error_kind: string };
 
 export interface ReportSendResult {
   status: "sent" | "failed" | "skipped";
@@ -785,4 +790,46 @@ export interface AvitoConversation {
   chat_url: string;
   deal_bitrix_id: number | null;
   messages: Array<{ id: string; direction: "in" | "out"; created: string; text: string; is_system: boolean }>;
+}
+
+export interface AiStatus {
+  configured: boolean;
+  model: string;
+  effort: string;
+  send_texts: boolean;
+  in_reports: boolean;
+  script_configured: boolean;
+  daily_limit: number;
+  used_today: number;
+}
+
+export interface AiAnalysisBrief {
+  id: number;
+  kind: ReportKind;
+  period_start: string;
+  period_end: string;
+  status: "ok" | "error";
+  error: string | null;
+  model: string;
+  trigger: "manual" | "report";
+  texts_sent: boolean;
+  input_tokens: number;
+  output_tokens: number;
+  created_at: string | null;
+  headline: string | null;
+}
+
+export interface AiAnalysisResult {
+  headline: string;
+  department: string[];
+  risks: string[];
+  managers: Array<{ manager: string; summary: string; strengths: string[]; problems: string[]; actions: string[] }>;
+  repeated_problems: Array<{ problem: string; who: string[]; evidence: string }>;
+  communication: { assessed: boolean; comments: string[]; avito_replies: string[]; script: string[]; examples: string[] };
+  recommendations: string[];
+}
+
+export interface AiAnalysis extends AiAnalysisBrief {
+  result: AiAnalysisResult | null;
+  context?: Record<string, unknown>;
 }

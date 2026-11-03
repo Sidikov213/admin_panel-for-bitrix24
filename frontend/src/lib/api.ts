@@ -1,5 +1,8 @@
 import { getCookie } from "@/lib/utils";
 import type {
+  AiAnalysis,
+  AiAnalysisBrief,
+  AiStatus,
   AvitoConversation,
   AvitoStatus,
   AvitoSummary,
@@ -173,6 +176,15 @@ export const api = {
 
   resetQualityRule: (stageId: string) =>
     request<QualityRule>(`/quality/rules/${encodeURIComponent(stageId)}`, { method: "DELETE" }),
+
+  aiStatus: () => request<AiStatus>("/ai/status"),
+
+  aiAnalyses: (kind?: ReportKind) => request<{ items: AiAnalysisBrief[] }>("/ai/analyses", { params: { kind } }),
+
+  aiAnalysis: (id: number) => request<AiAnalysis>(`/ai/analyses/${id}`),
+
+  runAiAnalysis: (body: { kind: ReportKind; day?: string; force?: boolean }) =>
+    request<AiAnalysis>("/ai/analyses", { method: "POST", body }),
 
   avitoStatus: () => request<AvitoStatus>("/avito/status"),
 

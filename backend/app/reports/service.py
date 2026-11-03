@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 async def generate_report(session: AsyncSession, kind: str, start: date, end: date) -> SalesReport:
     """Build (or rebuild) the report for the period; keeps the sending history."""
     data = await build_report(session, kind, start, end)
+    from app.ai.service import summary_for_report
+
+    data["ai_summary"] = await summary_for_report(session, kind, start, end, data)
     row = (
         await session.execute(
             select(SalesReport).where(
