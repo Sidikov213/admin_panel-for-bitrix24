@@ -13,7 +13,9 @@ import type {
   Pipeline,
   ReportsResponse,
   SalesTarget,
+  SalesTargetInput,
   StalledResponse,
+  TargetProgressResponse,
   SystemStatus,
   User,
 } from "@/types/api";
@@ -137,6 +139,16 @@ export const api = {
   system: () => request<SystemStatus>("/system"),
 
   targets: () => request<SalesTarget[]>("/targets"),
+
+  targetsProgress: (params: { active_only?: boolean; manager_id?: number } = {}) =>
+    request<TargetProgressResponse>("/targets/progress", { params }),
+
+  createTarget: (body: SalesTargetInput) => request<SalesTarget>("/targets", { method: "POST", body }),
+
+  updateTarget: (id: number, body: Partial<SalesTargetInput>) =>
+    request<SalesTarget>(`/targets/${id}`, { method: "PATCH", body }),
+
+  deleteTarget: (id: number) => request<void>(`/targets/${id}`, { method: "DELETE" }),
 
   updateManager: (id: number, body: { telegram_chat_id: string | null }) =>
     request<ManagerBrief>(`/managers/${id}`, { method: "PATCH", body }),

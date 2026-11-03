@@ -2,6 +2,27 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { SalesTargetInput } from "@/types/api";
+
+export function useTargetsProgress(activeOnly = true, managerId?: number) {
+  return useQuery({
+    queryKey: ["targets", "progress", activeOnly, managerId ?? null],
+    queryFn: () => api.targetsProgress({ active_only: activeOnly, manager_id: managerId }),
+  });
+}
+
+export function useTargetMutations() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => void queryClient.invalidateQueries({ queryKey: ["targets"] });
+  return {
+    create: useMutation({ mutationFn: (body: SalesTargetInput) => api.createTarget(body), onSuccess }),
+    update: useMutation({
+      mutationFn: ({ id, body }: { id: number; body: Partial<SalesTargetInput> }) => api.updateTarget(id, body),
+      onSuccess,
+    }),
+    remove: useMutation({ mutationFn: (id: number) => api.deleteTarget(id), onSuccess }),
+  };
+}
 
 export function useNotificationStatus() {
   return useQuery({ queryKey: ["notifications", "status"], queryFn: () => api.notificationStatus() });

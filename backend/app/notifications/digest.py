@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.analytics.kpi import _as_utc, compute_period_kpis, overdue_activities_query
+from app.analytics.plan import TargetProgress, targets_progress
 from app.core.config import get_settings
 from app.core.timezone import app_tz, utc_now
 from app.models.crm import CrmActivity, CrmDeal, CrmManager
@@ -43,6 +44,7 @@ class ManagerDigest:
     no_future: list[DigestDeal] = field(default_factory=list)
     idle: list[DigestDeal] = field(default_factory=list)
     overdue_deals: list[DigestDeal] = field(default_factory=list)
+    plan: TargetProgress | None = None
 
     @property
     def has_problems(self) -> bool:
@@ -67,6 +69,8 @@ class Digest:
     managers_all: list[ManagerDigest]
     top_idle: list[DigestDeal]
     data_warning: str | None
+    # Department target active today (manager_id is null), if any
+    plan: TargetProgress | None = None
 
 
 def _manager_name(m: CrmManager | None) -> str | None:
@@ -167,6 +171,14 @@ async def build_digest(session: AsyncSession, *, today: date | None = None) -> D
         if is_idle:
             md.idle.append(item)
 
+    # Shortest active target wins when several overlap (a month plan beats the year plan)
+    department_plan: TargetProgress | None = None
+    for p in sorted(await targets_progress(session, today), key=lambda p: p.days_total):
+        if p.manager_id is None:
+            department_plan = department_plan or p
+        elif p.manager_id in by_manager and by_manager[p.manager_id].plan is None:
+            by_manager[p.manager_id].plan = p
+
     for md in by_manager.values():
         md.no_future = _by_amount(md.no_future)
         md.idle = _by_amount(md.idle)
@@ -193,6 +205,7 @@ async def build_digest(session: AsyncSession, *, today: date | None = None) -> D
         managers_all=list(by_manager.values()),
         top_idle=_by_amount(all_idle)[:top_n],
         data_warning=await _data_warning(session),
+        plan=department_plan,
     )
 
 
@@ -220,6 +233,34 @@ def _deal_line(d: DigestDeal, *, show_manager: bool, extra: str = "") -> str:
     return f"• {name}" + (f" — {' · '.join(parts)}" if parts else "")
 
 
+_PLAN_STATUS = {
+    "done": "✅ план выполнен",
+    "on_track": "в графике",
+    "at_risk": "⚠️ под угрозой",
+    "behind": "🔻 отстаём",
+    "missed": "не выполнен",
+    "not_started": "ещё не начался",
+    "early": "начало периода",
+}
+
+
+def format_pct(value: float) -> str:
+    return f"{value:g}".replace(".", ",") + "%"
+
+
+def _plan_line(p: TargetProgress) -> str:
+    period = f"{p.period_start.strftime('%d.%m')}–{p.period_end.strftime('%d.%m')}"
+    forecast = (
+        f"прогноз {format_pct(p.forecast_percent)} ({_PLAN_STATUS.get(p.status, p.status)})"
+        if p.forecast_reliable
+        else f"прогноз через {p.forecast_in_days} дн."
+    )
+    line = f"🎯 План {period}: {format_money(p.fact)} из {format_money(p.plan)} — {format_pct(p.percent)} · {forecast}"
+    if p.per_day_needed and p.status in ("at_risk", "behind"):
+        line += f"\n   Нужно {format_money(p.per_day_needed)} в день, осталось {p.days_left} дн."
+    return line
+
+
 def _header(digest: Digest, title: str) -> list[str]:
     lines = [f"<b>{_e(title)} · {digest.day.strftime('%d.%m.%Y')}</b>"]
     if digest.data_warning:
@@ -234,6 +275,10 @@ def render_team_digest(digest: Digest) -> str:
         f"Вчера: новых сделок {digest.new_yesterday} · выиграно {digest.won_yesterday}"
         + (f" на {format_money(digest.won_sum_yesterday)}" if digest.won_yesterday else ""),
         f"В работе сейчас: {digest.active_deals}",
+    ]
+    if digest.plan:
+        lines.append(_plan_line(digest.plan))
+    lines += [
         f"🔴 Просроченных дел: {digest.overdue_activities}",
         f"🟠 Сделок без следующего дела: {digest.no_future_count}",
         f"⏸ Без движения {digest.stale_days}+ дн.: {digest.idle_count}",
@@ -241,9 +286,10 @@ def render_team_digest(digest: Digest) -> str:
     if digest.managers:
         lines += ["", "<b>По менеджерам</b>"]
         for m in digest.managers:
+            plan = f" · план {format_pct(m.plan.percent)}" if m.plan else ""
             lines.append(
                 f"{_e(m.name)} — просрочено {m.overdue_activities} · без дела {len(m.no_future)}"
-                f" · стоят {len(m.idle)}"
+                f" · стоят {len(m.idle)}{plan}"
             )
     else:
         lines += ["", "Проблемных сделок нет 👍"]
@@ -259,8 +305,10 @@ def render_team_digest(digest: Digest) -> str:
 def render_manager_digest(digest: Digest, m: ManagerDigest) -> str:
     n = digest.top_n
     lines = _header(digest, f"Ваши сделки, {m.name}")
+    lines.append("")
+    if m.plan:
+        lines.append(_plan_line(m.plan))
     lines += [
-        "",
         f"🔴 Просроченных дел: {m.overdue_activities}",
         f"🟠 Сделок без следующего дела: {len(m.no_future)}",
         f"⏸ Без движения {digest.stale_days}+ дн.: {len(m.idle)}",

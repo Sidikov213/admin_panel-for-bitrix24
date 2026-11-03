@@ -20,10 +20,11 @@ import {
 import { KpiCard } from "@/components/common/kpi-card";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { PeriodPicker, defaultPeriod, type PeriodValue } from "@/components/common/period-picker";
+import { PlanProgressCard } from "@/components/plan/plan-progress-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDashboard, useSystem } from "@/hooks/queries";
+import { useDashboard, useSystem, useTargetsProgress } from "@/hooks/queries";
 import { formatDateTime, formatMoney, formatNumber } from "@/lib/format";
 import type { NamedCount, PipelineCount } from "@/types/api";
 
@@ -39,6 +40,11 @@ export function DashboardView() {
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
   const dash = useDashboard(period.from, period.to);
   const system = useSystem();
+  const plan = useTargetsProgress(true);
+  // Shortest active department target (month beats quarter/year)
+  const departmentPlan = (plan.data?.items ?? [])
+    .filter((p) => p.manager_id === null)
+    .sort((a, b) => a.days_total - b.days_total)[0];
 
   const kpis = dash.data?.kpis;
   const charts = dash.data?.charts;
@@ -100,6 +106,12 @@ export function DashboardView() {
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {kpis.data_quality.note}
         </p>
+      ) : null}
+
+      {departmentPlan ? (
+        <Link href="/plan" className="block max-w-xl">
+          <PlanProgressCard p={departmentPlan} compact />
+        </Link>
       ) : null}
 
       {kpis ? (

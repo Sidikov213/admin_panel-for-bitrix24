@@ -342,3 +342,46 @@ export interface SalesTarget {
   amount: string | number;
   currency: string;
 }
+
+export type SalesTargetInput = {
+  manager_id: number | null;
+  period_type: PeriodType;
+  period_start: string;
+  period_end: string;
+  amount: string;
+  currency?: string;
+};
+
+export type PlanStatus = "done" | "on_track" | "at_risk" | "behind" | "missed" | "not_started" | "early";
+
+export interface TargetProgress {
+  target_id: number;
+  manager_id: number | null;
+  manager_name: string | null;
+  period_type: PeriodType;
+  period_start: string;
+  period_end: string;
+  currency: string;
+  plan: number;
+  fact: number;
+  won_count: number;
+  percent: number;
+  expected: number;
+  forecast: number;
+  forecast_percent: number;
+  forecast_reliable: boolean;
+  forecast_in_days: number;
+  remaining: number;
+  days_total: number;
+  days_elapsed: number;
+  days_left: number;
+  per_day_needed: number | null;
+  status: PlanStatus;
+  active: boolean;
+}
+
+export interface TargetProgressResponse {
+  on: string;
+  items: TargetProgress[];
+  note: string;
+}

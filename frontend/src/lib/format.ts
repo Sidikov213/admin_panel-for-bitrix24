@@ -37,6 +37,14 @@ export function formatMoney(value: number | string | null | undefined, currency 
   }).format(num);
 }
 
+const percentFmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 });
+
+/** 36.8 → "36,8 %" */
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return `${percentFmt.format(value)} %`;
+}
+
 export function managerName(m: { name: string; last_name: string } | null | undefined): string {
   if (!m) return "Не назначен";
   return `${m.last_name} ${m.name}`.trim();
