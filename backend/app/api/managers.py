@@ -116,6 +116,9 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
 
     result = []
     for r in rows:
+        # The portal has the whole company (hiring, tech supervision…): list only people with deals in tracked pipelines
+        if r.id not in by_mgr:
+            continue
         m = by_mgr.get(r.id, {"active": 0, "no_future": 0, "sum_active": 0.0, "new_count": 0})
         w = won_by_mgr.get(r.id, {"won_count": 0, "sum_won": 0.0})
         result.append(

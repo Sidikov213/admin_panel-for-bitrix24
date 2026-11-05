@@ -185,3 +185,14 @@ async def test_attention_block_and_pipeline_sums(client: AsyncClient, db_session
     # The AI line and Avito are department-wide: hidden under a manager filter
     scoped = (await client.get("/api/v1/dashboard", params={**PERIOD, "manager_id": seeded["ivan"].id})).json()
     assert scoped["attention"]["no_next_activity"] == 2 and scoped["attention"]["ai"] is None
+
+
+@pytest.mark.asyncio
+async def test_manager_list_only_people_with_deals(client: AsyncClient, db_session: AsyncSession) -> None:
+    # The portal also has HR, tech supervision etc.: they must not clutter the manager filter
+    await _seed(db_session)
+    db_session.add(CrmManager(bitrix_id=9, name="Мария", last_name="Кадрова"))
+    await db_session.commit()
+    await _login(client)
+    names = {m["last_name"] for m in (await client.get("/api/v1/managers")).json()}
+    assert names == {"Петров", "Смирнова"}
