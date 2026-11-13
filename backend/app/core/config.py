@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     SYNC_INTERVAL_MINUTES: int = 5
     SYNC_OVERLAP_MINUTES: int = 10
     FULL_RECONCILE_HOURS: int = 24
+    # Local hours (APP_TIMEZONE) in which the long full reconcile may start; empty = any time
+    FULL_RECONCILE_WINDOW: str = "00:00-06:00"
+    # The panel warns that the numbers are old when deals were not synced for this long
+    STALE_SYNC_MINUTES: int = 120
     SESSION_SECRET: str = "change-me-in-production"
     COOKIE_SECURE: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"

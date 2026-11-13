@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,25 @@ class SystemService:
         data_may_be_stale = (not bitrix_ok) or (not settings.BITRIX_WEBHOOK_URL)
         if latest and latest.status.value == "failed":
             data_may_be_stale = True
+        stale_note = (
+            "Bitrix недоступен или не настроен — панель работает с последними "
+            "сохранёнными данными. Показатели могут быть устаревшими."
+            if data_may_be_stale
+            else None
+        )
+        # A dead or stuck worker leaves Bitrix reachable and no failed run: only the age tells
+        sync_age_minutes = _age_minutes(last_deals)
+        sync_stalled = bool(settings.BITRIX_WEBHOOK_URL) and (
+            sync_age_minutes is None or sync_age_minutes > settings.STALE_SYNC_MINUTES
+        )
+        if sync_stalled:
+            data_may_be_stale = True
+            stale_note = (
+                "Синхронизация с Bitrix ещё ни разу не завершилась."
+                if sync_age_minutes is None
+                else f"Данные из Bitrix не обновлялись {_age_text(sync_age_minutes)}: синхронизация остановлена "
+                "или не успевает. Показатели устарели."
+            )
 
         return {
             "demo_mode": settings.DEMO_MODE,
@@ -40,12 +60,9 @@ class SystemService:
             "last_activities_sync": last_activities,
             "last_dictionaries_sync": last_dict,
             "data_may_be_stale": data_may_be_stale,
-            "stale_note": (
-                "Bitrix недоступен или не настроен — панель работает с последними "
-                "сохранёнными данными. Показатели могут быть устаревшими."
-                if data_may_be_stale
-                else None
-            ),
+            "stale_note": stale_note,
+            "sync_stalled": sync_stalled,
+            "sync_age_minutes": sync_age_minutes,
             "checked_at": utc_now().isoformat(),
             "latest_sync_run": _run_dict(latest) if latest else None,
             "recent_sync_runs": [_run_dict(r) for r in recent_runs],
@@ -73,9 +90,32 @@ class SystemService:
         if self._bitrix_cache and now - self._bitrix_cache[0] < self._CACHE_TTL:
             return self._bitrix_cache[1]
         client = BitrixClient()
-        ok = await client.ping() if get_settings().BITRIX_WEBHOOK_URL else False
+        try:
+            ok = await client.ping() if get_settings().BITRIX_WEBHOOK_URL else False
+        finally:
+            await client.aclose()
         SystemService._bitrix_cache = (now, ok)
         return ok
+
+
+def _age_minutes(state: dict | None) -> int | None:
+    at = (state or {}).get("at")
+    if not at:
+        return None
+    try:
+        dt = datetime.fromisoformat(at)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return max(0, int((utc_now() - dt).total_seconds() // 60))
+
+
+def _age_text(minutes: int) -> str:
+    if minutes < 120:
+        return f"{minutes} мин"
+    hours = minutes // 60
+    return f"{hours} ч" if hours < 48 else f"{hours // 24} дн."
 
 
 def _run_dict(run) -> dict:

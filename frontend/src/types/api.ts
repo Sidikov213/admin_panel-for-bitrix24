@@ -354,6 +354,8 @@ export interface SystemStatus {
   last_dictionaries_sync: { at?: string } | string | null;
   data_may_be_stale?: boolean;
   stale_note?: string | null;
+  sync_stalled?: boolean;
+  sync_age_minutes?: number | null;
   checked_at?: string;
   latest_sync_run: SyncRunInfo | null;
   recent_sync_runs?: SyncRunInfo[];

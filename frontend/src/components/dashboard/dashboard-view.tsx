@@ -123,6 +123,19 @@ function DataStatus({ system, lastSync, computedAt }: { system?: SystemStatus; l
       </p>
     );
   }
+  if (system.sync_stalled) {
+    return (
+      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+        {system.stale_note || "Синхронизация с Bitrix24 остановилась — цифры устарели."}
+        {lastSync ? (
+          <>
+            {" "}
+            Последнее обновление: <strong className="font-medium">{formatDateTime(lastSync)}</strong>.
+          </>
+        ) : null}
+      </p>
+    );
+  }
   const stale = system.data_may_be_stale || !system.bitrix_reachable;
   return (
     <p className={cn("text-sm", stale ? "text-amber-800" : "text-muted-foreground")}>
@@ -287,8 +300,9 @@ export function DashboardView() {
   if (dash.isLoading && !kpis) return <PageLoading rows={6} />;
   if (dash.isError) return <ErrorState message="Не удалось загрузить дашборд." onRetry={() => void dash.refetch()} />;
 
+  // The deals cursor, not "latest run of any kind": Avito syncs on its own schedule
   const lastSync =
-    dash.data?.sync?.latest_run_finished_at ||
+    dash.data?.sync?.last_deals_sync?.at ||
     (typeof system.data?.last_deals_sync === "object" && system.data?.last_deals_sync?.at) ||
     null;
 

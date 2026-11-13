@@ -25,7 +25,9 @@ export default function LoginPage() {
     try {
       const user = await api.login(email.trim(), password);
       queryClient.setQueryData(["auth", "me"], user);
-      const next = searchParams.get("next") || "/dashboard";
+      // Only paths of this site: «/login?next=https://…» must not send people elsewhere
+      const wanted = searchParams.get("next") || "";
+      const next = wanted.startsWith("/") && !wanted.startsWith("//") && !wanted.includes("\\") ? wanted : "/dashboard";
       router.replace(next);
     } catch (err) {
       if (err instanceof ApiError) {

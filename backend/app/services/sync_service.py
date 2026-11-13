@@ -1,7 +1,7 @@
 import html
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -170,12 +170,7 @@ class SyncOrchestrator:
                 state = await self._sync_repo.get_state("last_deals_sync") or {}
                 last_at = state.get("at")
                 if last_at:
-                    from datetime import datetime
-
-                    dt = datetime.fromisoformat(last_at)
-                    overlap = self._settings.SYNC_OVERLAP_MINUTES
-                    since = dt - timedelta(minutes=overlap)
-                    filters[">=DATE_MODIFY"] = since.strftime("%Y-%m-%dT%H:%M:%S")
+                    filters[">=DATE_MODIFY"] = self._since_filter(last_at)
             for cat_id in self._settings.bitrix_category_ids:
                 f = {**filters, "CATEGORY_ID": cat_id}
                 deals = await self._client.crm_deal_list(**f)
@@ -250,14 +245,9 @@ class SyncOrchestrator:
                 state = await self._sync_repo.get_state("last_activities_sync") or {}
                 last_at = state.get("at")
                 if last_at:
-                    from datetime import datetime
-
-                    dt = datetime.fromisoformat(last_at)
-                    overlap = self._settings.SYNC_OVERLAP_MINUTES
-                    since = dt - timedelta(minutes=overlap)
                     # Live Bitrix: activities expose LAST_UPDATED, not DATE_MODIFY.
                     # DATE_MODIFY filters are ignored (field absent) → unsafe full-ish pulls.
-                    filters[">=LAST_UPDATED"] = since.strftime("%Y-%m-%dT%H:%M:%S")
+                    filters[">=LAST_UPDATED"] = self._since_filter(last_at)
             activities = await self._client.crm_activity_list(**filters)
             deal_activity_map: dict[int, list[CrmActivity]] = {}
             seen_activity_ids: set[int] = set()
@@ -338,6 +328,32 @@ class SyncOrchestrator:
                 logger.exception("refresh_open_deal_flags_failed")
         finally:
             await self._sync_repo.advisory_unlock(SyncType.activities)
+
+    def _since_filter(self, last_at: str) -> str:
+        """Cursor minus the overlap window, as a Bitrix filter value.
+
+        The UTC offset is explicit: Bitrix reads a value without one in the portal's time
+        zone, which silently moved the window by three hours (checked on the live portal).
+        """
+        dt = datetime.fromisoformat(last_at)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        since = dt.astimezone(timezone.utc) - timedelta(minutes=self._settings.SYNC_OVERLAP_MINUTES)
+        return since.isoformat(timespec="seconds")
+
+    async def close_stale_runs(self) -> int:
+        """Runs left «running» by a killed worker would look alive forever: close them as failed."""
+        rows = (
+            await self._session.execute(select(SyncRun).where(SyncRun.status == SyncStatus.running))
+        ).scalars().all()
+        now = utc_now()
+        for run in rows:
+            run.status = SyncStatus.failed
+            run.finished_at = now
+            run.errors_count = (run.errors_count or 0) + 1
+            run.error_message = "Прервано: воркер был остановлен во время синхронизации"
+        await self._session.commit()
+        return len(rows)
 
     async def _sync_deal_fields(self) -> None:
         """Labels of deal fields (incl. UF_*) so required-field checks can be configured by name."""
