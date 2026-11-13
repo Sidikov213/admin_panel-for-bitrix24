@@ -31,6 +31,8 @@ docker compose exec backend python scripts/create_admin.py --email admin@company
 
 Откройте http://localhost:13000 → `/login`  
 (порты на хосте: frontend `13000`, API `18000`, PostgreSQL `55432` — чтобы не конфликтовать с другими локальными стеками).
+API и PostgreSQL слушают только `127.0.0.1`: снаружи доступен один frontend. Пароль базы задаётся переменной `POSTGRES_PASSWORD` до первого запуска (том с данными запоминает пароль, с которым был создан).
+Все сервисы перезапускаются сами после сбоя или перезагрузки (`restart: unless-stopped`).
 
 API: http://localhost:18000/api/v1/health  
 Документация API: http://localhost:18000/docs

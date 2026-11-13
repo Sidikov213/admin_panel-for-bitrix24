@@ -7,7 +7,7 @@ from sqlalchemy import case, func, select
 from app.analytics.kpi import compute_manager_stats, overdue_activities_query
 from app.auth.csrf import validate_csrf
 from app.auth.deps import AdminUser, CurrentUser, DbSession
-from app.core.timezone import local_day_bounds, utc_now
+from app.core.timezone import app_tz, local_day_bounds, utc_now
 from app.models.crm import CrmActivity, CrmDeal, CrmManager, CrmStage
 from app.schemas.deals import ManagerBrief, ManagerUpdate
 
@@ -21,7 +21,7 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
     if not rows:
         return []
 
-    today = date.today()
+    today = utc_now().astimezone(app_tz()).date()
     period_start = today - timedelta(days=29)
     start_utc, _ = local_day_bounds(period_start)
     _, end_utc = local_day_bounds(today)
@@ -147,7 +147,7 @@ async def get_manager(
     row = await db.get(CrmManager, manager_id)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager not found")
-    today = date.today()
+    today = utc_now().astimezone(app_tz()).date()
     end = period_end or today
     start = period_start or (end - timedelta(days=29))
     stats = await compute_manager_stats(db, manager_id, start, end)

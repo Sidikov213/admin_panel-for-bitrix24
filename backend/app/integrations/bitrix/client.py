@@ -85,6 +85,9 @@ class BitrixClient:
     # `batch` only bundles calls; every inner command must itself be in ALLOWED_METHODS
     BATCH_METHOD = "batch"
     BATCH_LIMIT = 50
+    PAGE_SIZE = 50
+    # Safety net for list pagination: 5000 pages = 250 000 rows, far above this portal
+    MAX_PAGES = 5000
 
     def __init__(
         self,
@@ -104,6 +107,20 @@ class BitrixClient:
         self.retry_count: int = 0
         self.rate_limit_events: int = 0
         self.network_retry_count: int = 0
+        # One connection pool for the client's lifetime: a TLS handshake per request is slow
+        # and is exactly what fails on a flaky network
+        self._http: httpx.AsyncClient | None = None
+
+    def _client(self) -> httpx.AsyncClient:
+        if self._http is None or self._http.is_closed:
+            # trust_env=False avoids Windows proxy hijacking local/webhook calls
+            self._http = httpx.AsyncClient(timeout=self._timeout, trust_env=False)
+        return self._http
+
+    async def aclose(self) -> None:
+        if self._http is not None and not self._http.is_closed:
+            await self._http.aclose()
+        self._http = None
 
     @property
     def webhook_configured(self) -> bool:
@@ -149,9 +166,7 @@ class BitrixClient:
         for attempt in range(self._max_retries):
             await self._limiter.wait()
             try:
-                # trust_env=False avoids Windows proxy hijacking local/webhook calls
-                async with httpx.AsyncClient(timeout=self._timeout, trust_env=False) as client:
-                    resp = await client.post(url, json=payload)
+                resp = await self._client().post(url, json=payload)
                 self.call_counts[method] = self.call_counts.get(method, 0) + 1
                 if resp.status_code == 429 or resp.status_code >= 500:
                     self.retry_count += 1
@@ -192,6 +207,8 @@ class BitrixClient:
                     self.sanitized_base,
                     type(e).__name__,
                 )
+                # The pooled connection may be the broken one: start the retry on a fresh pool
+                await self.aclose()
                 await asyncio.sleep(min(2**attempt, 30))
         if last_exc:
             raise BitrixClientError(
@@ -206,30 +223,55 @@ class BitrixClient:
         params: dict[str, Any] | None = None,
         result_key: str = "result",
     ) -> list[Any]:
-        """Bitrix list pagination via `start` offset."""
+        """Bitrix list pagination via `start` offset.
+
+        Bitrix sends `next` while more rows exist. Asking for a `start` past the end does not
+        return an empty page: it returns the last page again, so the loop must stop on its own
+        evidence (`next`, `total`, a short page, a repeated page) and never on an empty answer.
+        """
         items: list[Any] = []
         start = 0
         base = dict(params or {})
-        while True:
-            page_params = {**base, "start": start}
-            data = await self.call(method, page_params)
+        prev_page_key: Any = None
+        for _ in range(self.MAX_PAGES):
+            data = await self.call(method, {**base, "start": start})
             batch = data.get(result_key)
             if batch is None:
                 break
             if not isinstance(batch, list):
                 items.append(batch)
                 break
-            items.extend(batch)
-            next_start = data.get("next")
-            if next_start is None:
-                if len(batch) < 50:
-                    break
-                start += len(batch)
-            else:
-                start = int(next_start)
             if not batch:
                 break
+            page_key = self._page_key(batch)
+            if page_key is not None and page_key == prev_page_key:
+                # Same page served twice: we are past the end
+                break
+            prev_page_key = page_key
+            items.extend(batch)
+            next_start = data.get("next")
+            if next_start is not None:
+                start = int(next_start)
+                continue
+            total = data.get("total")
+            if isinstance(total, int) and len(items) >= total:
+                break
+            if len(batch) < self.PAGE_SIZE:
+                break
+            start += len(batch)
+        else:
+            raise BitrixClientError(f"pagination did not finish in {self.MAX_PAGES} pages: {method}", kind="bitrix_error")
         return items
+
+    @staticmethod
+    def _page_key(batch: list[Any]) -> Any:
+        """Identity of a page: ids of its first and last rows (None when rows have no id)."""
+        first, last = batch[0], batch[-1]
+        if isinstance(first, dict) and isinstance(last, dict):
+            a, b = first.get("ID", first.get("id")), last.get("ID", last.get("id"))
+            if a is not None and b is not None:
+                return (a, b, len(batch))
+        return None
 
     async def call_list_page(
         self,
