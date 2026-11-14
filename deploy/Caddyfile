@@ -1,0 +1,13 @@
+# The certificate is issued and renewed automatically (Let's Encrypt)
+{$PANEL_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	# Straight to the API: it then sees the visitor address for the login throttle
+	@api path /api/*
+	reverse_proxy @api backend:8000
+	reverse_proxy frontend:3000
+}

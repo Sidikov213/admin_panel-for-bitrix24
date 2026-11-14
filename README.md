@@ -31,6 +31,10 @@ docker compose exec backend python scripts/create_admin.py --email admin@company
 
 Откройте http://localhost:13000 → `/login`  
 (порты на хосте: frontend `13000`, API `18000`, PostgreSQL `55432` — чтобы не конфликтовать с другими локальными стеками).
+**На сервере** панель запускается с HTTPS: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`. В `.env` нужны `PANEL_DOMAIN` (DNS уже указывает на сервер) и длинный случайный `POSTGRES_PASSWORD`; наружу открыты только 80 и 443 (Caddy, сертификат выпускается сам).
+
+Вход защищён от подбора: 5 неверных попыток с одного адреса на один email — пауза 15 минут; отдельные, более высокие пороги на адрес и на email.
+
 API и PostgreSQL слушают только `127.0.0.1`: снаружи доступен один frontend. Пароль базы задаётся переменной `POSTGRES_PASSWORD` до первого запуска (том с данными запоминает пароль, с которым был создан).
 Все сервисы перезапускаются сами после сбоя или перезагрузки (`restart: unless-stopped`).
 

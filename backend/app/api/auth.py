@@ -3,13 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
 from app.auth.deps import CurrentUser, DbSession, get_user_by_email
-from app.auth.password import verify_password
-from app.auth.rate_limit import is_login_locked, record_login_attempt
+from app.auth.password import hash_password, verify_password
+from app.auth.rate_limit import client_ip, forget_login_attempts, is_login_locked, record_login_attempt
 from app.auth.session import create_session, delete_session_by_token
 from app.core.config import get_settings
 from app.schemas.auth import CsrfOut, LoginRequest, UserOut
 
 router = APIRouter()
+
+# Verified when the email is unknown, so the answer takes as long as for a real account
+_DUMMY_HASH = hash_password("not-a-real-password")
 
 
 def _set_session_cookies(response: Response, session_token: str, csrf: str) -> None:
@@ -41,18 +44,20 @@ async def login(
     response: Response,
     db: DbSession,
 ) -> UserOut:
-    ip = request.client.host if request.client else "unknown"
+    ip = client_ip(request)
     email = body.email.lower()
     if await is_login_locked(db, ip, email):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
     user = await get_user_by_email(db, email)
-    if not user or not verify_password(body.password, user.password_hash):
+    password_ok = verify_password(body.password, user.password_hash if user else _DUMMY_HASH)
+    if not user or not password_ok:
         await record_login_attempt(db, ip, email)
         # Commit before HTTPException — otherwise dependency rollback drops attempts
         await db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    await forget_login_attempts(db, ip, email)
     token, csrf, _ = await create_session(db, user)
     await db.commit()
     _set_session_cookies(response, token, csrf)

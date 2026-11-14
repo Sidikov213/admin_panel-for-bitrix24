@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     SESSION_TTL_HOURS: int = 24 * 7
     LOGIN_MAX_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 15
+    # Reverse proxies in front of the API (the frontend and Caddy containers): their
+    # X-Forwarded-For is trusted for the visitor address. Empty = never read the header.
+    TRUSTED_PROXIES: str = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 
     BITRIX_RATE_LIMIT_RPS: float = 2.0
     BITRIX_RETRY_MAX: int = 5
@@ -186,6 +189,10 @@ class Settings(BaseSettings):
     def bitrix_category_ids(self) -> list[int]:
         parts = _split_csv(self.BITRIX_CATEGORY_IDS)
         return [int(x) for x in parts] if parts else [1, 39]
+
+    @property
+    def trusted_proxies(self) -> list[str]:
+        return _split_csv(self.TRUSTED_PROXIES)
 
     @property
     def cors_origins(self) -> list[str]:
