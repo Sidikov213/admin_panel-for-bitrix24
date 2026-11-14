@@ -1,0 +1,43 @@
+# Server deployment: HTTPS through Caddy, nothing else is published.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Needs in .env: PANEL_DOMAIN (DNS already points to this server) and POSTGRES_PASSWORD.
+services:
+  db:
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+
+  backend:
+    ports: !reset []
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/focus_analytics
+      COOKIE_SECURE: "true"
+      CORS_ORIGINS: https://${PANEL_DOMAIN:?set PANEL_DOMAIN in .env}
+
+  worker:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/focus_analytics
+
+  frontend:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      PANEL_DOMAIN: ${PANEL_DOMAIN:?set PANEL_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    mem_limit: 128m
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
