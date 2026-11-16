@@ -197,11 +197,13 @@ async def compute_period_kpis(
 
     manager_ids = {d.assigned_by_id for d in active_deals if d.assigned_by_id}
     managers_map: dict[int, str] = {}
+    hidden_managers: set[int] = set()
     if manager_ids:
         rows = (
             await session.execute(select(CrmManager).where(CrmManager.id.in_(manager_ids)))
         ).scalars().all()
         managers_map = {m.id: f"{m.last_name} {m.name}".strip() for m in rows}
+        hidden_managers = {m.id for m in rows if not m.is_tracked}
 
     deals_by_stage: dict[str, int] = {}
     deals_by_stage_named: list[dict[str, Any]] = []
@@ -221,6 +223,8 @@ async def compute_period_kpis(
     for d in active_deals:
         mgr_counts[d.assigned_by_id] = mgr_counts.get(d.assigned_by_id, 0) + 1
     for mid, cnt in mgr_counts.items():
+        if mid in hidden_managers:
+            continue
         key = str(mid or "unassigned")
         deals_by_manager[key] = cnt
         deals_by_manager_named.append(

@@ -198,3 +198,17 @@ async def test_archive_api(client: AsyncClient, db_session: AsyncSession, monkey
     sent = (await client.post(f"/api/v1/reports/archive/{rid}/send", headers=headers)).json()
     assert sent["reason"] == "telegram_not_configured"
     assert (await client.get("/api/v1/reports/archive/999")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_hidden_manager_leaves_the_lists_but_not_the_totals(db_session: AsyncSession) -> None:
+    await _seed(db_session)
+    before = await build_report(db_session, "daily", DAY, DAY)
+    for manager in (await db_session.execute(select(CrmManager))).scalars():
+        manager.is_tracked = False
+    await db_session.commit()
+
+    after = await build_report(db_session, "daily", DAY, DAY)
+    assert after["managers"] == [] and "Менеджеры" not in render_report(after)
+    # The deals are still the company's: the totals must keep matching Bitrix
+    assert after["metrics"] == before["metrics"]

@@ -17,7 +17,9 @@ router = APIRouter()
 @router.get("")
 async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
     """Batch SQL metrics — no per-manager compute_period_kpis (N+1)."""
-    rows = (await db.execute(select(CrmManager).order_by(CrmManager.last_name))).scalars().all()
+    rows = (
+        await db.execute(select(CrmManager).where(CrmManager.is_tracked.is_(True)).order_by(CrmManager.last_name))
+    ).scalars().all()
     if not rows:
         return []
 
@@ -173,5 +175,7 @@ async def update_manager(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager not found")
     if "telegram_chat_id" in body.model_fields_set:
         row.telegram_chat_id = body.telegram_chat_id
+    if body.is_tracked is not None:
+        row.is_tracked = body.is_tracked
     await db.flush()
     return ManagerBrief.model_validate(row)

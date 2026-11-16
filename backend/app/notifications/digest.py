@@ -134,7 +134,7 @@ async def build_digest(session: AsyncSession, *, today: date | None = None) -> D
             .options(selectinload(CrmDeal.assigned_manager))
         )
     ).scalars().all()
-    managers = (await session.execute(select(CrmManager))).scalars().all()
+    managers = (await session.execute(select(CrmManager).where(CrmManager.is_tracked.is_(True)))).scalars().all()
     by_manager: dict[int, ManagerDigest] = {
         m.id: ManagerDigest(manager_id=m.id, name=_manager_name(m) or f"#{m.bitrix_id}", telegram_chat_id=m.telegram_chat_id)
         for m in managers

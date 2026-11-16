@@ -22,6 +22,7 @@ from app.analytics.kpi import _as_utc
 from app.core.timezone import local_day_bounds, utc_now
 from app.core.work_calendar import WorkCalendar, get_work_calendar
 from app.integrations.bitrix.links import activity_type_label, deal_url
+from app.analytics.tracked import only_tracked, untracked_manager_ids
 from app.models.crm import CrmActivity, CrmDeal, CrmManager, CrmPipeline, CrmStage, DealStageHistory, StageSlaRule
 
 UNITS = ("work_hours", "work_days", "calendar_days")
@@ -262,13 +263,16 @@ async def stuck_deals(
     items.sort(key=lambda i: (not i["stuck"], -(i["over_ratio"] or 0)))
     for m in by_manager.values():
         m["share"] = round(m["stuck"] / m["open"] * 100, 1) if m["open"] else None
+    hidden = await untracked_manager_ids(session)
     return {
         "items": items,
         "total": len(items),
         "stuck_total": sum(s["stuck"] for s in by_stage.values()),
         "open_total": sum(s["open"] for s in by_stage.values()),
         "by_stage": sorted(by_stage.values(), key=lambda s: (s["category_id"], s["sort"])),
-        "by_manager": sorted(by_manager.values(), key=lambda m: (-m["stuck"], -(m["share"] or 0))),
+        "by_manager": only_tracked(
+            sorted(by_manager.values(), key=lambda m: (-m["stuck"], -(m["share"] or 0))), hidden
+        ),
         "work_calendar": {
             "hours": f"{cal.start:%H:%M}–{cal.end:%H:%M}",
             "workdays": sorted(cal.workdays),
@@ -395,6 +399,7 @@ async def reaction_stats(
                 by_m.setdefault(r["manager_id"], []).append(r)
         for mid, group in by_m.items():
             managers.append({"manager_id": mid, "name": group[0]["manager"], **summarize(group)})
+        managers = only_tracked(managers, await untracked_manager_ids(session))
         managers.sort(key=lambda m: -(m["contact"]["median_seconds"] or 0))
 
     worst = sorted(

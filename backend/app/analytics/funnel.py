@@ -266,6 +266,7 @@ async def compute_funnel(
         if mids:
             rows = (await session.execute(select(CrmManager).where(CrmManager.id.in_(mids)))).scalars().all()
             names = {m.id: f"{m.last_name} {m.name}".strip() for m in rows}
+            mids -= {m.id for m in rows if not m.is_tracked}
         for mid in mids:
             m_cohort = [i for i in cohort if i.deal.assigned_by_id == mid]
             m_won = [i for i in won if i.deal.assigned_by_id == mid]
