@@ -275,32 +275,58 @@ def fmt_duration(seconds: float | None, *, work: bool = False) -> str:
     return f"{h} ч {m} мин" if h else f"{m} мин"
 
 
+# How many rows of each list fit a phone screen without scrolling past the point
+LIST_ROWS = 5
+PERIOD_WORD = {"daily": "За день", "weekly": "За неделю", "monthly": "За месяц"}
+
+
 def _was(value: Any, fmt=str) -> str:
-    return f" <i>(было {fmt(value)})</i>" if value is not None else ""
+    return f" (было {fmt(value)})" if value is not None else ""
 
 
-def _link(title: str, url: str | None) -> str:
-    t = _e(title[:70])
+def _short(text: str, limit: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
+def _link(title: str, url: str | None, limit: int = 48) -> str:
+    t = _e(_short(title, limit))
     return f'<a href="{_e(url)}">{t}</a>' if url else t
+
+
+def _stay(seconds: float | None, *, work: bool) -> str:
+    """Time on a stage, rounded: nobody needs the minutes of a deal stuck for 288 hours."""
+    if seconds is None:
+        return "—"
+    s = int(round(seconds))
+    if not work:
+        d = s // 86400
+        return f"{d} дн." if d else fmt_duration(s)
+    h, m = s // 3600, (s % 3600) // 60
+    if h >= 10:
+        return f"{h} ч"
+    return f"{h} ч {m} мин" if h and m else f"{h} ч" if h else f"{m} мин"
+
+
+def _nonzero(pairs: list[tuple[str, int]]) -> list[str]:
+    return [f"{label} {value}" for label, value in pairs if value]
 
 
 def render_report(data: dict[str, Any]) -> str:
     m, p = data["metrics"], data["previous"]
     pct = lambda v: f"{v:g}".replace(".", ",") + "%"  # noqa: E731
-    lines = [f"<b>{_e(data['title'])}</b>"]
+    react = lambda sec: fmt_duration(sec, work=True).removesuffix(" раб.")  # noqa: E731
+    period = PERIOD_WORD.get(data["kind"], "За период")
+    lines = [f"📊 <b>{_e(data['title'])}</b>"]
     if data.get("data_warning"):
         lines.append(f"⚠️ <i>{_e(data['data_warning'])}</i>")
+
     lines += [
         "",
-        f"Новых сделок: {m['new']}{_was(p['new'])}",
-        f"Успешно закрыто: {m['won']}" + (f" на {format_money(m['won_sum'])}" if m["won"] else "") + _was(p["won"]),
-        f"Проиграно: {m['lost']}{_was(p['lost'])}",
-        f"Просрочек за период: {m['overdue']}{_was(p['overdue'])}",
-        f"Незакрытых просрочек сейчас: {m['overdue_open_now']}",
-        f"Зависших сделок сейчас: {m['stuck_now']} из {m['open_now']}",
-        "Реакция (медиана до контакта): "
-        + fmt_duration(m["reaction_median_seconds"], work=True)
-        + (_was(fmt_duration(p["reaction_median_seconds"], work=True)) if p["reaction_median_seconds"] is not None else ""),
+        "💰 <b>Продажи</b>",
+        f"Выиграно: <b>{m['won']}</b>" + (f" на <b>{format_money(m['won_sum'])}</b>" if m["won"] else "") + _was(p["won"]),
+        f"Новых сделок: <b>{m['new']}</b>{_was(p['new'])}",
+        f"Проиграно: <b>{m['lost']}</b>{_was(p['lost'])}",
     ]
     if data.get("plan"):
         from app.analytics.plan import TargetProgress
@@ -310,50 +336,81 @@ def render_report(data: dict[str, Any]) -> str:
                                "period_end": date.fromisoformat(plan["period_end"])})
         lines.append(_plan_line(tp))
 
+    lines += [
+        "",
+        "⏱ <b>Дисциплина</b>",
+        f"Новых просрочек: <b>{m['overdue']}</b>{_was(p['overdue'])}",
+        f"Всего не закрыто просрочек: <b>{m['overdue_open_now']}</b>",
+        f"Зависло сделок: <b>{m['stuck_now']}</b> из {m['open_now']}",
+        f"До первого контакта: <b>{react(m['reaction_median_seconds'])}</b>"
+        + (_was(react(p["reaction_median_seconds"])) if p["reaction_median_seconds"] is not None else ""),
+    ]
+
     if data["managers"]:
-        lines += ["", "<b>По менеджерам</b>"]
+        lines += ["", "👥 <b>Менеджеры</b>"]
+        quiet: list[str] = []
         for r in data["managers"]:
-            parts = [f"новых {r['new']}", f"выиграно {r['won']}", f"проиграно {r['lost']}",
-                     f"просрочек {r['overdue']}", f"висит {r['overdue_open']}", f"зависло {r['stuck']}"]
+            done = _nonzero([("новых", r["new"]), ("выиграно", r["won"]), ("проиграно", r["lost"]),
+                             ("просрочек", r["overdue"])])
             if r["reaction_median_seconds"] is not None:
-                parts.append(f"реакция {fmt_duration(r['reaction_median_seconds'], work=True)}")
+                done.append(f"контакт через {react(r['reaction_median_seconds'])}")
             if r["plan_percent"] is not None:
-                parts.append(f"план {pct(r['plan_percent'])}")
-            lines.append(f"{_e(r['name'])} — " + " · ".join(parts))
+                done.append(f"план {pct(r['plan_percent'])}")
+            debt = _nonzero([("не закрыто просрочек", r["overdue_open"]), ("зависло сделок", r["stuck"])])
+            if not done and not debt:
+                quiet.append(_e(r["name"]))
+                continue
+            lines += ["", f"<b>{_e(r['name'])}</b>"]
+            if done:
+                lines.append(f"{period}: " + " · ".join(done))
+            if debt:
+                lines.append("Сейчас: " + " · ".join(debt))
+        if quiet:
+            lines += ["", "<i>Без событий и долгов: " + ", ".join(quiet) + "</i>"]
 
     if data["problem_deals"]:
-        lines += ["", "<b>Требуют внимания</b>"]
-        for d in data["problem_deals"]:
-            stay = fmt_duration(d["in_stage_seconds"], work=d["unit"] != "calendar_days")
-            lines.append(
-                f"• {_link(f'№{d['bitrix_id']} {d['title']}', d['bitrix_url'])} — {_e(d['stage'])} {stay}"
-                f" (срок {_e(d['rule'])})" + (f" · {_e(d['manager'])}" if d["manager"] else "")
-            )
+        lines += ["", "🔥 <b>Требуют внимания</b>"]
+        for i, d in enumerate(data["problem_deals"][:LIST_ROWS], 1):
+            stay = _stay(d["in_stage_seconds"], work=d["unit"] != "calendar_days")
+            lines += [
+                "",
+                f"{i}. {_link(f'№{d['bitrix_id']} {d['title']}', d['bitrix_url'])}",
+                f"«{_e(_short(d['stage'], 40))}» — уже <b>{stay}</b> при сроке {_e(d['rule'])}"
+                + (f" · {_e(d['manager'])}" if d["manager"] else ""),
+            ]
 
     cq = data["card_quality"]
-    if cq["no_next_activity"] or cq.get("with_issues"):
-        lines += ["", "<b>Качество карточек</b>"]
-        if cq.get("checked"):
-            lines.append(f"С нарушениями регламента: {cq['with_issues']} из {cq['checked']} ({pct(cq['share'] or 0)})")
-        for b in cq.get("by_check", []):
-            lines.append(f"— {_e(b['label'])}: {b['count']}")
-        lines.append(f"Без следующего дела: {cq['no_next_activity']}")
-        for d in cq["deals"]:
-            lines.append(f"• {_link(f'№{d['bitrix_id']} {d['title']}', d['bitrix_url'])}"
+    if cq.get("with_issues"):
+        lines += [
+            "",
+            "📝 <b>Качество карточек</b>",
+            f"С нарушениями: <b>{cq['with_issues']}</b> из {cq['checked']} ({pct(cq['share'] or 0)})",
+        ]
+        for b in cq.get("by_check", [])[:LIST_ROWS]:
+            lines.append(f"• {b['count']} — {_e(_short(b['label'], 62))}")
+
+    if cq["no_next_activity"]:
+        lines += ["", f"📌 <b>Без следующего дела: {cq['no_next_activity']}</b>"]
+        if cq["deals"]:
+            lines.append("Самые крупные:")
+        for d in cq["deals"][:LIST_ROWS]:
+            lines.append(f"• {_link(f'№{d['bitrix_id']} {d['title']}', d['bitrix_url'], 40)}"
                          + (f" — {format_money(d['opportunity'])}" if d["opportunity"] else ""))
 
     if data["kind"] != "daily" and data["problem_stages"]:
-        lines += ["", "<b>Проблемные этапы</b>"]
-        for s in data["problem_stages"]:
-            lines.append(f"{_e(s['name'])} — зависло {s['stuck']} из {s['open']} · просрочек {s['overdue']}")
+        lines += ["", "🚧 <b>Проблемные этапы</b>"]
+        for s in data["problem_stages"][:LIST_ROWS]:
+            lines.append(f"• {_e(s['name'])} — зависло {s['stuck']} из {s['open']} · просрочек {s['overdue']}")
 
     ai = data.get("ai_summary")
     if ai and ai.get("status") == "ok" and ai.get("headline"):
-        lines += ["", "<b>Вывод ИИ</b>", _e(ai["headline"])]
+        lines += ["", "🤖 <b>Вывод ИИ</b>", _e(ai["headline"])]
         lines += [f"• {_e(p)}" for p in ai.get("points", [])]
         if ai.get("recommendations"):
             lines.append("<i>Что сделать:</i>")
             lines += [f"{i}. {_e(r)}" for i, r in enumerate(ai["recommendations"], 1)]
+
+    lines += ["", "<i>Часы считаются рабочие. Подробности — в панели.</i>"]
     return "\n".join(lines)
 
 

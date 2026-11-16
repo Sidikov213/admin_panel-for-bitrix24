@@ -111,11 +111,13 @@ async def test_daily_report_content(db_session: AsyncSession) -> None:
     assert data["card_quality"]["deals"][0]["bitrix_id"] == 3
 
     text = render_report(data)
-    assert text.startswith("<b>Итоги дня · 06.10.2026</b>")
-    assert "Новых сделок: 3 <i>(было 1)</i>" in text
-    assert "Успешно закрыто: 1 на 250 000 ₽" in text
+    assert text.startswith("📊 <b>Итоги дня · 06.10.2026</b>")
+    assert "Новых сделок: <b>3</b> (было 1)" in text
+    assert "Выиграно: <b>1</b> на <b>250 000 ₽</b>" in text
     assert "&lt;Клиент&gt; &amp; Ко" in text and "<Клиент>" not in text
-    assert "Иванова Мария — новых 3 · выиграно 1 · проиграно 1 · просрочек 1 · висит 3 · зависло 2" in text
+    assert "<b>Иванова Мария</b>\nЗа день: новых 3 · выиграно 1 · проиграно 1 · просрочек 1" in text
+    assert "Сейчас: не закрыто просрочек 3 · зависло сделок 2" in text
+    assert " 0" not in text.split("Менеджеры")[1].split("Требуют внимания")[0]  # zeros are noise
     assert "Проблемные этапы" not in text  # weekly/monthly only
 
 
@@ -124,7 +126,7 @@ async def test_weekly_report_has_problem_stages(db_session: AsyncSession) -> Non
     await _seed(db_session)
     start, end = period_for("weekly", DAY)
     text = render_report(await build_report(db_session, "weekly", start, end))
-    assert text.startswith("<b>Итоги недели · 05.10–11.10.2026</b>")
+    assert text.startswith("📊 <b>Итоги недели · 05.10–11.10.2026</b>")
     assert "<b>Проблемные этапы</b>" in text and "Недозвон — зависло 1 из 1 · просрочек 1" in text
 
 
@@ -161,7 +163,7 @@ async def test_report_archived_without_telegram(db_session: AsyncSession, monkey
     assert r["reason"] == "telegram_not_configured"
     report = await db_session.get(SalesReport, r["report_id"])
     assert (report.kind, report.period_start, report.period_end) == ("weekly", date(2026, 10, 5), date(2026, 10, 11))
-    assert report.sent_at is None and report.text.startswith("<b>Итоги недели")
+    assert report.sent_at is None and report.text.startswith("📊 <b>Итоги недели")
 
 
 async def _login(client: AsyncClient, session: AsyncSession, role: UserRole) -> dict:
