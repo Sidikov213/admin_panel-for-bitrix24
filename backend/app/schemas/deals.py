@@ -19,10 +19,13 @@ class ManagerBrief(ORMModel):
     last_name: str
     bitrix_id: int
     is_active: bool = True
+    is_tracked: bool = True
     telegram_chat_id: str | None = None
 
 
 class ManagerUpdate(BaseModel):
+    # False hides the person from per-manager lists; their deals stay in the totals
+    is_tracked: bool | None = None
     # Numeric chat id (negative for groups) or @channel/@username; null clears it
     telegram_chat_id: str | None = Field(
         default=None, pattern=r"^(-?\d{1,20}|@[A-Za-z0-9_]{5,32})$"

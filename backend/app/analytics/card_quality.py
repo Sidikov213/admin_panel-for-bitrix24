@@ -20,6 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.analytics.kpi import _as_utc
 from app.core.timezone import utc_now
 from app.integrations.bitrix.links import deal_url
+from app.analytics.tracked import only_tracked, untracked_manager_ids
 from app.models.crm import CardQualityRule, CrmDeal, CrmPipeline, CrmStage, DealComment, DealStageHistory
 from app.repositories.sync import SyncRepository
 from app.services.sync_service import COMMENTS_STATE, DEAL_FIELDS_STATE
@@ -262,7 +263,9 @@ async def card_quality(
             ({"code": c, "label": check_label(c, fields), "count": n} for c, n in counts.items()),
             key=lambda x: -x["count"],
         ),
-        "by_manager": sorted(by_manager.values(), key=lambda m: -(m["share"] or 0)),
+        "by_manager": only_tracked(
+            sorted(by_manager.values(), key=lambda m: -(m["share"] or 0)), await untracked_manager_ids(session)
+        ),
         "items": items,
         "total": len(items),
         "notes": notes,

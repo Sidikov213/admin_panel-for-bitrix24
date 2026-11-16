@@ -160,12 +160,13 @@ async def build_report(session: AsyncSession, kind: str, start: date, end: date)
             per[item["manager_id"]]["overdue"] += 1
     stuck_by_m = {m["manager_id"]: m for m in stuck["by_manager"]}
     react_by_m = {m["manager_id"]: m for m in reaction["managers"]}
-    names = {
-        m.id: f"{m.last_name} {m.name}".strip()
-        for m in (await session.execute(select(CrmManager).where(CrmManager.id.in_(list(per) or [0])))).scalars()
-    }
+    people = (await session.execute(select(CrmManager).where(CrmManager.id.in_(list(per) or [0])))).scalars().all()
+    names = {m.id: f"{m.last_name} {m.name}".strip() for m in people}
+    hidden = {m.id for m in people if not m.is_tracked}
     managers = []
     for mid, v in per.items():
+        if mid in hidden:
+            continue
         sm = stuck_by_m.get(mid, {})
         rm = react_by_m.get(mid)
         row = {

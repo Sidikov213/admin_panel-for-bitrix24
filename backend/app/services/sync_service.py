@@ -91,6 +91,16 @@ def _money_key(value: object) -> str | None:
         return str(value)
 
 
+def bitrix_user_is_active(raw: dict[str, Any]) -> bool:
+    """user.get answers ACTIVE as a boolean, older exports as "Y"/"N"; a missing flag means active."""
+    value = raw.get("ACTIVE")
+    if value is None:
+        return True
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().upper() in ("Y", "TRUE", "1")
+
+
 class SyncOrchestrator:
     def __init__(self, session: AsyncSession, client: BitrixClient | None = None) -> None:
         self._session = session
@@ -632,7 +642,7 @@ class SyncOrchestrator:
             self._session.add(row)
         row.name = str(raw.get("NAME") or "")
         row.last_name = str(raw.get("LAST_NAME") or "")
-        row.is_active = str(raw.get("ACTIVE") or "Y") == "Y"
+        row.is_active = bitrix_user_is_active(raw)
         row.raw = raw
         await self._session.flush()
         return row
