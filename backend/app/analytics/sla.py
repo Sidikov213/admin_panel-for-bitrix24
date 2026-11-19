@@ -149,7 +149,7 @@ async def stuck_deals(
     cal = get_work_calendar()
     rules = await load_rules(session)
 
-    filters = [CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False)]
+    filters = [CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False)]
     if category_id is not None:
         filters.append(CrmDeal.category_id == category_id)
     if manager_id is not None:
@@ -312,7 +312,7 @@ async def reaction_stats(
     _, end_utc = local_day_bounds(period_end)
 
     filters = [
-        CrmDeal.missing_from_bitrix.is_(False),
+        CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
         CrmDeal.date_create >= start_utc,
         CrmDeal.date_create <= end_utc,
     ]

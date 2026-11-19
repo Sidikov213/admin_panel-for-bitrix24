@@ -4,14 +4,16 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import Response
 
-from app.auth.deps import CurrentUser, DbSession
+from app.auth.csrf import validate_csrf
+from app.auth.deps import AdminUser, CurrentUser, DbSession
 from app.core.config import get_settings
 from app.core.timezone import app_tz, utc_now
 from app.repositories.deals import DealRepository
-from app.schemas.deals import DealDetailOut, DealListResponse
+from app.models.crm import CrmDeal
+from app.schemas.deals import DealDetailOut, DealListResponse, DealOut, DealUpdate
 from app.services.deals_service import DealsService
 
 router = APIRouter()
@@ -37,6 +39,7 @@ def deal_filters(
     closed_to: date | None = Query(default=None),
     outcome: str | None = Query(default=None, pattern="^(won|lost)$"),
     overdue: bool | None = Query(default=None, description="Есть просроченное дело"),
+    excluded: bool = Query(default=False, description="Показать сделки, исключённые из аналитики"),
     sort_by: str = Query(default="date_modify"),
     sort_dir: str = Query(default="desc", pattern="^(asc|desc)$"),
 ) -> dict[str, Any]:
@@ -123,4 +126,25 @@ async def get_deal(deal_id: int, _user: CurrentUser, db: DbSession) -> DealDetai
     deal = await DealsService(db).get_deal_detail(deal_id)
     if not deal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
+    return deal
+
+
+@router.patch("/{deal_id}", response_model=DealOut)
+async def update_deal(
+    deal_id: int,
+    body: DealUpdate,
+    _admin: AdminUser,
+    db: DbSession,
+    request: Request,
+    csrf_header: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> DealOut:
+    """Panel-only flag; the deal in Bitrix stays as it is."""
+    validate_csrf(request, csrf_header)
+    row = await db.get(CrmDeal, deal_id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
+    row.is_excluded = body.is_excluded
+    await db.flush()
+    deal = await DealsService(db).get_deal(deal_id)
+    assert deal is not None
     return deal

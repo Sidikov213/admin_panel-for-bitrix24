@@ -130,7 +130,7 @@ async def build_digest(session: AsyncSession, *, today: date | None = None) -> D
     open_deals = (
         await session.execute(
             select(CrmDeal)
-            .where(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False))
+            .where(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False))
             .options(selectinload(CrmDeal.assigned_manager))
         )
     ).scalars().all()

@@ -7,6 +7,7 @@ import type {
   AvitoStatus,
   AvitoSummary,
   DashboardResponse,
+  Deal,
   DealDetail,
   DealListResponse,
   DigestPreview,
@@ -222,6 +223,9 @@ export const api = {
     request<SalesTarget>(`/targets/${id}`, { method: "PATCH", body }),
 
   deleteTarget: (id: number) => request<void>(`/targets/${id}`, { method: "DELETE" }),
+
+  setDealExcluded: (id: number, is_excluded: boolean) =>
+    request<Deal>(`/deals/${id}`, { method: "PATCH", body: { is_excluded } }),
 
   updateManager: (id: number, body: { telegram_chat_id: string | null }) =>
     request<ManagerBrief>(`/managers/${id}`, { method: "PATCH", body }),

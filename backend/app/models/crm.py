@@ -92,6 +92,8 @@ class CrmDeal(TimestampMixin, Base):
     # Set during full reconcile when Bitrix no longer returns the deal in synced categories
     missing_from_bitrix: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     missing_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set in the panel (not synced from Bitrix): technical or junk deals that must not count anywhere
+    is_excluded: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     # Last Bitrix payload incl. UF_* fields: card-quality checks read required fields from it
     raw: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 

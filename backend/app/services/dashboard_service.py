@@ -178,7 +178,7 @@ class DashboardService:
             "metrics": {k: _delta(float(kpis[k]), float(prev[k])) for k in COMPARED_METRICS},
         }
 
-        deal_filters = [CrmDeal.missing_from_bitrix.is_(False)]
+        deal_filters = [CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False)]
         if pipeline_id is not None:
             deal_filters.append(CrmDeal.category_id == pipeline_id)
         if manager_id is not None:

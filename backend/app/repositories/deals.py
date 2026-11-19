@@ -47,6 +47,7 @@ class DealRepository:
         closed_to: date | None = None,
         outcome: str | None = None,
         overdue: bool | None = None,
+        excluded: bool = False,
         sort_by: str = "date_modify",
         sort_dir: str = "desc",
         offset: int = 0,
@@ -61,7 +62,8 @@ class DealRepository:
             selectinload(CrmDeal.stage), selectinload(CrmDeal.assigned_manager)
         )
         count_stmt = select(func.count()).select_from(CrmDeal)
-        filters = [CrmDeal.missing_from_bitrix.is_(False)]
+        # The list shows what the numbers count; excluded deals are a separate view to bring them back
+        filters = [CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(excluded)]
         if closed is not None:
             filters.append(CrmDeal.closed == closed)
         if stage_id is not None:

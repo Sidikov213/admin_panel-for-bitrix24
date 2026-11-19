@@ -141,7 +141,7 @@ async def compute_funnel(
     process = [s for s in stages if s.semantics not in ("success", "failure")]
     process_rank = {s.bitrix_id: i for i, s in enumerate(process)}
 
-    filters = [CrmDeal.category_id == category_id, CrmDeal.missing_from_bitrix.is_(False)]
+    filters = [CrmDeal.category_id == category_id, CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False)]
     if manager_id is not None:
         filters.append(CrmDeal.assigned_by_id == manager_id)
     deals = (await session.execute(select(CrmDeal).where(*filters))).scalars().all()

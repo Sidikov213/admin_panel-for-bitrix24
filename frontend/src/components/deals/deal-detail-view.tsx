@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { EyeOff, ExternalLink, Undo2 } from "lucide-react";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDeal } from "@/hooks/queries";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useDeal, useSetDealExcluded } from "@/hooks/queries";
 import { bitrixDealUrl } from "@/lib/bitrix-url";
 import { formatDateTime, formatMoney, managerName } from "@/lib/format";
 
 export function DealDetailView({ id }: { id: number }) {
   const deal = useDeal(id);
+  const { user } = useAuth();
+  const setExcluded = useSetDealExcluded(id);
 
   if (deal.isLoading) return <PageLoading rows={2} />;
   if (deal.isError || !deal.data) {
@@ -33,23 +36,44 @@ export function DealDetailView({ id }: { id: number }) {
           <h1 className="mt-2 font-serif text-3xl font-semibold">{d.title}</h1>
           <div className="mt-2 flex flex-wrap gap-2">
             {d.closed ? <Badge variant="secondary">Закрыта</Badge> : <Badge variant="success">Активна</Badge>}
+            {d.is_excluded ? <Badge variant="warning">Не учитывается в аналитике</Badge> : null}
             {d.no_future_activity_label ? <Badge variant="warning">{d.no_future_activity_label}</Badge> : null}
             {d.hours_without_observed_movement != null ? (
               <Badge variant="outline">Без движения ~{d.hours_without_observed_movement} ч (наблюдаемо)</Badge>
             ) : null}
           </div>
         </div>
-        {bitrixUrl ? (
-          <Button asChild variant="outline">
-            <a href={bitrixUrl} target="_blank" rel="noopener noreferrer">
-              Открыть в Bitrix
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        ) : (
-          <p className="text-xs text-muted-foreground">Укажите BITRIX_PORTAL_URL для ссылки в Bitrix</p>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {user?.role === "admin" ? (
+            <Button
+              variant="outline"
+              disabled={setExcluded.isPending}
+              onClick={() => setExcluded.mutate(!d.is_excluded)}
+            >
+              {d.is_excluded ? <Undo2 className="mr-2 h-4 w-4" /> : <EyeOff className="mr-2 h-4 w-4" />}
+              {d.is_excluded ? "Вернуть в аналитику" : "Не учитывать в аналитике"}
+            </Button>
+          ) : null}
+          {bitrixUrl ? (
+            <Button asChild variant="outline">
+              <a href={bitrixUrl} target="_blank" rel="noopener noreferrer">
+                Открыть в Bitrix
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">Укажите BITRIX_PORTAL_URL для ссылки в Bitrix</p>
+          )}
+        </div>
       </div>
+
+      {d.is_excluded ? (
+        <p className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Сделка скрыта из дашборда, отчётов, просрочек и списков. В Bitrix с ней ничего не произошло. Найти такие сделки
+          можно в списке сделок: статус «Исключённые из аналитики».
+        </p>
+      ) : null}
+      {setExcluded.isError ? <p className="text-sm text-destructive">Не удалось сохранить. Попробуйте ещё раз.</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>

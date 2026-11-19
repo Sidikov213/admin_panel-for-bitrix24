@@ -150,7 +150,7 @@ async def card_quality(
     rules, fields = await load_quality_rules(session)
     comments_synced = await SyncRepository(session).get_state(COMMENTS_STATE) is not None
 
-    filters = [CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False)]
+    filters = [CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False)]
     if category_id is not None:
         filters.append(CrmDeal.category_id == category_id)
     if manager_id is not None:

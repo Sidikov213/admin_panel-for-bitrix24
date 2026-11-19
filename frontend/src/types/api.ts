@@ -228,6 +228,7 @@ export interface Deal {
   closedate: string | null;
   closed: boolean;
   has_future_activity: boolean;
+  is_excluded?: boolean;
   open_activities_count: number;
   next_deadline_at: string | null;
   last_observed_activity_at: string | null;
