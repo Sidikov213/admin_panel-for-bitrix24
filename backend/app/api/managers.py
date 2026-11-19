@@ -34,12 +34,12 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
             select(
                 CrmDeal.assigned_by_id,
                 func.count()
-                .filter(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False))
+                .filter(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False))
                 .label("active"),
                 func.count()
                 .filter(
                     CrmDeal.closed.is_(False),
-                    CrmDeal.missing_from_bitrix.is_(False),
+                    CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
                     CrmDeal.has_future_activity.is_(False),
                 )
                 .label("no_future"),
@@ -47,7 +47,7 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
                     func.sum(
                         case(
                             (
-                                (CrmDeal.closed.is_(False)) & (CrmDeal.missing_from_bitrix.is_(False)),
+                                (CrmDeal.closed.is_(False)) & (CrmDeal.missing_from_bitrix.is_(False)) & (CrmDeal.is_excluded.is_(False)),
                                 CrmDeal.opportunity,
                             ),
                             else_=0,
@@ -57,7 +57,7 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
                 ).label("sum_active"),
                 func.count()
                 .filter(
-                    CrmDeal.missing_from_bitrix.is_(False),
+                    CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
                     CrmDeal.date_create >= start_utc,
                     CrmDeal.date_create <= end_utc,
                 )
@@ -84,7 +84,7 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
             .join(CrmStage, CrmDeal.stage_id == CrmStage.id, isouter=True)
             .where(
                 CrmDeal.closed.is_(True),
-                CrmDeal.missing_from_bitrix.is_(False),
+                CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
                 CrmStage.semantics == "success",
                 CrmDeal.assigned_by_id.isnot(None),
             )

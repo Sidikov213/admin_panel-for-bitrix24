@@ -90,7 +90,7 @@ async def won_totals(
             .join(CrmStage, CrmDeal.stage_id == CrmStage.id)
             .where(
                 CrmDeal.closed.is_(True),
-                CrmDeal.missing_from_bitrix.is_(False),
+                CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
                 CrmStage.semantics == "success",
                 closed_at >= start_utc,
                 closed_at <= end_utc,

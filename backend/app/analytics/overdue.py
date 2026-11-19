@@ -43,7 +43,7 @@ async def overdue_report(
         .outerjoin(CrmManager, CrmManager.id == CrmDeal.assigned_by_id)
         .outerjoin(CrmPipeline, CrmPipeline.bitrix_id == CrmDeal.category_id)
         .where(
-            CrmDeal.missing_from_bitrix.is_(False),
+            CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
             CrmActivity.deadline.isnot(None),
             CrmActivity.deadline >= start_utc,
             CrmActivity.deadline <= end_utc,

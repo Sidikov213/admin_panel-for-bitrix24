@@ -43,7 +43,7 @@ def overdue_activities_query(now: datetime, *columns: Any) -> Select:
             CrmActivity.completed.is_(False),
             CrmActivity.deadline.isnot(None),
             CrmActivity.deadline < now,
-            CrmDeal.missing_from_bitrix.is_(False),
+            CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
         )
     )
 
@@ -105,7 +105,7 @@ async def compute_period_kpis(
     _, end_utc = local_day_bounds(period_end)
     now = utc_now()
 
-    deal_filters = [CrmDeal.missing_from_bitrix.is_(False)]
+    deal_filters = [CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False)]
     if pipeline_id is not None:
         deal_filters.append(CrmDeal.category_id == pipeline_id)
     if manager_id is not None:

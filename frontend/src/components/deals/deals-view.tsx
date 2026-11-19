@@ -47,7 +47,8 @@ export function DealsView() {
   const pipelineId = searchParams.get("category_id") ?? "";
   const stageId = searchParams.get("stage_id") ?? "";
   const managerId = searchParams.get("manager_id") ?? "";
-  const status = closedParam === "true" ? "closed" : closedParam === "false" ? "open" : "all";
+  const excluded = searchParams.get("excluded") === "true";
+  const status = excluded ? "excluded" : closedParam === "true" ? "closed" : closedParam === "false" ? "open" : "all";
   const sortBy = searchParams.get("sort_by") ?? "date_modify";
   const sortDir = searchParams.get("sort_dir") ?? "desc";
 
@@ -79,6 +80,7 @@ export function DealsView() {
     stage_id: stageId || undefined,
     manager_id: managerId || undefined,
     closed: status === "closed" ? true : status === "open" ? false : undefined,
+    excluded: excluded ? true : undefined,
     ...drill,
     sort_by: sortBy,
     sort_dir: sortDir,
@@ -249,7 +251,11 @@ export function DealsView() {
           <Select
             value={status}
             onValueChange={(v) =>
-              pushFilters({ closed: v === "closed" ? "true" : v === "open" ? "false" : undefined, page: 0 })
+              pushFilters({
+                closed: v === "closed" ? "true" : v === "open" ? "false" : undefined,
+                excluded: v === "excluded" ? "true" : undefined,
+                page: 0,
+              })
             }
           >
             <SelectTrigger>
@@ -259,6 +265,7 @@ export function DealsView() {
               <SelectItem value="all">Все</SelectItem>
               <SelectItem value="open">Открытые</SelectItem>
               <SelectItem value="closed">Закрытые</SelectItem>
+              <SelectItem value="excluded">Исключённые из аналитики</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -287,7 +294,14 @@ export function DealsView() {
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title="Сделки не найдены" description="Измените фильтры или дождитесь синхронизации." />
+        <EmptyState
+          title={excluded ? "Исключённых сделок нет" : "Сделки не найдены"}
+          description={
+            excluded
+              ? "Чтобы убрать сделку из аналитики, откройте её и нажмите «Не учитывать в аналитике»."
+              : "Измените фильтры или дождитесь синхронизации."
+          }
+        />
       ) : (
         <>
           <Table>

@@ -40,6 +40,11 @@ class ManagerUpdate(BaseModel):
         return v
 
 
+class DealUpdate(BaseModel):
+    # True takes the deal out of every number and list; Bitrix is not touched
+    is_excluded: bool
+
+
 class DealOut(ORMModel):
     id: int
     bitrix_id: int
@@ -54,6 +59,7 @@ class DealOut(ORMModel):
     closedate: datetime | None
     closed: bool
     has_future_activity: bool
+    is_excluded: bool = False
     open_activities_count: int
     next_deadline_at: datetime | None
     last_observed_activity_at: datetime | None

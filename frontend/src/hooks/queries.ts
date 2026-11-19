@@ -140,6 +140,15 @@ export function useDeal(id: number) {
   return useQuery({ queryKey: ["deals", id], queryFn: () => api.deal(id), enabled: id > 0 });
 }
 
+export function useSetDealExcluded(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (excluded: boolean) => api.setDealExcluded(id, excluded),
+    // The deal enters or leaves every number in the panel
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
+}
+
 export function useOverdue(params: Record<string, string | number | boolean | undefined>) {
   return useQuery({ queryKey: ["overdue", params], queryFn: () => api.overdue(params), placeholderData: (prev) => prev });
 }

@@ -42,7 +42,7 @@ async def list_stalled(
     deals = (
         await db.execute(
             select(CrmDeal)
-            .where(CrmDeal.closed.is_(False))
+            .where(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False))
             .options(selectinload(CrmDeal.stage), selectinload(CrmDeal.assigned_manager))
         )
     ).scalars().all()

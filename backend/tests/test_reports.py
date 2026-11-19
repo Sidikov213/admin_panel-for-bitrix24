@@ -212,3 +212,31 @@ async def test_hidden_manager_leaves_the_lists_but_not_the_totals(db_session: As
     assert after["managers"] == [] and "Менеджеры" not in render_report(after)
     # The deals are still the company's: the totals must keep matching Bitrix
     assert after["metrics"] == before["metrics"]
+
+
+@pytest.mark.asyncio
+async def test_excluded_deal_leaves_every_number(client: AsyncClient, db_session: AsyncSession) -> None:
+    await _seed(db_session)
+    before = await build_report(db_session, "daily", DAY, DAY)
+    deal = (
+        await db_session.execute(select(CrmDeal).where(CrmDeal.date_create >= datetime(2026, 10, 6, tzinfo=timezone.utc)))
+    ).scalars().first()
+    assert deal is not None
+
+    # Only an admin, and only with the CSRF token
+    viewer = await _login(client, db_session, UserRole.viewer)
+    assert (await client.patch(f"/api/v1/deals/{deal.id}", json={"is_excluded": True}, headers=viewer)).status_code == 403
+    client.cookies.clear()
+    admin = await _login(client, db_session, UserRole.admin)
+    assert (await client.patch(f"/api/v1/deals/{deal.id}", json={"is_excluded": True})).status_code == 403
+    r = await client.patch(f"/api/v1/deals/{deal.id}", json={"is_excluded": True}, headers=admin)
+    assert r.status_code == 200 and r.json()["is_excluded"] is True
+
+    after = await build_report(db_session, "daily", DAY, DAY)
+    assert after["metrics"]["new"] == before["metrics"]["new"] - 1
+    # Gone from the normal list, present in the separate one, and it can be brought back
+    listed = {d["id"] for d in (await client.get("/api/v1/deals", params={"limit": 200})).json()["items"]}
+    hidden = {d["id"] for d in (await client.get("/api/v1/deals", params={"excluded": True})).json()["items"]}
+    assert deal.id not in listed and hidden == {deal.id}
+    await client.patch(f"/api/v1/deals/{deal.id}", json={"is_excluded": False}, headers=admin)
+    assert (await build_report(db_session, "daily", DAY, DAY))["metrics"]["new"] == before["metrics"]["new"]

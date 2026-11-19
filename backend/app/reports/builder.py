@@ -81,7 +81,7 @@ async def _per_manager_outcomes(session: AsyncSession, start: date, end: date) -
 
     created = await session.execute(
         select(CrmDeal.assigned_by_id, func.count())
-        .where(CrmDeal.missing_from_bitrix.is_(False), CrmDeal.date_create >= start_utc, CrmDeal.date_create <= end_utc)
+        .where(CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False), CrmDeal.date_create >= start_utc, CrmDeal.date_create <= end_utc)
         .group_by(CrmDeal.assigned_by_id)
     )
     for mid, n in created.all():
@@ -92,7 +92,7 @@ async def _per_manager_outcomes(session: AsyncSession, start: date, end: date) -
         select(CrmDeal.assigned_by_id, CrmStage.semantics, func.count())
         .join(CrmStage, CrmStage.id == CrmDeal.stage_id)
         .where(
-            CrmDeal.missing_from_bitrix.is_(False),
+            CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
             CrmDeal.closed.is_(True),
             CrmStage.semantics.in_(("success", "failure")),
             closed_at >= start_utc,
@@ -105,7 +105,7 @@ async def _per_manager_outcomes(session: AsyncSession, start: date, end: date) -
             bucket(mid)["won" if sem == "success" else "lost"] = n
     active = await session.execute(
         select(CrmDeal.assigned_by_id, func.count())
-        .where(CrmDeal.missing_from_bitrix.is_(False), CrmDeal.closed.is_(False))
+        .where(CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False), CrmDeal.closed.is_(False))
         .group_by(CrmDeal.assigned_by_id)
     )
     for mid, n in active.all():
@@ -187,7 +187,7 @@ async def build_report(session: AsyncSession, kind: str, start: date, end: date)
     no_next = (
         await session.execute(
             select(CrmDeal)
-            .where(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.has_future_activity.is_(False))
+            .where(CrmDeal.closed.is_(False), CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False), CrmDeal.has_future_activity.is_(False))
             .order_by(CrmDeal.opportunity.desc().nullslast(), CrmDeal.id)
         )
     ).scalars().all()
