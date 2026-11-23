@@ -153,7 +153,13 @@ export interface ManagerBrief {
   last_name: string;
   bitrix_id: number;
   is_active?: boolean;
+  is_tracked?: boolean;
   telegram_chat_id?: string | null;
+}
+
+export interface HiddenManager extends ManagerBrief {
+  deals_count: number;
+  active_deals_count: number;
 }
 
 export interface NotificationStatus {

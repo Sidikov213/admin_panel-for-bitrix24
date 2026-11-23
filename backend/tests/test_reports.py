@@ -240,3 +240,23 @@ async def test_excluded_deal_leaves_every_number(client: AsyncClient, db_session
     assert deal.id not in listed and hidden == {deal.id}
     await client.patch(f"/api/v1/deals/{deal.id}", json={"is_excluded": False}, headers=admin)
     assert (await build_report(db_session, "daily", DAY, DAY))["metrics"]["new"] == before["metrics"]["new"]
+
+
+@pytest.mark.asyncio
+async def test_hidden_managers_have_their_own_list(client: AsyncClient, db_session: AsyncSession) -> None:
+    await _seed(db_session)
+    admin = await _login(client, db_session, UserRole.admin)
+    assert (await client.get("/api/v1/managers/hidden")).json() == []
+    shown = (await client.get("/api/v1/managers")).json()
+    assert shown
+
+    target = shown[0]["id"]
+    r = await client.patch(f"/api/v1/managers/{target}", json={"is_tracked": False}, headers=admin)
+    assert r.status_code == 200 and r.json()["is_tracked"] is False
+    hidden = (await client.get("/api/v1/managers/hidden")).json()
+    assert [m["id"] for m in hidden] == [target] and hidden[0]["deals_count"] >= 1
+    assert target not in [m["id"] for m in (await client.get("/api/v1/managers")).json()]
+
+    # and back
+    await client.patch(f"/api/v1/managers/{target}", json={"is_tracked": True}, headers=admin)
+    assert (await client.get("/api/v1/managers/hidden")).json() == []

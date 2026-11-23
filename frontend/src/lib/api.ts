@@ -9,6 +9,7 @@ import type {
   DashboardResponse,
   Deal,
   DealDetail,
+  HiddenManager,
   DealListResponse,
   DigestPreview,
   DigestSendResult,
@@ -147,6 +148,8 @@ export const api = {
 
   managers: () => request<ManagerListItem[]>("/managers"),
 
+  hiddenManagers: () => request<HiddenManager[]>("/managers/hidden"),
+
   manager: (id: number, period_start?: string, period_end?: string) =>
     request<ManagerDetail>(`/managers/${id}`, { params: { period_start, period_end } }),
 
@@ -227,7 +230,7 @@ export const api = {
   setDealExcluded: (id: number, is_excluded: boolean) =>
     request<Deal>(`/deals/${id}`, { method: "PATCH", body: { is_excluded } }),
 
-  updateManager: (id: number, body: { telegram_chat_id: string | null }) =>
+  updateManager: (id: number, body: { telegram_chat_id?: string | null; is_tracked?: boolean }) =>
     request<ManagerBrief>(`/managers/${id}`, { method: "PATCH", body }),
 
   notificationStatus: () => request<NotificationStatus>("/notifications/status"),

@@ -5,6 +5,7 @@ import {
   Briefcase,
   ClipboardCheck,
   Clock,
+  EyeOff,
   GitBranch,
   LayoutDashboard,
   PauseCircle,
@@ -52,7 +53,13 @@ export const navGroups: NavGroup[] = [
       { href: "/avito", label: "Avito", icon: Store },
     ],
   },
-  { title: "Служебное", items: [{ href: "/system", label: "Система", icon: Wrench }] },
+  {
+    title: "Служебное",
+    items: [
+      { href: "/hidden", label: "Скрытое", icon: EyeOff },
+      { href: "/system", label: "Система", icon: Wrench },
+    ],
+  },
 ];
 
 export const problemNavIcon = AlertTriangle;

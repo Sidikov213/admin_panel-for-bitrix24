@@ -140,6 +140,30 @@ export function useDeal(id: number) {
   return useQuery({ queryKey: ["deals", id], queryFn: () => api.deal(id), enabled: id > 0 });
 }
 
+export function useHiddenManagers() {
+  return useQuery({ queryKey: ["managers", "hidden"], queryFn: () => api.hiddenManagers() });
+}
+
+export function useExcludedDeals() {
+  return useQuery({
+    queryKey: ["deals", "excluded"],
+    queryFn: () => api.deals({ excluded: true, limit: 200, sort_by: "date_modify", sort_dir: "desc" }),
+  });
+}
+
+/** Hide a manager from the per-manager lists or bring them back; any deal can be restored the same way. */
+export function useHiddenActions() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => void queryClient.invalidateQueries();
+  return {
+    restoreDeal: useMutation({ mutationFn: (id: number) => api.setDealExcluded(id, false), onSuccess }),
+    setManagerTracked: useMutation({
+      mutationFn: (v: { id: number; tracked: boolean }) => api.updateManager(v.id, { is_tracked: v.tracked }),
+      onSuccess,
+    }),
+  };
+}
+
 export function useSetDealExcluded(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
