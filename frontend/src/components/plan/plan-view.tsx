@@ -3,6 +3,7 @@
 import { Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
+import { ManagersPlanChart, TargetPaceChart } from "@/components/plan/plan-charts";
 import { PLAN_STATUS, PlanBar, PlanProgressCard } from "@/components/plan/plan-progress-card";
 import { TargetForm } from "@/components/plan/target-form";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -35,7 +36,8 @@ export function PlanView() {
       <div>
         <h1 className="font-serif text-3xl font-semibold">План / факт</h1>
         <p className="text-sm text-muted-foreground">
-          Факт — сумма выигранных сделок за период цели. Прогноз — текущий темп продаж, продлённый до конца периода.
+          Факт — выигранные сделки за период цели: их прибыль или выручка, как задано в цели. Прогноз — текущий темп
+          продаж, продлённый до конца периода.
         </p>
       </div>
 
@@ -63,6 +65,10 @@ export function PlanView() {
               </div>
             </div>
           ) : null}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <TargetPaceChart targets={active} />
+            {managers.length ? <ManagersPlanChart items={managers} /> : null}
+          </div>
         </>
       )}
 
@@ -81,6 +87,7 @@ export function PlanView() {
                 <TableRow>
                   <TableHead>Период</TableHead>
                   <TableHead>Для кого</TableHead>
+                  <TableHead>Показатель</TableHead>
                   <TableHead>План</TableHead>
                   <TableHead>Факт</TableHead>
                   <TableHead className="w-40">Выполнение</TableHead>
@@ -115,6 +122,9 @@ function TargetRow({ p, isAdmin }: { p: TargetProgress; isAdmin: boolean }) {
         {formatDate(p.period_start)} — {formatDate(p.period_end)}
       </TableCell>
       <TableCell>{p.manager_id === null ? "Весь отдел" : (p.manager_name ?? `#${p.manager_id}`)}</TableCell>
+      <TableCell className="whitespace-nowrap text-muted-foreground">
+        {p.metric === "profit" ? "Прибыль" : "Выручка"}
+      </TableCell>
       <TableCell className="whitespace-nowrap">
         {editing ? (
           <form

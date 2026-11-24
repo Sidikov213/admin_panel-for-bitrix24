@@ -138,6 +138,39 @@ async def list_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
     return result
 
 
+@router.get("/hidden")
+async def list_hidden_managers(_user: CurrentUser, db: DbSession) -> list[dict]:
+    """People hidden from the per-manager lists who own deals: the way back for a hidden manager."""
+    counts = (
+        await db.execute(
+            select(
+                CrmDeal.assigned_by_id,
+                func.count().label("total"),
+                func.count().filter(CrmDeal.closed.is_(False)).label("active"),
+            )
+            .where(
+                CrmDeal.assigned_by_id.isnot(None),
+                CrmDeal.missing_from_bitrix.is_(False),
+                CrmDeal.is_excluded.is_(False),
+            )
+            .group_by(CrmDeal.assigned_by_id)
+        )
+    ).all()
+    by_mgr = {mid: (int(total), int(active)) for mid, total, active in counts}
+    rows = (await db.execute(select(CrmManager).where(CrmManager.is_tracked.is_(False)))).scalars().all()
+    result = [
+        {
+            **ManagerBrief.model_validate(r).model_dump(),
+            "deals_count": by_mgr[r.id][0],
+            "active_deals_count": by_mgr[r.id][1],
+        }
+        for r in rows
+        if r.id in by_mgr
+    ]
+    result.sort(key=lambda m: (-m["active_deals_count"], -m["deals_count"], m["last_name"]))
+    return result
+
+
 @router.get("/{manager_id}")
 async def get_manager(
     manager_id: int,

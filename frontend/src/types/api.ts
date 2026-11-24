@@ -153,7 +153,13 @@ export interface ManagerBrief {
   last_name: string;
   bitrix_id: number;
   is_active?: boolean;
+  is_tracked?: boolean;
   telegram_chat_id?: string | null;
+}
+
+export interface HiddenManager extends ManagerBrief {
+  deals_count: number;
+  active_deals_count: number;
 }
 
 export interface NotificationStatus {
@@ -365,6 +371,9 @@ export interface SystemStatus {
 
 export type PeriodType = "week" | "month" | "quarter" | "year";
 
+/** What a plan is set in: won deal amounts or the profit typed into the deal card. */
+export type TargetMetric = "revenue" | "profit";
+
 export interface SalesTarget {
   id: number;
   manager_id: number | null;
@@ -373,6 +382,14 @@ export interface SalesTarget {
   period_end: string;
   amount: string | number;
   currency: string;
+  metric: TargetMetric;
+}
+
+export interface TargetSeries {
+  target_id: number;
+  metric: TargetMetric;
+  plan: number;
+  points: Array<{ date: string; pace: number; fact: number | null }>;
 }
 
 export type SalesTargetInput = {
@@ -382,6 +399,7 @@ export type SalesTargetInput = {
   period_end: string;
   amount: string;
   currency?: string;
+  metric?: TargetMetric;
 };
 
 export type PlanStatus = "done" | "on_track" | "at_risk" | "behind" | "missed" | "not_started" | "early";
@@ -410,6 +428,7 @@ export interface TargetProgress {
   per_day_needed: number | null;
   status: PlanStatus;
   active: boolean;
+  metric: TargetMetric;
 }
 
 export interface TargetProgressResponse {

@@ -9,6 +9,7 @@ import type {
   DashboardResponse,
   Deal,
   DealDetail,
+  HiddenManager,
   DealListResponse,
   DigestPreview,
   DigestSendResult,
@@ -37,6 +38,7 @@ import type {
   SalesTargetInput,
   StalledResponse,
   TargetProgressResponse,
+  TargetSeries,
   SystemStatus,
   User,
 } from "@/types/api";
@@ -147,6 +149,8 @@ export const api = {
 
   managers: () => request<ManagerListItem[]>("/managers"),
 
+  hiddenManagers: () => request<HiddenManager[]>("/managers/hidden"),
+
   manager: (id: number, period_start?: string, period_end?: string) =>
     request<ManagerDetail>(`/managers/${id}`, { params: { period_start, period_end } }),
 
@@ -217,6 +221,8 @@ export const api = {
   targetsProgress: (params: { active_only?: boolean; manager_id?: number } = {}) =>
     request<TargetProgressResponse>("/targets/progress", { params }),
 
+  targetSeries: (id: number) => request<TargetSeries>(`/targets/${id}/series`),
+
   createTarget: (body: SalesTargetInput) => request<SalesTarget>("/targets", { method: "POST", body }),
 
   updateTarget: (id: number, body: Partial<SalesTargetInput>) =>
@@ -227,7 +233,7 @@ export const api = {
   setDealExcluded: (id: number, is_excluded: boolean) =>
     request<Deal>(`/deals/${id}`, { method: "PATCH", body: { is_excluded } }),
 
-  updateManager: (id: number, body: { telegram_chat_id: string | null }) =>
+  updateManager: (id: number, body: { telegram_chat_id?: string | null; is_tracked?: boolean }) =>
     request<ManagerBrief>(`/managers/${id}`, { method: "PATCH", body }),
 
   notificationStatus: () => request<NotificationStatus>("/notifications/status"),
