@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useManagers, useTargetMutations } from "@/hooks/queries";
 import { ApiError } from "@/lib/api";
 import { managerName } from "@/lib/format";
-import type { PeriodType } from "@/types/api";
+import type { PeriodType, TargetMetric } from "@/types/api";
 
 type Preset = { key: string; label: string; type: PeriodType; range: (today: Date) => [Date, Date] };
 
@@ -78,6 +78,7 @@ export function TargetForm() {
   const [periodType, setPeriodType] = useState<PeriodType>("month");
   const [managerId, setManagerId] = useState("");
   const [amount, setAmount] = useState("");
+  const [metric, setMetric] = useState<TargetMetric>("profit");
 
   const activeManagers = useMemo(
     () => (managers.data ?? []).filter((m) => m.is_active !== false).sort((a, b) => managerName(a).localeCompare(managerName(b))),
@@ -104,7 +105,7 @@ export function TargetForm() {
       </CardHeader>
       <CardContent>
         <form
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:items-end"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7 lg:items-end"
           onSubmit={(e) => {
             e.preventDefault();
             if (!amountValid) return;
@@ -115,6 +116,7 @@ export function TargetForm() {
                 period_start: start,
                 period_end: end,
                 amount: amountValue,
+                metric,
               },
               { onSuccess: () => setAmount("") },
             );
@@ -129,6 +131,18 @@ export function TargetForm() {
                   {managerName(m)}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="target-metric">Что считаем</Label>
+            <select
+              id="target-metric"
+              className={selectClass}
+              value={metric}
+              onChange={(e) => setMetric(e.target.value as TargetMetric)}
+            >
+              <option value="profit">Прибыль</option>
+              <option value="revenue">Выручка</option>
             </select>
           </div>
           <div className="space-y-1">
@@ -176,7 +190,7 @@ export function TargetForm() {
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-6">
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-7">
             <Button type="submit" size="sm" disabled={!amountValid || !start || !end || create.isPending}>
               {create.isPending ? "Сохранение…" : "Добавить цель"}
             </Button>
@@ -184,6 +198,10 @@ export function TargetForm() {
             {create.isError ? <span className="text-sm text-destructive">{errorText(create.error)}</span> : null}
             {create.isSuccess && !amount ? <span className="text-sm text-muted-foreground">Цель добавлена.</span> : null}
           </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-7">
+            Прибыль берётся из поля «Прибыль по расчету» в карточке выигранной сделки, выручка — из суммы сделки. Чтобы
+            поставить план каждому менеджеру, добавьте цель на каждого: выберите его в поле «Для кого».
+          </p>
         </form>
       </CardContent>
     </Card>

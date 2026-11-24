@@ -57,6 +57,14 @@ export function useTargetsProgress(activeOnly = true, managerId?: number) {
   });
 }
 
+export function useTargetSeries(id: number | null) {
+  return useQuery({
+    queryKey: ["targets", "series", id],
+    queryFn: () => api.targetSeries(id as number),
+    enabled: id !== null,
+  });
+}
+
 export function useTargetMutations() {
   const queryClient = useQueryClient();
   const onSuccess = () => void queryClient.invalidateQueries({ queryKey: ["targets"] });
