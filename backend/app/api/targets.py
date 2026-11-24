@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.analytics.plan import targets_progress
+from app.analytics.plan import target_series, targets_progress
 from app.auth.csrf import validate_csrf
 from app.auth.deps import AdminUser, CurrentUser, DbSession
 from app.core.timezone import app_tz, utc_now
@@ -35,8 +35,16 @@ async def list_progress(
     return {
         "on": day.isoformat(),
         "items": [p.to_dict() for p in items],
-        "note": "Факт — сумма выигранных сделок (CLOSEDATE, иначе дата изменения) за период цели.",
+        "note": "Факт — выигранные сделки за период цели: их сумма или прибыль из карточки (поле «Прибыль по расчету»).",
     }
+
+
+@router.get("/{target_id}/series")
+async def get_series(target_id: int, _user: CurrentUser, db: DbSession) -> dict:
+    row = await db.get(SalesTarget, target_id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
+    return await target_series(db, row, utc_now().astimezone(app_tz()).date())
 
 
 async def _validate_target(db: DbSession, row: SalesTarget, *, exclude_id: int | None = None) -> None:
@@ -97,7 +105,7 @@ async def update_target(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
     changes = body.model_dump(exclude_unset=True)
-    for k in ("period_type", "period_start", "period_end", "amount", "currency"):
+    for k in ("period_type", "period_start", "period_end", "amount", "currency", "metric"):
         if k in changes and changes[k] is None:
             raise HTTPException(status_code=422, detail=f"{k} не может быть пустым")
     for k, v in changes.items():

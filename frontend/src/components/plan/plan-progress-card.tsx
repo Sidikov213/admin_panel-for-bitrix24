@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatMoney, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { PlanStatus, TargetProgress } from "@/types/api";
+import type { PlanStatus, TargetMetric, TargetProgress } from "@/types/api";
 
 export const PLAN_STATUS: Record<PlanStatus, { label: string; variant: "success" | "warning" | "destructive" | "secondary"; bar: string }> = {
   done: { label: "Выполнен", variant: "success", bar: "bg-emerald-600" },
@@ -14,6 +14,8 @@ export const PLAN_STATUS: Record<PlanStatus, { label: string; variant: "success"
   not_started: { label: "Не начался", variant: "secondary", bar: "bg-muted-foreground" },
   early: { label: "Начало периода", variant: "secondary", bar: "bg-primary" },
 };
+
+export const METRIC_LABEL: Record<TargetMetric, string> = { profit: "по прибыли", revenue: "по выручке" };
 
 function forecastText(p: TargetProgress): string {
   return p.forecast_reliable
@@ -58,7 +60,7 @@ export function PlanProgressCard({ p, compact = false }: { p: TargetProgress; co
               {p.manager_id !== null ? <Link href={`/managers/${p.manager_id}`} className="hover:underline">{title}</Link> : title}
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              {formatDate(p.period_start)} — {formatDate(p.period_end)}
+              {formatDate(p.period_start)} — {formatDate(p.period_end)} · {METRIC_LABEL[p.metric] ?? METRIC_LABEL.revenue}
             </p>
           </div>
           <Badge variant={s.variant} className="shrink-0 whitespace-nowrap">

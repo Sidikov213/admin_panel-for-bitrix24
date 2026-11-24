@@ -255,7 +255,8 @@ def _plan_line(p: TargetProgress) -> str:
         if p.forecast_reliable
         else f"прогноз через {p.forecast_in_days} дн."
     )
-    line = f"🎯 План {period}: {format_money(p.fact)} из {format_money(p.plan)} — {format_pct(p.percent)} · {forecast}"
+    what = " по прибыли" if p.metric == "profit" else ""
+    line = f"🎯 План{what} {period}: {format_money(p.fact)} из {format_money(p.plan)} — {format_pct(p.percent)} · {forecast}"
     if p.per_day_needed and p.status in ("at_risk", "behind"):
         line += f"\n   Нужно {format_money(p.per_day_needed)} в день, осталось {p.days_left} дн."
     return line

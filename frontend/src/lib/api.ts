@@ -38,6 +38,7 @@ import type {
   SalesTargetInput,
   StalledResponse,
   TargetProgressResponse,
+  TargetSeries,
   SystemStatus,
   User,
 } from "@/types/api";
@@ -219,6 +220,8 @@ export const api = {
 
   targetsProgress: (params: { active_only?: boolean; manager_id?: number } = {}) =>
     request<TargetProgressResponse>("/targets/progress", { params }),
+
+  targetSeries: (id: number) => request<TargetSeries>(`/targets/${id}/series`),
 
   createTarget: (body: SalesTargetInput) => request<SalesTarget>("/targets", { method: "POST", body }),
 

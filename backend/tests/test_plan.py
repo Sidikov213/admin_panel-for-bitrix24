@@ -197,3 +197,51 @@ async def test_progress_endpoint(client: AsyncClient, db_session: AsyncSession) 
     assert items[0]["fact"] == 221000.0 and items[0]["status"] in {"on_track", "at_risk", "behind"}
     viewer_create = await client.post("/api/v1/targets", json=BODY, headers={"X-CSRF-Token": client.cookies.get("focus_csrf") or ""})
     assert viewer_create.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_plan_in_profit_reads_the_live_profit_field(client: AsyncClient, db_session: AsyncSession) -> None:
+    from sqlalchemy import select
+
+    from app.analytics.plan import target_series
+    from app.repositories.sync import SyncRepository
+    from app.services.sync_service import DEAL_FIELDS_STATE
+
+    seeded = await _seed(db_session)
+    # Two fields with one label: the first is abandoned, managers fill the second
+    await SyncRepository(db_session).set_state(
+        DEAL_FIELDS_STATE,
+        {
+            "UF_CRM_OLD": {"label": "Прибыль по расчету", "type": "string"},
+            "UF_CRM_LIVE": {"label": "Прибыль по расчету", "type": "string"},
+        },
+    )
+    profits = {1: "20 000", 2: "30500,50", 3: "неизвестно", 7: "1000", 5: "999999"}
+    for d in (await db_session.execute(select(CrmDeal))).scalars():
+        d.raw = {"UF_CRM_OLD": "", "UF_CRM_LIVE": profits.get(d.bitrix_id, "")}
+    db_session.add(
+        SalesTarget(manager_id=seeded["olga"].id, period_type=PeriodType.month, period_start=NOV_1,
+                    period_end=NOV_30, amount=Decimal("10000"), currency="RUB", metric="profit")
+    )
+    for t in (await db_session.execute(select(SalesTarget).where(SalesTarget.manager_id.is_(None)))).scalars():
+        t.metric, t.amount = "profit", Decimal("100000")
+    await db_session.commit()
+
+    items = await targets_progress(db_session, date(2026, 11, 10))
+    dept = next(p for p in items if p.manager_id is None)
+    ivan = next(p for p in items if p.manager_id == seeded["ivan"].id)
+    olga = next(p for p in items if p.manager_id == seeded["olga"].id)
+    # «неизвестно» is 0; the lost deal's profit is not counted
+    assert dept.metric == "profit" and dept.fact == Decimal("51501")
+    assert olga.fact == Decimal("1000") and olga.percent == 10.0
+    # Ivan's plan stays in revenue
+    assert ivan.metric == "revenue" and ivan.fact == Decimal("150000")
+    assert "План по прибыли" in render_team_digest(await build_digest(db_session, today=date(2026, 11, 10)))
+
+    target = (await db_session.execute(select(SalesTarget).where(SalesTarget.manager_id.is_(None)))).scalar_one()
+    series = await target_series(db_session, target, date(2026, 11, 10))
+    points = {p["date"]: p for p in series["points"]}
+    assert len(series["points"]) == 30 and series["plan"] == 100000
+    assert points["2026-11-01"]["fact"] == 1000  # 00:30 Moscow on the 1st
+    assert points["2026-11-05"]["fact"] == points["2026-11-10"]["fact"] == 51501
+    assert points["2026-11-11"]["fact"] is None and points["2026-11-30"]["pace"] == 100000

@@ -59,6 +59,8 @@ class SalesTarget(TimestampMixin, Base):
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="RUB")
+    # What the plan is set in: "revenue" (won deal amounts) or "profit" (the deal's profit field)
+    metric: Mapped[str] = mapped_column(String(16), nullable=False, default="revenue", server_default="revenue")
 
     __table_args__ = (
         UniqueConstraint(

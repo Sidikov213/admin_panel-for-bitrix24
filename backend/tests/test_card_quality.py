@@ -62,6 +62,17 @@ def test_comment_form_and_cleanup() -> None:
 def test_is_filled() -> None:
     assert not any(is_filled(v) for v in (None, "", " ", "0", "0.00", [], {}, 0, Decimal("0.00")))
     assert all(is_filled(v) for v in ("SALE", "125000.00", ["1"], 5, "2026-11-10"))
+    # «Не известно - 0»: in a text field a typed zero is an answer, an empty field is not
+    assert is_filled("0", zero_ok=True) and not is_filled(" ", zero_ok=True)
+
+
+def test_duplicate_labels_resolve_to_the_field_in_use() -> None:
+    twins = {
+        "UF_CRM_OLD": {"label": "Прибыль по расчету", "type": "string"},
+        "UF_CRM_LIVE": {"label": "Прибыль по расчету", "type": "string"},
+    }
+    assert resolve_field_hints(twins)["profit"] == "UF_CRM_OLD"
+    assert resolve_field_hints(twins, {"UF_CRM_OLD": 0, "UF_CRM_LIVE": 1649})["profit"] == "UF_CRM_LIVE"
 
 
 def test_defaults_follow_the_regulations() -> None:

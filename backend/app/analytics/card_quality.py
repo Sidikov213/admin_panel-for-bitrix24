@@ -13,7 +13,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -70,15 +70,44 @@ def default_checks(stage_name: str, field_codes: dict[str, str]) -> list[str]:
     return ["next_activity"]
 
 
-def resolve_field_hints(fields: dict[str, dict[str, str]]) -> dict[str, str]:
+def hint_candidates(fields: dict[str, dict[str, str]]) -> dict[str, list[str]]:
+    """Every UF field whose label matches a hint, in dictionary order."""
+    return {
+        hint: [
+            code
+            for code, meta in fields.items()
+            if code.startswith("UF_") and any(k in str(meta.get("label", "")).lower() for k in keywords)
+        ]
+        for hint, keywords in FIELD_HINTS.items()
+    }
+
+
+def resolve_field_hints(fields: dict[str, dict[str, str]], usage: dict[str, int] | None = None) -> dict[str, str]:
+    """hint → UF code. A portal can keep several fields with the same label (an abandoned
+    one and the live one): with `usage` (code → deals where it is filled) the live one wins."""
     out: dict[str, str] = {}
-    for hint, keywords in FIELD_HINTS.items():
-        for code, meta in fields.items():
-            label = str(meta.get("label", "")).lower()
-            if code.startswith("UF_") and any(k in label for k in keywords):
-                out[hint] = code
-                break
+    for hint, codes in hint_candidates(fields).items():
+        if codes:
+            out[hint] = max(codes, key=lambda c: (usage or {}).get(c, 0))  # max keeps the first on a tie
     return out
+
+
+async def field_usage(session: AsyncSession, codes: list[str]) -> dict[str, int]:
+    """In how many deals each of the given raw fields holds any text."""
+    if not codes:
+        return {}
+    row = (
+        await session.execute(
+            select(*[func.count().filter(func.coalesce(CrmDeal.raw[c].astext, "") != "") for c in codes])
+        )
+    ).one()
+    return dict(zip(codes, (int(v) for v in row)))
+
+
+async def resolved_field_hints(session: AsyncSession, fields: dict[str, dict[str, str]]) -> dict[str, str]:
+    candidates = hint_candidates(fields)
+    ambiguous = [c for codes in candidates.values() if len(codes) > 1 for c in codes]
+    return resolve_field_hints(fields, await field_usage(session, ambiguous))
 
 
 def field_label(code: str, fields: dict[str, dict[str, str]]) -> str:
@@ -91,12 +120,13 @@ def check_label(check: str, fields: dict[str, dict[str, str]]) -> str:
     return CHECK_LABELS.get(check, check)
 
 
-def is_filled(value: object) -> bool:
+def is_filled(value: object, *, zero_ok: bool = False) -> bool:
+    """zero_ok: a typed «0» is an answer (text fields like «Прибыль… Не известно - 0»)."""
     if value is None:
         return False
     if isinstance(value, str):
         v = value.strip()
-        return bool(v) and v not in ("0", "0.00", "N")
+        return bool(v) and (zero_ok or v not in ("0", "0.00", "N"))
     if isinstance(value, (list, dict)):
         return any(is_filled(x) for x in (value.values() if isinstance(value, dict) else value))
     if isinstance(value, (int, float, Decimal)):
@@ -112,7 +142,7 @@ def comment_has_form(text: str) -> bool:
 async def load_quality_rules(session: AsyncSession) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, str]]]:
     """{stage_bitrix_id: {stage, pipeline, checks, source}}, plus the deal field dictionary."""
     fields = await SyncRepository(session).get_state(DEAL_FIELDS_STATE) or {}
-    hints = resolve_field_hints(fields)
+    hints = await resolved_field_hints(session, fields)
     stages = (
         await session.execute(
             select(CrmStage, CrmPipeline)
@@ -209,7 +239,8 @@ async def card_quality(
                 if d.raw is None:
                     no_fields += 1
                     continue
-                failed = not is_filled(d.raw.get(c[6:]))
+                code = c[6:]
+                failed = not is_filled(d.raw.get(code), zero_ok=fields.get(code, {}).get("type") == "string")
             else:
                 continue
             if failed:

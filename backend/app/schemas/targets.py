@@ -1,10 +1,13 @@
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from app.models.targets import PeriodType
 from app.schemas.common import ORMModel
+
+TargetMetric = Literal["revenue", "profit"]
 
 # A target longer than a year is almost certainly a typo in the dates
 MAX_TARGET_DAYS = 366
@@ -17,6 +20,7 @@ class SalesTargetCreate(BaseModel):
     period_end: date
     amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
     currency: str = Field(default="RUB", pattern=r"^[A-Z]{3}$")
+    metric: TargetMetric = "revenue"
 
 
 class SalesTargetUpdate(BaseModel):
@@ -26,6 +30,7 @@ class SalesTargetUpdate(BaseModel):
     period_end: date | None = None
     amount: Decimal | None = Field(default=None, gt=0, max_digits=18, decimal_places=2)
     currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
+    metric: TargetMetric | None = None
 
 
 class SalesTargetOut(ORMModel):
@@ -36,3 +41,4 @@ class SalesTargetOut(ORMModel):
     period_end: date
     amount: Decimal
     currency: str
+    metric: str

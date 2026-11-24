@@ -1,19 +1,24 @@
-"""Plan vs fact for sales targets: won amount, run-rate forecast, pace status."""
+"""Plan vs fact for sales targets: won amount or profit, run-rate forecast, pace status."""
 
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.timezone import local_day_bounds
+from app.analytics.card_quality import resolved_field_hints
+from app.analytics.kpi import _as_utc
+from app.core.timezone import app_tz, local_day_bounds
 from app.models.crm import CrmDeal, CrmManager, CrmStage
 from app.models.sync import SalesTarget
+from app.repositories.sync import SyncRepository
+from app.services.sync_service import DEAL_FIELDS_STATE
 
 # Forecast within this share below the plan is "at risk", below it is "behind"
 AT_RISK_SHARE = Decimal("0.9")
@@ -50,6 +55,8 @@ class TargetProgress:
     # done | on_track | at_risk | behind | missed | not_started | early
     status: str
     active: bool
+    # revenue | profit. Last and defaulted: reports stored before it existed are rebuilt from JSON
+    metric: str = "revenue"
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -69,36 +76,68 @@ def _pct(part: Decimal, whole: Decimal) -> float:
     return round(float(part / whole * 100), 1) if whole > 0 else 0.0
 
 
+async def profit_field_code(session: AsyncSession) -> str | None:
+    """The Bitrix deal field managers type the profit into (found by its label)."""
+    fields = await SyncRepository(session).get_state(DEAL_FIELDS_STATE) or {}
+    return (await resolved_field_hints(session, fields)).get("profit")
+
+
+_NUMBER_RE = re.compile(r"^-?[0-9]+(\.[0-9]+)?$")
+
+
+def parse_profit(value: object) -> Decimal:
+    """The profit field is free text: «25 000», «25000,50»; «неизвестно» and blanks count as 0."""
+    text = str(value or "").replace(" ", "").replace(" ", "").replace(",", ".")
+    return Decimal(text) if _NUMBER_RE.match(text) else Decimal(0)
+
+
+def _amount_columns(metric: str, profit_code: str | None) -> list:
+    """Columns one won deal's contribution is read from (see _amount)."""
+    if metric == "profit":
+        return [CrmDeal.raw[profit_code].astext] if profit_code else [literal(None)]
+    return [CrmDeal.opportunity]
+
+
+def _amount(metric: str, value: object) -> Decimal:
+    if metric == "profit":
+        return parse_profit(value)
+    return Decimal(str(value)) if value is not None else Decimal(0)
+
+
+def _won_filters(start: date, end: date) -> list:
+    start_utc, _ = local_day_bounds(start)
+    _, end_utc = local_day_bounds(end)
+    closed_at = func.coalesce(CrmDeal.closedate, CrmDeal.date_modify)
+    return [
+        CrmDeal.closed.is_(True),
+        CrmDeal.missing_from_bitrix.is_(False),
+        CrmDeal.is_excluded.is_(False),
+        CrmStage.semantics == "success",
+        closed_at >= start_utc,
+        closed_at <= end_utc,
+    ]
+
+
 async def won_totals(
-    session: AsyncSession, start: date, end: date
+    session: AsyncSession, start: date, end: date, *, metric: str = "revenue", profit_code: str | None = None
 ) -> tuple[dict[int | None, tuple[Decimal, int]], tuple[Decimal, int]]:
-    """Won amount/count per manager and in total for local calendar days [start, end].
+    """Won amount (or profit) and count per manager and in total for local calendar days [start, end].
 
     Same rule as KPI "won": closed, stage semantics success, CLOSEDATE (date_modify
     fallback) inside the period, deals missing from Bitrix excluded.
     """
-    start_utc, _ = local_day_bounds(start)
-    _, end_utc = local_day_bounds(end)
-    closed_at = func.coalesce(CrmDeal.closedate, CrmDeal.date_modify)
+    # Summed here, not in SQL: the profit is typed as free text
     rows = (
         await session.execute(
-            select(
-                CrmDeal.assigned_by_id,
-                func.coalesce(func.sum(CrmDeal.opportunity), 0),
-                func.count(CrmDeal.id),
-            )
+            select(CrmDeal.assigned_by_id, *_amount_columns(metric, profit_code))
             .join(CrmStage, CrmDeal.stage_id == CrmStage.id)
-            .where(
-                CrmDeal.closed.is_(True),
-                CrmDeal.missing_from_bitrix.is_(False), CrmDeal.is_excluded.is_(False),
-                CrmStage.semantics == "success",
-                closed_at >= start_utc,
-                closed_at <= end_utc,
-            )
-            .group_by(CrmDeal.assigned_by_id)
+            .where(*_won_filters(start, end))
         )
     ).all()
-    per_manager = {mid: (Decimal(str(total)), int(cnt)) for mid, total, cnt in rows}
+    per_manager: dict[int | None, tuple[Decimal, int]] = {}
+    for mid, value in rows:
+        amount, count = per_manager.get(mid, (Decimal(0), 0))
+        per_manager[mid] = (amount + _amount(metric, value), count + 1)
     total = (
         sum((v[0] for v in per_manager.values()), Decimal(0)),
         sum(v[1] for v in per_manager.values()),
@@ -171,6 +210,7 @@ def compute_progress(
         per_day_needed=_money(remaining / days_left) if days_left and remaining else None,
         status=status,
         active=target.period_start <= on <= target.period_end,
+        metric=target.metric or "revenue",
     )
 
 
@@ -198,12 +238,16 @@ async def targets_progress(
         names = {m.id: f"{m.last_name} {m.name}".strip() for m in rows}
 
     # One aggregate query per distinct period instead of one per target
-    totals_cache: dict[tuple[date, date], tuple[dict, tuple[Decimal, int]]] = {}
+    profit_code = await profit_field_code(session) if any(t.metric == "profit" for t in targets) else None
+    totals_cache: dict[tuple[date, date, str], tuple[dict, tuple[Decimal, int]]] = {}
     result: list[TargetProgress] = []
     for t in targets:
-        key = (t.period_start, t.period_end)
+        metric = t.metric or "revenue"
+        key = (t.period_start, t.period_end, metric)
         if key not in totals_cache:
-            totals_cache[key] = await won_totals(session, t.period_start, t.period_end)
+            totals_cache[key] = await won_totals(
+                session, t.period_start, t.period_end, metric=metric, profit_code=profit_code
+            )
         per_manager, total = totals_cache[key]
         fact, count = total if t.manager_id is None else per_manager.get(t.manager_id, (Decimal(0), 0))
         result.append(
@@ -217,3 +261,39 @@ async def targets_progress(
         )
     result.sort(key=lambda p: (p.manager_id is not None, not p.active, p.period_start, p.percent))
     return result
+
+
+async def target_series(session: AsyncSession, target: SalesTarget, on: date) -> dict[str, Any]:
+    """Day by day: the fact accumulated so far against the even pace to the plan."""
+    metric = target.metric or "revenue"
+    profit_code = await profit_field_code(session) if metric == "profit" else None
+    closed_at = func.coalesce(CrmDeal.closedate, CrmDeal.date_modify)
+    stmt = (
+        select(closed_at, *_amount_columns(metric, profit_code))
+        .join(CrmStage, CrmDeal.stage_id == CrmStage.id)
+        .where(*_won_filters(target.period_start, target.period_end))
+    )
+    if target.manager_id is not None:
+        stmt = stmt.where(CrmDeal.assigned_by_id == target.manager_id)
+    tz = app_tz()
+    per_day: dict[date, Decimal] = {}
+    for at, value in (await session.execute(stmt)).all():
+        day = _as_utc(at).astimezone(tz).date()
+        per_day[day] = per_day.get(day, Decimal(0)) + _amount(metric, value)
+
+    plan = Decimal(target.amount)
+    days_total = (target.period_end - target.period_start).days + 1
+    points: list[dict[str, Any]] = []
+    total = Decimal(0)
+    for i in range(days_total):
+        day = target.period_start + timedelta(days=i)
+        total += per_day.get(day, Decimal(0))
+        points.append(
+            {
+                "date": day.isoformat(),
+                "pace": float(_money(plan * (i + 1) / days_total)),
+                # The future has no fact yet: the line stops at today
+                "fact": float(_money(total)) if day <= on else None,
+            }
+        )
+    return {"target_id": target.id, "metric": metric, "plan": float(_money(plan)), "points": points}
