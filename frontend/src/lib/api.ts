@@ -223,6 +223,9 @@ export const api = {
 
   targetSeries: (id: number) => request<TargetSeries>(`/targets/${id}/series`),
 
+  departmentSeries: (params: { period_start: string; period_end: string; metric: string }) =>
+    request<TargetSeries>("/targets/department/series", { params }),
+
   createTarget: (body: SalesTargetInput) => request<SalesTarget>("/targets", { method: "POST", body }),
 
   updateTarget: (id: number, body: Partial<SalesTargetInput>) =>

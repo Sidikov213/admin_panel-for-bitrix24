@@ -4,7 +4,7 @@ import { Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { EmptyState, ErrorState, PageLoading } from "@/components/common/page-states";
 import { ManagersPlanChart, TargetPaceChart } from "@/components/plan/plan-charts";
-import { PLAN_STATUS, PlanBar, PlanProgressCard } from "@/components/plan/plan-progress-card";
+import { PLAN_STATUS, PlanBar, PlanProgressCard, scheduledText } from "@/components/plan/plan-progress-card";
 import { TargetForm } from "@/components/plan/target-form";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +24,10 @@ export function PlanView() {
   if (all.isLoading) return <PageLoading rows={3} />;
   if (all.isError) return <ErrorState message="Не удалось загрузить цели." onRetry={() => void all.refetch()} />;
 
-  const items = all.data?.items ?? [];
-  const active = items.filter((p) => p.active);
+  const everything = all.data?.items ?? [];
+  // The managers' sum is computed, not stored: nothing to edit or delete in the table
+  const items = everything.filter((p) => !p.virtual);
+  const active = everything.filter((p) => p.active);
   const department = active.filter((p) => p.manager_id === null);
   const managers = active
     .filter((p) => p.manager_id !== null)
@@ -37,7 +39,8 @@ export function PlanView() {
         <h1 className="font-serif text-3xl font-semibold">План / факт</h1>
         <p className="text-sm text-muted-foreground">
           Факт — выигранные сделки за период цели: их прибыль или выручка, как задано в цели. Прогноз — текущий темп
-          продаж, продлённый до конца периода.
+          продаж, продлённый до конца периода. Предварительно — сделки на стадиях «Поставлен в график», «Ждем
+          итоговую оплату» и «Сделка успешна» с датой монтажа в периоде цели.
         </p>
       </div>
 
@@ -90,6 +93,7 @@ export function PlanView() {
                   <TableHead>Показатель</TableHead>
                   <TableHead>План</TableHead>
                   <TableHead>Факт</TableHead>
+                  <TableHead>Предварительно</TableHead>
                   <TableHead className="w-40">Выполнение</TableHead>
                   <TableHead>Статус</TableHead>
                   {isAdmin ? <TableHead /> : null}
@@ -154,6 +158,7 @@ function TargetRow({ p, isAdmin }: { p: TargetProgress; isAdmin: boolean }) {
         )}
       </TableCell>
       <TableCell className="whitespace-nowrap">{formatMoney(p.fact, p.currency)}</TableCell>
+      <TableCell className="whitespace-nowrap text-muted-foreground">{scheduledText(p) ?? "—"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
           <PlanBar p={p} className="h-2" />

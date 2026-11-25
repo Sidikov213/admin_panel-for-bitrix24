@@ -429,6 +429,12 @@ export interface TargetProgress {
   status: PlanStatus;
   active: boolean;
   metric: TargetMetric;
+  /** Won + scheduled + awaiting payment by mount date in the period; null without a mount date field. */
+  scheduled: number | null;
+  scheduled_count: number;
+  scheduled_percent: number;
+  /** The managers' plans added up (no department target for the period); has no stored target. */
+  virtual: boolean;
 }
 
 export interface TargetProgressResponse {

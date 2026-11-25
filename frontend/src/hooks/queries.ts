@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ReportKind, SalesTargetInput, SlaUnit } from "@/types/api";
+import type { ReportKind, SalesTargetInput, SlaUnit, TargetProgress } from "@/types/api";
 
 export function useAiStatus() {
   return useQuery({ queryKey: ["ai", "status"], queryFn: () => api.aiStatus() });
@@ -57,11 +57,17 @@ export function useTargetsProgress(activeOnly = true, managerId?: number) {
   });
 }
 
-export function useTargetSeries(id: number | null) {
+/** A stored target is charted by id; the managers' sum (virtual) by its period and metric. */
+export function useTargetSeries(p: TargetProgress | null) {
   return useQuery({
-    queryKey: ["targets", "series", id],
-    queryFn: () => api.targetSeries(id as number),
-    enabled: id !== null,
+    queryKey: p?.virtual
+      ? ["targets", "series", "department", p.period_start, p.period_end, p.metric]
+      : ["targets", "series", p?.target_id ?? null],
+    queryFn: () =>
+      p!.virtual
+        ? api.departmentSeries({ period_start: p!.period_start, period_end: p!.period_end, metric: p!.metric })
+        : api.targetSeries(p!.target_id),
+    enabled: p !== null,
   });
 }
 

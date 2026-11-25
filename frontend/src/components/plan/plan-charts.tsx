@@ -21,6 +21,7 @@ import type { TargetProgress } from "@/types/api";
 
 const FACT_COLOR = "#0f766e";
 const PLAN_COLOR = "#a8a29e";
+const SCHEDULED_COLOR = "#d97706";
 const shortDate = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
 const compact = new Intl.NumberFormat("ru-RU", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -37,7 +38,7 @@ function targetTitle(p: TargetProgress) {
 export function TargetPaceChart({ targets }: { targets: TargetProgress[] }) {
   const [chosen, setChosen] = useState<number | null>(null);
   const current = targets.find((t) => t.target_id === chosen) ?? targets[0] ?? null;
-  const series = useTargetSeries(current?.target_id ?? null);
+  const series = useTargetSeries(current);
   if (!current) return null;
 
   return (
@@ -96,14 +97,18 @@ export function TargetPaceChart({ targets }: { targets: TargetProgress[] }) {
 export function ManagersPlanChart({ items }: { items: TargetProgress[] }) {
   const data = [...items]
     .sort((a, b) => b.fact - a.fact)
-    .map((p) => ({ name: targetTitle(p), plan: p.plan, fact: p.fact, currency: p.currency }));
+    .map((p) => ({ name: targetTitle(p), plan: p.plan, fact: p.fact, scheduled: p.scheduled, currency: p.currency }));
+  const withScheduled = data.some((d) => d.scheduled != null);
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">План и факт по менеджерам</CardTitle>
-        <CardDescription>Только менеджеры, которым поставлен план на сегодня.</CardDescription>
+        <CardDescription>
+          Только менеджеры, которым поставлен план на сегодня.
+          {withScheduled ? " «Предварительно» — с монтажами, которые стоят в графике на этот период." : ""}
+        </CardDescription>
       </CardHeader>
-      <CardContent style={{ height: Math.max(288, data.length * 56 + 64) }}>
+      <CardContent style={{ height: Math.max(288, data.length * (withScheduled ? 72 : 56) + 64) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" barGap={2} barCategoryGap="24%" margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
@@ -113,6 +118,9 @@ export function ManagersPlanChart({ items }: { items: TargetProgress[] }) {
             <Legend verticalAlign="top" height={28} iconType="square" />
             <Bar dataKey="plan" name="План" fill={PLAN_COLOR} radius={[0, 3, 3, 0]} isAnimationActive={false} />
             <Bar dataKey="fact" name="Факт" fill={FACT_COLOR} radius={[0, 3, 3, 0]} isAnimationActive={false} />
+            {withScheduled ? (
+              <Bar dataKey="scheduled" name="Предварительно" fill={SCHEDULED_COLOR} radius={[0, 3, 3, 0]} isAnimationActive={false} />
+            ) : null}
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

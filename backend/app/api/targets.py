@@ -5,13 +5,19 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.analytics.plan import target_series, targets_progress
+from app.analytics.plan import department_series, target_series, targets_progress
 from app.auth.csrf import validate_csrf
 from app.auth.deps import AdminUser, CurrentUser, DbSession
 from app.core.timezone import app_tz, utc_now
 from app.models.crm import CrmManager
 from app.models.sync import SalesTarget
-from app.schemas.targets import MAX_TARGET_DAYS, SalesTargetCreate, SalesTargetOut, SalesTargetUpdate
+from app.schemas.targets import (
+    MAX_TARGET_DAYS,
+    SalesTargetCreate,
+    SalesTargetOut,
+    SalesTargetUpdate,
+    TargetMetric,
+)
 
 router = APIRouter()
 
@@ -35,8 +41,25 @@ async def list_progress(
     return {
         "on": day.isoformat(),
         "items": [p.to_dict() for p in items],
-        "note": "Факт — выигранные сделки за период цели: их сумма или прибыль из карточки (поле «Прибыль по расчету»).",
+        "note": "Факт — выигранные сделки за период цели: их сумма или прибыль из карточки (поле «Прибыль по расчету»). "
+        "Предварительно — сделки на стадиях «Поставлен в график», «Ждем итоговую оплату» и «Сделка успешна» "
+        "с датой монтажа в периоде цели.",
     }
+
+
+@router.get("/department/series")
+async def get_department_series(
+    _user: CurrentUser,
+    db: DbSession,
+    period_start: date,
+    period_end: date,
+    metric: TargetMetric = "revenue",
+) -> dict:
+    """Chart for the managers' plans of one period added up, when there is no department target."""
+    data = await department_series(db, period_start, period_end, metric, utc_now().astimezone(app_tz()).date())
+    if data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
+    return data
 
 
 @router.get("/{target_id}/series")

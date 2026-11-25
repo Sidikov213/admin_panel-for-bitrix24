@@ -23,6 +23,12 @@ function forecastText(p: TargetProgress): string {
     : `появится через ${p.forecast_in_days} дн.`;
 }
 
+export function scheduledText(p: TargetProgress): string | null {
+  return p.scheduled == null
+    ? null
+    : `${formatMoney(p.scheduled, p.currency)} (${formatPercent(p.scheduled_percent)})`;
+}
+
 /** Fact bar with a tick where the plan "should" be today if sales were spread evenly. */
 export function PlanBar({ p, className }: { p: TargetProgress; className?: string }) {
   const factPct = Math.min(100, p.percent);
@@ -51,6 +57,7 @@ export function PlanBar({ p, className }: { p: TargetProgress; className?: strin
 export function PlanProgressCard({ p, compact = false }: { p: TargetProgress; compact?: boolean }) {
   const s = PLAN_STATUS[p.status];
   const title = p.manager_id === null ? "План отдела" : (p.manager_name ?? `Менеджер #${p.manager_id}`);
+  const scheduled = scheduledText(p);
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -61,6 +68,7 @@ export function PlanProgressCard({ p, compact = false }: { p: TargetProgress; co
             </CardTitle>
             <p className="text-xs text-muted-foreground">
               {formatDate(p.period_start)} — {formatDate(p.period_end)} · {METRIC_LABEL[p.metric] ?? METRIC_LABEL.revenue}
+              {p.virtual ? " · сумма планов менеджеров" : ""}
             </p>
           </div>
           <Badge variant={s.variant} className="shrink-0 whitespace-nowrap">
@@ -78,6 +86,11 @@ export function PlanProgressCard({ p, compact = false }: { p: TargetProgress; co
         <PlanBar p={p} />
         {!compact ? (
           <div className="grid gap-x-4 gap-y-1 pt-1 text-muted-foreground sm:grid-cols-2">
+            {scheduled ? (
+              <span className="font-medium text-foreground sm:col-span-2">
+                Предварительно: {scheduled} · сделок {p.scheduled_count}
+              </span>
+            ) : null}
             <span>Прогноз: {forecastText(p)}</span>
             <span>Сделок выиграно: {p.won_count}</span>
             <span>Осталось: {formatMoney(p.remaining, p.currency)}</span>
@@ -88,6 +101,7 @@ export function PlanProgressCard({ p, compact = false }: { p: TargetProgress; co
           </div>
         ) : (
           <p className="text-muted-foreground">
+            {scheduled ? <span className="block text-foreground">Предварительно: {scheduled}</span> : null}
             Прогноз {p.forecast_reliable ? formatPercent(p.forecast_percent) : forecastText(p)} · осталось {p.days_left} дн.
           </p>
         )}

@@ -245,3 +245,80 @@ async def test_plan_in_profit_reads_the_live_profit_field(client: AsyncClient, d
     assert points["2026-11-01"]["fact"] == 1000  # 00:30 Moscow on the 1st
     assert points["2026-11-05"]["fact"] == points["2026-11-10"]["fact"] == 51501
     assert points["2026-11-11"]["fact"] is None and points["2026-11-30"]["pace"] == 100000
+
+
+@pytest.mark.asyncio
+async def test_scheduled_mounts_and_department_sum(client: AsyncClient, db_session: AsyncSession) -> None:
+    from sqlalchemy import delete, select
+
+    from app.repositories.sync import SyncRepository
+    from app.services.sync_service import DEAL_FIELDS_STATE
+
+    seeded = await _seed(db_session)
+    ivan, olga = seeded["ivan"], seeded["olga"]
+    await SyncRepository(db_session).set_state(
+        DEAL_FIELDS_STATE,
+        {
+            "UF_PROFIT": {"label": "Прибыль по расчету", "type": "string"},
+            "UF_MOUNT": {"label": "Дата монтажа", "type": "date"},
+        },
+    )
+    pipe_id = (await db_session.execute(select(CrmStage.pipeline_id))).scalars().first()
+    graph = CrmStage(bitrix_id="C1:EXECUTING", pipeline_id=pipe_id, name="Поставлен в график/монтаж", sort=7, semantics="process")
+    pay = CrmStage(bitrix_id="C1:PAY", pipeline_id=pipe_id, name="Ждем итоговую оплату после монтажа (безнал)", sort=8, semantics="process")
+    work = CrmStage(bitrix_id="C1:NEW", pipeline_id=pipe_id, name="В работе/КП", sort=5, semantics="process")
+    db_session.add_all([graph, pay, work])
+    await db_session.flush()
+    # Won deals of the seed: 1 is mounted in November, 2 back in October, 3 has no mount date
+    mounts = {1: "2026-11-04T03:00:00+03:00", 2: "2026-10-28T03:00:00+03:00", 5: "2026-11-06T03:00:00+03:00"}
+    for d in (await db_session.execute(select(CrmDeal))).scalars():
+        d.raw = {"UF_PROFIT": "10000", "UF_MOUNT": mounts.get(d.bitrix_id, "")}
+
+    def open_deal(bid: int, mgr: CrmManager, stage: CrmStage, mount: str, profit: str = "5000", **kw) -> CrmDeal:
+        return CrmDeal(
+            bitrix_id=bid, title=f"d{bid}", category_id=1, stage_id=stage.id, assigned_by_id=mgr.id,
+            opportunity=Decimal("90000"), closed=False, raw={"UF_PROFIT": profit, "UF_MOUNT": mount}, **kw,
+        )
+
+    db_session.add_all(
+        [
+            open_deal(20, ivan, graph, "2026-11-30T03:00:00+03:00"),  # last day of the period
+            open_deal(21, olga, pay, "2026-11-12T03:00:00+03:00", profit="7 000"),
+            open_deal(22, ivan, graph, "2026-12-01T03:00:00+03:00"),  # next month
+            open_deal(23, ivan, work, "2026-11-15T03:00:00+03:00"),  # not scheduled yet
+            open_deal(24, olga, graph, "2026-11-20T03:00:00+03:00", is_excluded=True),
+        ]
+    )
+    await db_session.execute(delete(SalesTarget))
+    db_session.add_all(
+        [
+            SalesTarget(manager_id=m.id, period_type=PeriodType.month, period_start=NOV_1, period_end=NOV_30,
+                        amount=Decimal(amount), currency="RUB", metric="profit")
+            for m, amount in ((ivan, "40000"), (olga, "20000"))
+        ]
+    )
+    await db_session.commit()
+
+    items = await targets_progress(db_session, date(2026, 11, 10))
+    dept = next(p for p in items if p.manager_id is None)
+    p_ivan = next(p for p in items if p.manager_id == ivan.id)
+    p_olga = next(p for p in items if p.manager_id == olga.id)
+    # Ivan: won deal 1 (10 000) + scheduled deal 20 (5 000); the lost deal 5 is not counted
+    assert (p_ivan.scheduled, p_ivan.scheduled_count, p_ivan.scheduled_percent) == (Decimal("15000"), 2, 37.5)
+    assert (p_olga.scheduled, p_olga.scheduled_count) == (Decimal("7000"), 1)
+    # No department target: the managers' plans and numbers added up
+    assert dept.virtual and dept.target_id < 0 and items[0] is dept
+    assert (dept.plan, dept.fact, dept.scheduled) == (Decimal("60000"), Decimal("40000"), Decimal("22000"))
+    assert not p_ivan.virtual
+
+    await _admin(client, db_session, UserRole.viewer)
+    r = await client.get(
+        "/api/v1/targets/department/series",
+        params={"period_start": "2026-11-01", "period_end": "2026-11-30", "metric": "profit"},
+    )
+    assert r.status_code == 200 and r.json()["plan"] == 60000 and len(r.json()["points"]) == 30
+    missing = await client.get(
+        "/api/v1/targets/department/series",
+        params={"period_start": "2026-12-01", "period_end": "2026-12-31", "metric": "profit"},
+    )
+    assert missing.status_code == 404
